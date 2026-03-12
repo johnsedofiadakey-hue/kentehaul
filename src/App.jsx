@@ -467,6 +467,8 @@ export default function App() {
           addToCart={addToCart}
           onSingleBuy={handleSingleBuy}
           siteContent={siteContent}
+          allProducts={products}
+          onOpenProduct={setSelectedProduct}
         />
 
         <OrderTrackingModal

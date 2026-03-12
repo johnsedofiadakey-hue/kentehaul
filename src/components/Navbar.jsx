@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, ShoppingBag, ChevronDown, Truck, ArrowRight } from 'lucide-react';
+import { Menu, X, ShoppingBag, ChevronDown, Truck, ArrowRight, Star, Sparkles, Phone, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -16,11 +16,19 @@ export default function Navbar({
     const [shopDropdownOpen, setShopDropdownOpen] = useState(false);
     const [categories, setCategories] = useState(SHOP_CATEGORIES);
     const [hoveredCat, setHoveredCat] = useState(null);
+    const [scrolled, setScrolled] = useState(false);
+
     const dropdownRef = useRef(null);
     const dropdownTimer = useRef(null);
-
     const location = useLocation();
     const navigate = useNavigate();
+
+    // Scroll effect for navbar
+    useEffect(() => {
+        const handleScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     useEffect(() => {
         const unsub = onSnapshot(doc(db, "settings", "categories"), (snap) => {
@@ -31,7 +39,6 @@ export default function Navbar({
         return () => unsub();
     }, []);
 
-    // Close mobile menu on route change
     useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
 
     const closeMenus = () => {
@@ -44,255 +51,324 @@ export default function Navbar({
     const openDropdown = () => {
         clearTimeout(dropdownTimer.current);
         setShopDropdownOpen(true);
-        setHoveredCat(categories[0]?.id || null);
+        if (!hoveredCat) setHoveredCat(categories[0]?.id || null);
     };
 
     const closeDropdown = () => {
         dropdownTimer.current = setTimeout(() => {
             setShopDropdownOpen(false);
-            setHoveredCat(null);
-        }, 150);
+        }, 300);
     };
 
     const cartCount = cart.reduce((a, b) => a + b.quantity, 0);
 
     return (
-        <nav className="bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-18 md:h-20 items-center">
-
-                    {/* Logo */}
-                    <Link to="/" onClick={closeMenus} className="flex items-center gap-2 cursor-pointer group flex-shrink-0">
-                        {siteContent.logo ? (
-                            <img src={siteContent.logo} alt="Logo" className="h-14 md:h-16 w-auto object-contain" />
-                        ) : (
-                            <>
-                                <div
-                                    className="w-9 h-9 md:w-10 md:h-10 text-white flex items-center justify-center font-bold text-lg rounded-xl shadow-lg group-hover:rotate-6 transition"
-                                    style={{ backgroundColor: siteContent.primaryColor }}
-                                >K</div>
-                                <span className="font-extrabold text-xl md:text-2xl tracking-tight" style={{ color: siteContent.primaryColor }}>
-                                    Kente<span style={{ color: siteContent.secondaryColor }}>Haul</span>
-                                </span>
-                            </>
-                        )}
-                    </Link>
-
-                    {/* Desktop Nav */}
-                    <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
-                        <Link to="/" className="font-bold transition hover:opacity-80 text-sm" style={{ color: isActive('/') ? siteContent.primaryColor : '#6b7280' }}>Home</Link>
-                        <Link to="/heritage" className="font-bold transition hover:opacity-80 text-sm" style={{ color: isActive('/heritage') ? siteContent.primaryColor : '#6b7280' }}>Heritage</Link>
-
-                        {/* RICH SHOP DROPDOWN */}
-                        <div
-                            ref={dropdownRef}
-                            className="relative"
-                            onMouseEnter={openDropdown}
-                            onMouseLeave={closeDropdown}
-                        >
-                            <Link
-                                to="/shop"
-                                className="flex items-center gap-1 font-bold transition hover:opacity-80 text-sm"
-                                style={{ color: isActive('/shop') ? siteContent.primaryColor : '#6b7280' }}
-                            >
-                                Shop <ChevronDown size={14} className={`transition-transform duration-200 ${shopDropdownOpen ? 'rotate-180' : ''}`} />
-                            </Link>
-
-                            <AnimatePresence>
-                                {shopDropdownOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                                        transition={{ duration: 0.15 }}
-                                        onMouseEnter={() => clearTimeout(dropdownTimer.current)}
-                                        onMouseLeave={closeDropdown}
-                                        className="absolute top-full left-1/2 -translate-x-1/2 w-[520px] bg-white shadow-2xl rounded-3xl mt-3 border border-gray-100 overflow-hidden"
-                                    >
-                                        <div className="flex">
-                                            {/* LEFT: Category list */}
-                                            <div className="w-48 border-r border-gray-50 py-4">
-                                                <p className="px-5 pb-3 text-[9px] font-black text-gray-300 uppercase tracking-[4px]">Collections</p>
-                                                {categories.map(cat => (
-                                                    <button
-                                                        key={cat.id}
-                                                        onMouseEnter={() => setHoveredCat(cat.id)}
-                                                        onClick={() => {
-                                                            navigate('/shop');
-                                                            closeMenus();
-                                                        }}
-                                                        className={`w-full text-left px-5 py-3 flex items-center justify-between transition-all text-sm font-bold rounded-none ${hoveredCat === cat.id ? 'text-white' : 'text-gray-600 hover:bg-gray-50'}`}
-                                                        style={hoveredCat === cat.id ? { backgroundColor: siteContent.primaryColor, color: 'white' } : {}}
-                                                    >
-                                                        {cat.name}
-                                                        <ChevronDown size={12} className="-rotate-90" />
-                                                    </button>
-                                                ))}
-                                                <div className="px-4 pt-3 mt-2 border-t border-gray-50">
-                                                    <Link
-                                                        to="/shop"
-                                                        onClick={closeMenus}
-                                                        className="flex items-center gap-1.5 text-xs font-black py-2 transition-all"
-                                                        style={{ color: siteContent.secondaryColor }}
-                                                    >
-                                                        View All <ArrowRight size={12} />
-                                                    </Link>
-                                                </div>
-                                            </div>
-
-                                            {/* RIGHT: Subcategories panel */}
-                                            <div className="flex-1 py-4 px-5">
-                                                {hoveredCat && (() => {
-                                                    const cat = categories.find(c => c.id === hoveredCat);
-                                                    return cat ? (
-                                                        <>
-                                                            <p className="text-[9px] font-black text-gray-300 uppercase tracking-[4px] mb-4">
-                                                                {cat.name} Styles
-                                                            </p>
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                {cat.subcategories.map(sub => (
-                                                                    <button
-                                                                        key={sub}
-                                                                        onClick={() => { navigate('/shop'); closeMenus(); }}
-                                                                        className="text-left p-3 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-all group"
-                                                                    >
-                                                                        <p className="font-bold text-sm text-gray-800 group-hover:text-gray-900">{sub}</p>
-                                                                        <p className="text-[10px] text-gray-400 mt-0.5">{cat.name}</p>
-                                                                    </button>
-                                                                ))}
-                                                                {cat.subcategories.length === 0 && (
-                                                                    <p className="text-sm text-gray-400 italic col-span-2">All items in this collection</p>
-                                                                )}
-                                                            </div>
-                                                            {/* Bottom CTA */}
-                                                            <div
-                                                                className="mt-4 p-3 rounded-2xl flex items-center justify-between cursor-pointer hover:opacity-90 transition-all"
-                                                                style={{ backgroundColor: siteContent.primaryColor + '12' }}
-                                                                onClick={() => { navigate('/shop'); closeMenus(); }}
-                                                            >
-                                                                <div>
-                                                                    <p className="font-black text-xs" style={{ color: siteContent.primaryColor }}>Browse All {cat.name}</p>
-                                                                    <p className="text-[10px] text-gray-400">See full collection</p>
-                                                                </div>
-                                                                <ArrowRight size={16} style={{ color: siteContent.primaryColor }} />
-                                                            </div>
-                                                        </>
-                                                    ) : null;
-                                                })()}
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-
-                        <Link to="/institute" className="font-bold transition hover:opacity-80 text-sm" style={{ color: isActive('/institute') ? siteContent.primaryColor : '#6b7280' }}>Institute</Link>
-                        <Link to="/contact" className="font-bold transition hover:opacity-80 text-sm" style={{ color: isActive('/contact') ? siteContent.primaryColor : '#6b7280' }}>Contact</Link>
-
-                        <button
-                            onClick={() => setIsTrackingOpen(true)}
-                            className="px-4 py-2 rounded-full font-bold text-xs bg-gray-100 hover:bg-gray-200 transition flex items-center gap-1.5"
-                        >
-                            <Truck size={14} /> Track
-                        </button>
-
-                        {/* Cart Button */}
-                        <button
-                            onClick={() => setIsCartOpen(true)}
-                            className="relative p-2 rounded-full transition hover:bg-gray-100 active:scale-95"
-                            style={{ color: siteContent.primaryColor }}
-                        >
-                            <ShoppingBag size={22} />
-                            {cartCount > 0 && (
-                                <motion.span
-                                    key={cartCount}
-                                    initial={{ scale: 0.5 }}
-                                    animate={{ scale: 1 }}
-                                    className="absolute -top-0.5 -right-0.5 w-5 h-5 text-white text-[10px] font-black rounded-full flex items-center justify-center"
-                                    style={{ backgroundColor: siteContent.secondaryColor }}
-                                >
-                                    {cartCount}
-                                </motion.span>
-                            )}
-                        </button>
-                    </div>
-
-                    {/* Mobile Right: Cart + Hamburger */}
-                    <div className="md:hidden flex items-center gap-2">
-                        <button onClick={() => setIsCartOpen(true)} className="relative p-2.5 active:scale-90 transition" style={{ color: siteContent.primaryColor }}>
-                            <ShoppingBag size={24} />
-                            {cartCount > 0 && (
-                                <span className="absolute top-1 right-1 w-4 h-4 text-white text-[9px] font-black rounded-full flex items-center justify-center" style={{ backgroundColor: siteContent.secondaryColor }}>
-                                    {cartCount}
-                                </span>
-                            )}
-                        </button>
-                        <button
-                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            className="p-2.5 rounded-2xl active:scale-90 transition"
-                            style={{ color: siteContent.primaryColor, backgroundColor: siteContent.primaryColor + '10' }}
-                        >
-                            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                        </button>
-                    </div>
-                </div>
+        <>
+            {/* Top Announcement Bar */}
+            <div className="bg-gray-900 text-white py-2 px-4 text-[10px] md:text-xs font-black uppercase tracking-[3px] text-center flex items-center justify-center gap-4 relative z-[60]">
+                <span className="opacity-70 flex items-center gap-1"><Truck size={12} /> Worldwide Royal Shipping</span>
+                <span className="hidden md:inline w-1 h-1 bg-white/30 rounded-full"></span>
+                <span className="flex items-center gap-1"><Sparkles size={12} className="text-amber-400" /> Authentic Bonwire Kente</span>
+                <span className="hidden md:inline w-1 h-1 bg-white/30 rounded-full"></span>
+                <span className="opacity-70 hidden sm:inline">Crafted for Royalty</span>
             </div>
 
-            {/* Mobile Menu */}
-            <AnimatePresence>
-                {mobileMenuOpen && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="md:hidden bg-white border-t border-gray-100 overflow-hidden shadow-xl"
-                    >
-                        <div className="px-5 py-6 space-y-1">
-                            <Link to="/" onClick={closeMenus} className="flex items-center justify-between w-full py-3.5 px-4 rounded-2xl font-bold text-base hover:bg-gray-50 active:bg-gray-100 transition-all" style={{ color: isActive('/') ? siteContent.primaryColor : '#374151' }}>
-                                Home
-                            </Link>
-                            <Link to="/heritage" onClick={closeMenus} className="flex items-center justify-between w-full py-3.5 px-4 rounded-2xl font-bold text-base hover:bg-gray-50 active:bg-gray-100 transition-all" style={{ color: isActive('/heritage') ? siteContent.primaryColor : '#374151' }}>
-                                Heritage
-                            </Link>
+            <nav
+                className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'bg-white/90 backdrop-blur-xl shadow-2xl py-2' : 'bg-white py-4'
+                    } border-b border-gray-50`}
+            >
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
+                    <div className="flex justify-between items-center h-16 md:h-18">
 
-                            {/* Mobile: Shop with expandable categories */}
-                            <div>
-                                <Link to="/shop" onClick={closeMenus} className="flex items-center justify-between w-full py-3.5 px-4 rounded-2xl font-bold text-base hover:bg-gray-50 transition-all" style={{ color: siteContent.primaryColor }}>
-                                    Shop All Collections <ArrowRight size={16} />
-                                </Link>
-                                <div className="mt-1 ml-4 space-y-1 pb-2">
-                                    {categories.map(cat => (
-                                        <button
-                                            key={cat.id}
-                                            onClick={() => { navigate('/shop'); closeMenus(); }}
-                                            className="w-full text-left py-2.5 px-4 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-50 active:bg-gray-100 transition-all flex items-center justify-between"
-                                        >
-                                            {cat.name}
-                                            {cat.subcategories.length > 0 && (
-                                                <span className="text-[10px] text-gray-300">{cat.subcategories.length} styles</span>
-                                            )}
-                                        </button>
-                                    ))}
+                        {/* Logo Area */}
+                        <Link to="/" onClick={closeMenus} className="flex items-center gap-3 cursor-pointer group flex-shrink-0">
+                            {siteContent.logo ? (
+                                <img src={siteContent.logo} alt="Logo" className="h-10 md:h-14 w-auto object-contain transition-transform group-hover:scale-105 duration-500" />
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <div
+                                        className="w-10 h-10 text-white flex items-center justify-center font-black text-xl rounded-2xl shadow-xl transform rotate-3"
+                                        style={{ backgroundColor: siteContent.primaryColor }}
+                                    >K</div>
+                                    <span className="font-black text-xl md:text-2xl tracking-tighter" style={{ color: siteContent.primaryColor }}>
+                                        KENTE<span className="font-light italic" style={{ color: siteContent.secondaryColor }}>HAUL</span>
+                                    </span>
                                 </div>
+                            )}
+                        </Link>
+
+                        {/* Main Desktop Navigation */}
+                        <div className="hidden lg:flex items-center space-x-1">
+                            {[
+                                { name: 'Home', path: '/' },
+                                { name: 'Heritage', path: '/heritage' },
+                            ].map((link) => (
+                                <Link
+                                    key={link.path}
+                                    to={link.path}
+                                    className={`px-4 py-2 rounded-full font-black text-[13px] uppercase tracking-widest transition-all hover:bg-gray-50 ${isActive(link.path) ? 'text-gray-900 border-b-2 border-amber-500 rounded-none' : 'text-gray-500'
+                                        }`}
+                                    style={isActive(link.path) ? { color: siteContent.primaryColor, borderColor: siteContent.primaryColor } : {}}
+                                >
+                                    {link.name}
+                                </Link>
+                            ))}
+
+                            {/* MEGA MENU TRIGGER */}
+                            <div
+                                className="relative group"
+                                onMouseEnter={openDropdown}
+                                onMouseLeave={closeDropdown}
+                            >
+                                <button
+                                    onClick={() => navigate('/shop')}
+                                    className={`px-5 py-2 rounded-full font-black text-[13px] uppercase tracking-widest transition-all flex items-center gap-1.5 ${isActive('/shop') || shopDropdownOpen ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    Collections
+                                    <ChevronDown size={14} className={`transition-transform duration-300 ${shopDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {/* MEGA MENU CONTENT */}
+                                <AnimatePresence>
+                                    {shopDropdownOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 15 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 10 }}
+                                            className="fixed top-[110px] left-0 right-0 w-full bg-white shadow-[0_40px_100px_rgba(0,0,0,0.15)] border-t border-gray-50 overflow-hidden z-[100]"
+                                        >
+                                            <div className="max-w-7xl mx-auto flex h-[480px]">
+                                                {/* Left Sidebar: Categories */}
+                                                <div className="w-[300px] border-r border-gray-100 p-8 flex flex-col bg-gray-50/30">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[4px] mb-6">Our Collections</p>
+                                                    <div className="space-y-1 overflow-y-auto flex-1 pr-2 custom-scrollbar">
+                                                        {categories.map(cat => (
+                                                            <button
+                                                                key={cat.id}
+                                                                onMouseEnter={() => setHoveredCat(cat.id)}
+                                                                onClick={() => { navigate(`/shop?category=${cat.id}`); closeMenus(); }}
+                                                                className={`w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between transition-all group ${hoveredCat === cat.id
+                                                                        ? 'bg-white shadow-xl translate-x-3 scale-105'
+                                                                        : 'hover:bg-white/50 text-gray-400'
+                                                                    }`}
+                                                            >
+                                                                <span className={`font-black text-sm uppercase tracking-wider ${hoveredCat === cat.id ? 'text-gray-900' : ''}`}>
+                                                                    {cat.name}
+                                                                </span>
+                                                                <ChevronDown size={14} className={`-rotate-90 transition-transform ${hoveredCat === cat.id ? 'text-amber-500 scale-125' : 'opacity-0'}`} />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    <div className="mt-8 pt-6 border-t border-gray-100">
+                                                        <Link
+                                                            to="/shop"
+                                                            onClick={closeMenus}
+                                                            className="flex items-center justify-center gap-2 w-full py-4 text-xs font-black uppercase tracking-[3px] text-white rounded-2xl shadow-lg transition-transform active:scale-95"
+                                                            style={{ backgroundColor: siteContent.primaryColor }}
+                                                        >
+                                                            Shop All <ArrowRight size={14} />
+                                                        </Link>
+                                                    </div>
+                                                </div>
+
+                                                {/* Middle Section: Subcategories */}
+                                                <div className="flex-1 p-12 overflow-y-auto">
+                                                    {hoveredCat && (() => {
+                                                        const cat = categories.find(c => c.id === hoveredCat);
+                                                        if (!cat) return null;
+                                                        return (
+                                                            <div className="animate-fade-in">
+                                                                <h3 className="text-3xl font-black text-gray-900 mb-2 uppercase tracking-tight">{cat.name}</h3>
+                                                                <p className="text-gray-400 text-sm mb-10 font-bold max-w-md">Discover the finest {cat.name} Kente patterns, curated with cultural precision and royal elegance.</p>
+
+                                                                <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
+                                                                    {cat.subcategories.map(sub => (
+                                                                        <button
+                                                                            key={sub}
+                                                                            onClick={() => { navigate(`/shop?category=${cat.id}&sub=${sub}`); closeMenus(); }}
+                                                                            className="group text-left p-6 rounded-[32px] bg-gray-50 hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border border-transparent hover:border-gray-100"
+                                                                        >
+                                                                            <div className="flex items-center gap-3 mb-2">
+                                                                                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm" style={{ color: siteContent.secondaryColor }}>
+                                                                                    <Star size={12} fill="currentColor" />
+                                                                                </div>
+                                                                                <span className="font-black text-xs text-gray-400 uppercase tracking-widest opacity-60">Sub-category</span>
+                                                                            </div>
+                                                                            <p className="font-black text-lg text-gray-800 group-hover:text-amber-600 transition-colors uppercase leading-none">{sub}</p>
+                                                                            <div className="mt-4 flex items-center gap-1 text-[10px] font-black uppercase text-gray-300 group-hover:text-gray-900 duration-300">
+                                                                                Explore <ArrowRight size={10} className="transform translate-x-0 group-hover:translate-x-1 duration-300" />
+                                                                            </div>
+                                                                        </button>
+                                                                    ))}
+                                                                    {cat.subcategories.length === 0 && (
+                                                                        <div className="col-span-full py-10 text-center bg-gray-50/50 rounded-[40px] border-2 border-dashed border-gray-100">
+                                                                            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs italic">Complete collection browse</p>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
+
+                                                {/* Right Sidebar: Featured Content (Static Visual) */}
+                                                <div className="w-[320px] p-6 hidden xl:block">
+                                                    <div className="h-full rounded-[40px] relative overflow-hidden group shadow-2xl">
+                                                        <img
+                                                            src={siteContent.heroImage || "https://images.unsplash.com/photo-1590666014404-5f50ba56008d?ixlib=rb-4.0.3&auto=format&fit=crop&q=80&w=600"}
+                                                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                                            alt="Featured"
+                                                        />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/10 to-transparent flex flex-col justify-end p-8">
+                                                            <span className="text-amber-400 text-[10px] font-black uppercase tracking-[4px] mb-2 block">Premium Pick</span>
+                                                            <h4 className="text-white font-black text-2xl leading-tight mb-4 uppercase tracking-tighter">The Royal Queen Collection</h4>
+                                                            <Link to="/shop" onClick={closeMenus} className="bg-white text-gray-900 py-3 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center hover:bg-amber-400 transition-colors duration-300">New Arrivals</Link>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
 
-                            <Link to="/institute" onClick={closeMenus} className="flex items-center justify-between w-full py-3.5 px-4 rounded-2xl font-bold text-base hover:bg-gray-50 active:bg-gray-100 transition-all" style={{ color: '#374151' }}>
-                                Institute
-                            </Link>
-                            <Link to="/contact" onClick={closeMenus} className="flex items-center justify-between w-full py-3.5 px-4 rounded-2xl font-bold text-base hover:bg-gray-50 active:bg-gray-100 transition-all" style={{ color: '#374151' }}>
-                                Contact
-                            </Link>
+                            {[
+                                { name: 'Institute', path: '/institute' },
+                                { name: 'Contact', path: '/contact' }
+                            ].map((link) => (
+                                <Link
+                                    key={link.path}
+                                    to={link.path}
+                                    className={`px-4 py-2 rounded-full font-black text-[13px] uppercase tracking-widest transition-all hover:bg-gray-50 ${isActive(link.path) ? 'text-gray-900' : 'text-gray-500'
+                                        }`}
+                                >
+                                    {link.name}
+                                </Link>
+                            ))}
+                        </div>
+
+                        {/* Actions (Cart, Tracking, Mobile Search placeholder) */}
+                        <div className="flex items-center gap-2 md:gap-4">
                             <button
-                                onClick={() => { setIsTrackingOpen(true); closeMenus(); }}
-                                className="flex items-center gap-3 w-full py-3.5 px-4 rounded-2xl font-bold text-base text-gray-600 hover:bg-gray-50 active:bg-gray-100 transition-all"
+                                onClick={() => setIsTrackingOpen(true)}
+                                className="hidden md:flex flex-col items-center group"
                             >
-                                <Truck size={18} /> Track My Order
+                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition-all transform group-hover:-rotate-12">
+                                    <Truck size={20} />
+                                </div>
+                                <span className="text-[9px] font-black text-gray-400 uppercase mt-1 tracking-widest">Track</span>
+                            </button>
+
+                            {/* CART BUTTON */}
+                            <button
+                                onClick={() => setIsCartOpen(true)}
+                                className="relative flex flex-col items-center group pt-0.5"
+                                style={{ color: siteContent.primaryColor }}
+                            >
+                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.1)] group-hover:-translate-y-1 transition-all relative">
+                                    <ShoppingBag size={22} className="group-hover:scale-110 transition-transform" />
+                                    {cartCount > 0 && (
+                                        <motion.span
+                                            key={cartCount}
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] text-white text-[10px] font-black rounded-full flex items-center justify-center p-1 shadow-lg ring-4 ring-white"
+                                            style={{ backgroundColor: siteContent.secondaryColor }}
+                                        >
+                                            {cartCount}
+                                        </motion.span>
+                                    )}
+                                </div>
+                                <span className="text-[9px] font-black text-gray-400 uppercase mt-1 tracking-widest">Cart</span>
+                            </button>
+
+                            {/* Mobile Hamburger */}
+                            <button
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                className="lg:hidden p-3 bg-gray-50 rounded-2xl text-gray-900 active:scale-95 transition-all"
+                            >
+                                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                             </button>
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </nav>
+                    </div>
+                </div>
+
+                {/* Mobile Slide-down Menu */}
+                <AnimatePresence>
+                    {mobileMenuOpen && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.4, ease: "circOut" }}
+                            className="lg:hidden bg-white border-t border-gray-50 overflow-hidden shadow-2xl overflow-y-auto max-h-[85vh] sticky top-0"
+                        >
+                            <div className="p-6 space-y-2">
+                                {/* Large CTAs */}
+                                <div className="grid grid-cols-2 gap-3 mb-6">
+                                    <button
+                                        onClick={() => { navigate('/shop'); closeMenus(); }}
+                                        className="flex flex-col items-center justify-center p-6 bg-gray-900 text-white rounded-[32px] gap-3 active:scale-95 transition shadow-xl"
+                                    >
+                                        <ShoppingBag size={28} />
+                                        <span className="font-black text-xs uppercase tracking-widest">Shop Shop</span>
+                                    </button>
+                                    <button
+                                        onClick={() => { setIsTrackingOpen(true); closeMenus(); }}
+                                        className="flex flex-col items-center justify-center p-6 bg-gray-50 text-gray-900 rounded-[32px] gap-3 active:scale-95 transition"
+                                    >
+                                        <Truck size={28} />
+                                        <span className="font-black text-xs uppercase tracking-widest">Track order</span>
+                                    </button>
+                                </div>
+
+                                {/* Main Links */}
+                                <div className="space-y-1">
+                                    {[
+                                        { name: 'Home Garden', path: '/', desc: 'Return to start' },
+                                        { name: 'Our Heritage', path: '/heritage', desc: 'The Kente Legacy' },
+                                        { name: 'Kente Institute', path: '/institute', desc: 'Learn the symbols' },
+                                        { name: 'Contact Royal', path: '/contact', desc: 'Support & Help' }
+                                    ].map((link) => (
+                                        <Link
+                                            key={link.path}
+                                            to={link.path}
+                                            className={`flex flex-col py-4 px-6 rounded-2xl transition-all ${isActive(link.path) ? 'bg-amber-50 border-l-4 border-amber-500' : 'hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            <span className={`font-black text-lg uppercase tracking-tight ${isActive(link.path) ? 'text-amber-600' : 'text-gray-900'}`}>{link.name}</span>
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{link.desc}</span>
+                                        </Link>
+                                    ))}
+                                </div>
+
+                                {/* Divider & Support */}
+                                <div className="pt-6 border-t border-gray-100 mt-6 space-y-6 pb-10">
+                                    <div className="flex items-center gap-4 px-2">
+                                        <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-amber-500 shadow-sm">
+                                            <Phone size={22} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Royal Support</p>
+                                            <p className="font-black text-gray-900">{siteContent.contactPhone}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 px-2">
+                                        <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-teal-500 shadow-sm">
+                                            <MapPin size={22} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Location</p>
+                                            <p className="font-black text-gray-900">Accra, Ghana</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </nav>
+        </>
     );
 }

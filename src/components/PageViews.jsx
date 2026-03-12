@@ -1,4 +1,11 @@
 import { Helmet } from 'react-helmet-async';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { Camera, MessageCircle, Star, Quote, Phone, Mail, MapPin, ShoppingBag } from 'lucide-react';
+
+const LazyImage = ({ src, alt, className }) => (
+  <img src={src} alt={alt} className={className} loading="lazy" />
+);
 
 // --- HOME PAGE COMPONENT ---
 export const Home = ({ siteContent, gallery, feedbacks }) => (
