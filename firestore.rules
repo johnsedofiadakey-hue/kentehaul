@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- AUTH HELPERS ---
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // --- PUBLIC READ, ADMIN WRITE ---
+    
+    match /settings/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /products/{product} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /gallery/{image} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /feedbacks/{feedback} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- REVIEWS (PUBLIC CREATE, PUBLIC READ) ---
+    match /reviews/{productId}/userReviews/{review} {
+      allow read: if true;
+      allow create: if true; // In production, add validation for rating 1-5
+      allow update, delete: if isAdmin();
+    }
+
+    // --- SENSITIVE DATA (ADMIN ONLY / SECURE) ---
+
+    match /customers/{customer} {
+      allow read, write: if isAdmin();
+    }
+
+    match /orders/{order} {
+      allow list: if isAdmin();
+      allow get: if true; 
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+    
+    // Email Extension Collection
+    match /mail/{mailId} {
+        allow create: if true;
+        allow read, update, delete: if isAdmin();
+    }
+  }
+}
