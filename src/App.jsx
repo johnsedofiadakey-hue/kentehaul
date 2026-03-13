@@ -140,7 +140,9 @@ export default function App() {
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       if (user && user.email === 'admin@kentehaul.com') {
         setIsAdminAuthenticated(true);
-        setIsAdminLoginOpen(false);
+        if (isAdminLoginOpen) {
+          setIsAdminLoginOpen(false);
+        }
       } else {
         setIsAdminAuthenticated(false);
         if (user) signOut(auth);
@@ -156,7 +158,14 @@ export default function App() {
       unsubFeedback();
       unsubAuth();
     };
-  }, []); // Depend on empty array since currentPage is gone
+  }, []);
+
+  // Centralized Navigation for Admin
+  useEffect(() => {
+    if (isAdminAuthenticated && location.pathname === '/') {
+      navigate('/admin');
+    }
+  }, [isAdminAuthenticated, location.pathname, navigate]);
 
   // ==========================================
   // 3b. ADMIN DATA LISTENERS (Secure)

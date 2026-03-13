@@ -28,8 +28,7 @@ export default function AdminLoginModal({
       await setPersistence(auth, persistence);
 
       await signInWithEmailAndPassword(auth, email, password);
-      // Explicitly navigate to admin portal on success
-      navigate('/admin');
+      // Redirection is now handled centrally in App.jsx to ensure persistence
       onClose();
     } catch (err) {
       console.error("Login Error:", err);

@@ -96,12 +96,13 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                   box-shadow: none !important; 
                   margin: 0 !important; 
                   width: 210mm !important; 
-                  height: 297mm !important;
-                  max-height: 297mm !important;
+                  height: 296mm !important; /* One mm less to prevent browser spilling */
+                  max-height: 296mm !important;
                   min-width: 210mm !important;
-                  padding: 20mm !important;
+                  padding: 15mm !important;
                   display: block !important;
                   overflow: hidden !important;
+                  box-sizing: border-box !important;
                 }
                 .no-print { display: none !important; }
                 .break-avoid { break-inside: avoid; }
