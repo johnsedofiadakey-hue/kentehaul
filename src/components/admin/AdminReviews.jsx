@@ -18,6 +18,14 @@ export default function AdminReviews({ products }) {
         return () => unsub();
     }, []);
 
+    const handleApprove = async (id) => {
+        try {
+            await updateDoc(doc(db, "reviews", id), { status: 'approved' });
+        } catch (err) {
+            console.error("Error approving review:", err);
+        }
+    };
+
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to delete this review? This cannot be undone.")) {
             try {
@@ -43,7 +51,7 @@ export default function AdminReviews({ products }) {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h2 className="text-3xl font-black text-gray-900 tracking-tight uppercase">Customer Reviews</h2>
-                    <p className="text-gray-400 font-bold text-sm tracking-widest uppercase">Manage authenticity & feedback</p>
+                    <p className="text-gray-400 font-bold text-sm tracking-widest uppercase">Admin Moderated Feedback</p>
                 </div>
 
                 <div className="relative w-full md:w-72">
@@ -73,7 +81,7 @@ export default function AdminReviews({ products }) {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
-                                className="bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm hover:shadow-md transition-all group"
+                                className={`bg-white p-6 rounded-[24px] border shadow-sm hover:shadow-md transition-all group ${rev.status === 'approved' ? 'border-gray-100' : 'border-amber-200 bg-amber-50/10'}`}
                             >
                                 <div className="flex flex-col md:flex-row gap-6 md:items-start">
                                     {/* Left: Product Info */}
@@ -83,6 +91,12 @@ export default function AdminReviews({ products }) {
                                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Product</span>
                                         </div>
                                         <p className="font-bold text-gray-900 text-sm line-clamp-2">{getProductName(rev.productId)}</p>
+
+                                        {rev.status !== 'approved' && (
+                                            <div className="mt-3 inline-flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-700 text-[9px] font-black uppercase tracking-tighter rounded-full border border-amber-200">
+                                                <Star size={10} className="animate-pulse" /> Pending Approval
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Middle: Content */}
@@ -113,6 +127,14 @@ export default function AdminReviews({ products }) {
 
                                     {/* Right: Actions */}
                                     <div className="flex md:flex-col justify-end gap-2">
+                                        {rev.status !== 'approved' && (
+                                            <button
+                                                onClick={() => handleApprove(rev.id)}
+                                                className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1 shadow-lg shadow-green-200"
+                                            >
+                                                Approve
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => handleDelete(rev.id)}
                                             className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all transform active:scale-95"

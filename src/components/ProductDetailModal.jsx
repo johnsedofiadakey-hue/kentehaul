@@ -39,10 +39,21 @@ export default function ProductDetailModal({
         const q = query(
             collection(db, "reviews"),
             where("productId", "==", product.id),
+            where("status", "==", "approved"),
             orderBy("createdAt", "desc")
         );
         const unsub = onSnapshot(q, (snap) => {
             setReviews(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        }, (error) => {
+            console.error("Review Listener Error:", error);
+            // Fallback for missing index: manual filter
+            const qBasic = query(collection(db, "reviews"), where("productId", "==", product.id));
+            onSnapshot(qBasic, (s) => {
+                const list = s.docs.map(d => ({ id: d.id, ...d.data() }))
+                    .filter(rev => rev.status === 'approved')
+                    .sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+                setReviews(list);
+            });
         });
         return () => unsub();
     }, [product?.id]);
@@ -89,11 +100,14 @@ export default function ProductDetailModal({
                 rating: userReview.rating,
                 comment: userReview.comment,
                 customerName: userReview.name,
+                status: 'pending', // Moderation system
                 createdAt: serverTimestamp()
             });
             setUserReview({ rating: 5, comment: '', name: '' });
+            alert("Review submitted! It will appear on the site once approved by our team.");
         } catch (err) {
             console.error("Error submitting review:", err);
+            alert("Could not submit review. Please try again.");
         } finally {
             setIsSubmitting(false);
         }

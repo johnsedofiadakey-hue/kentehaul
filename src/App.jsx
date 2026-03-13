@@ -139,11 +139,12 @@ export default function App() {
 
     // G. Listen to Auth State
     const unsubAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (user && user.email === 'admin@kentehaul.com') {
         setIsAdminAuthenticated(true);
         setIsAdminLoginOpen(false);
       } else {
         setIsAdminAuthenticated(false);
+        if (user) signOut(auth);
       }
     });
 
