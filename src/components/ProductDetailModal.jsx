@@ -122,7 +122,7 @@ export default function ProductDetailModal({
     return (
         <AnimatePresence>
             {product && (
-                <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center">
+                <div className="fixed inset-0 z-[300] flex items-end md:items-center justify-center">
                     {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}

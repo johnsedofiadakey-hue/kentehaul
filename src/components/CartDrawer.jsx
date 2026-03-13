@@ -54,13 +54,13 @@ export default function CartDrawer({
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         onClick={handleClose}
-                        className="fixed inset-0 bg-black/50 z-[60] backdrop-blur-sm"
+                        className="fixed inset-0 bg-black/50 z-[300] backdrop-blur-sm"
                     />
 
                     <motion.div
                         initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-                        className="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[70] shadow-2xl flex flex-col"
+                        className="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[310] shadow-2xl flex flex-col"
                     >
                         {/* HEADER */}
                         <div className="p-5 border-b flex items-center gap-4 bg-white">

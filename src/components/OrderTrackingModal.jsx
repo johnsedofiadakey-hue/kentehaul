@@ -3,60 +3,60 @@ import { X, CheckCircle, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ORDER_STATUSES } from '../data/constants';
 
-export default function OrderTrackingModal({ 
-  isOpen, 
-  onClose, 
-  trackingInput, 
-  setTrackingInput, 
-  trackingResult, 
-  handleTrackOrder, 
-  siteContent 
+export default function OrderTrackingModal({
+  isOpen,
+  onClose,
+  trackingInput,
+  setTrackingInput,
+  trackingResult,
+  handleTrackOrder,
+  siteContent
 }) {
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
           {/* Backdrop */}
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
-            onClick={onClose} 
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
           />
-          
+
           {/* Modal Content */}
-          <motion.div 
-            initial={{ scale: 0.9 }} 
-            animate={{ scale: 1 }} 
-            exit={{ scale: 0.9 }} 
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.9 }}
             className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative z-10 p-8"
           >
             {/* Close Button */}
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full"
             >
-              <X size={20}/>
+              <X size={20} />
             </button>
-            
+
             <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: siteContent.primaryColor }}>
               Track Your Order
             </h2>
-            
+
             {/* Input Section */}
             <div className="flex gap-2 mb-8">
-              <input 
-                type="text" 
-                placeholder="Enter Order ID (e.g., 123456...)" 
+              <input
+                type="text"
+                placeholder="Enter Order ID (e.g., 123456...)"
                 className="flex-grow p-3 border rounded-xl focus:outline-none focus:ring-2"
                 style={{ '--tw-ring-color': siteContent.primaryColor }}
                 value={trackingInput}
                 onChange={(e) => setTrackingInput(e.target.value)}
               />
-              <button 
-                onClick={handleTrackOrder} 
+              <button
+                onClick={handleTrackOrder}
                 className="px-6 py-3 rounded-xl font-bold text-white shadow-md hover:opacity-90 transition"
                 style={{ backgroundColor: siteContent.primaryColor }}
               >
@@ -71,7 +71,7 @@ export default function OrderTrackingModal({
                   <span className="font-bold text-lg">Order #{trackingResult.id}</span>
                   <span className="text-sm text-gray-500">{trackingResult.date}</span>
                 </div>
-                
+
                 {/* Status Timeline */}
                 <div className="space-y-6 relative">
                   {/* Vertical Line Connector (Visual decoration) */}
@@ -82,19 +82,18 @@ export default function OrderTrackingModal({
                     const stepIndex = ORDER_STATUSES.indexOf(step);
                     const isCompleted = currentStatusIndex >= stepIndex;
                     const isCurrent = currentStatusIndex === stepIndex;
-                    
+
                     return (
                       <div key={step} className="flex items-center gap-4">
-                        <div 
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${
-                            isCompleted ? 'text-white' : 'bg-white border-2 border-gray-200 text-gray-300'
-                          }`}
-                          style={{ 
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${isCompleted ? 'text-white' : 'bg-white border-2 border-gray-200 text-gray-300'
+                            }`}
+                          style={{
                             backgroundColor: isCompleted ? (isCurrent ? siteContent.secondaryColor : 'green') : undefined,
                             borderColor: isCompleted ? 'transparent' : undefined
                           }}
                         >
-                          {isCompleted ? <CheckCircle size={16}/> : <Clock size={16}/>}
+                          {isCompleted ? <CheckCircle size={16} /> : <Clock size={16} />}
                         </div>
                         <div>
                           <span className={`font-bold transition-colors ${isCompleted ? 'text-gray-800' : 'text-gray-400'}`}>
@@ -107,15 +106,15 @@ export default function OrderTrackingModal({
                       </div>
                     );
                   })}
-                  
+
                   {/* Special Case for Cancelled */}
                   {trackingResult.status === 'Cancelled' && (
-                     <div className="flex items-center gap-4 mt-4">
-                        <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center">
-                          <X size={16}/>
-                        </div>
-                        <span className="font-bold text-red-500">Order Cancelled</span>
-                     </div>
+                    <div className="flex items-center gap-4 mt-4">
+                      <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center">
+                        <X size={16} />
+                      </div>
+                      <span className="font-bold text-red-500">Order Cancelled</span>
+                    </div>
                   )}
                 </div>
               </div>

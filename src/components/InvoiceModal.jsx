@@ -40,13 +40,13 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-0 md:p-4 bg-black/90 backdrop-blur-sm"
+      className="fixed inset-0 z-[300] flex items-center justify-center p-0 md:p-4 bg-black/90 backdrop-blur-sm"
       onClick={handleBackdropClick}
     >
       <div className="bg-white w-full max-w-4xl h-full md:h-auto md:max-h-[90vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in relative border border-white/10">
 
         {/* --- DYNAMIC APP-LIKE HEADER --- */}
-        <div className="bg-gray-900 text-white p-5 md:p-6 flex justify-between items-center shrink-0 border-b border-white/5">
+        <div className="bg-gray-900 text-white p-5 md:p-6 flex justify-between items-center shrink-0 border-b border-white/5 relative z-[310]">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10 text-white font-black text-xs">INV</div>
             <div>
@@ -78,7 +78,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
         </div>
 
         {/* --- PRINTABLE DOCUMENT AREA --- */}
-        <div className="flex-1 overflow-y-auto bg-gray-100 p-2 md:p-12 flex justify-center custom-scrollbar">
+        <div className="flex-1 overflow-y-auto bg-gray-100 p-2 md:p-12 flex justify-center custom-scrollbar relative">
           <style>
             {`
               @media print {
@@ -95,20 +95,26 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               @media (max-width: 768px) {
                 /* AUTOMATIC SMART SCALING FOR MOBILE FULL VIEW */
                 .invoice-container {
-                   transform: scale(0.42); /* Scale to fit standard mobile width roughly */
-                   transform-origin: top left;
+                   transform: scale(0.40); /* Slightly smaller to ensure fit */
+                   transform-origin: top center;
                 }
                 .invoice-scroll-wrapper {
-                  width: 340px; /* Force a compact width to visualize the scale */
-                  margin: 20px auto;
+                  width: 100%;
+                  display: flex;
+                  justify-content: center;
+                  margin: 10px auto;
+                  min-height: 1000px; /* Compensation for scale */
                 }
               }
 
-              @media (max-width: 400px) {
+              @media (max-width: 480px) {
                 .invoice-container {
-                   transform: scale(0.38);
+                   transform: scale(0.35);
+                   transform-origin: top center;
                 }
-                .invoice-scroll-wrapper { width: 300px; }
+                 .invoice-scroll-wrapper {
+                   min-height: 800px;
+                 }
               }
             `}
           </style>
