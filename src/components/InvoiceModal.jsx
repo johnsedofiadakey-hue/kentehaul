@@ -47,13 +47,13 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
     >
       <div className="bg-white w-full max-w-4xl h-full md:h-auto md:max-h-[95vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-fade-in relative">
 
-        {/* --- DYNAMIC APP-LIKE HEADER --- */}
-        <div className="bg-gray-900 text-white p-5 md:p-6 flex justify-between items-center shrink-0 border-b border-white/5 relative z-[310]">
+        {/* --- UI HEADER (Browser Only) --- */}
+        <div className="bg-gray-900 text-white p-5 md:p-6 flex justify-between items-center shrink-0 border-b border-white/5 relative z-[310] no-print">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10 text-white font-black text-xs">INV</div>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10 text-white font-black text-xs">A4</div>
             <div>
               <h2 className="font-extrabold text-sm md:text-base leading-none">Official Invoice</h2>
-              <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-widest leading-none">Order #{order.id}</p>
+              <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-widest leading-none">A4 Precision Print</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -67,7 +67,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               onClick={handlePrint}
               className="flex items-center gap-2 px-4 py-3 bg-white text-black hover:bg-gray-100 rounded-xl transition-all active:scale-95 text-xs font-black uppercase tracking-tight"
             >
-              <Download size={16} /> <span className="hidden sm:inline">Save PDF</span>
+              <Download size={16} /> <span className="hidden sm:inline">Print / Save PDF</span>
             </button>
             <button
               onClick={onClose}
@@ -79,15 +79,25 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
         </div>
 
         {/* --- PRINTABLE DOCUMENT AREA --- */}
-        <div className="flex-1 overflow-y-auto bg-gray-100/50 p-2 md:p-12 flex justify-center custom-scrollbar relative">
+        <div className="flex-1 overflow-auto bg-gray-100/50 p-2 md:p-12 flex justify-center custom-scrollbar relative">
           <style>
             {`
+              @page {
+                size: A4;
+                margin: 0;
+              }
+
               @media print {
-                @page { 
-                  size: A4 portrait; 
-                  margin: 0 !important; 
+                html, body {
+                  width: 210mm;
+                  height: 297mm;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  background: white !important;
+                  -webkit-print-color-adjust: exact !important;
+                  print-color-adjust: exact !important;
                 }
-                body { margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: white !important; }
+                .no-print { display: none !important; }
                 .invoice-container { 
                   box-shadow: none !important; 
                   margin: 0 !important; 
@@ -95,17 +105,15 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                   height: 297mm !important;
                   max-height: 297mm !important;
                   min-width: 210mm !important;
-                  padding: 15mm !important;
+                  overflow: hidden !important;
+                  background: white !important;
                   display: flex !important;
                   flex-direction: column !important;
                   justify-content: space-between !important;
-                  overflow: hidden !important;
-                  box-sizing: border-box !important;
-                  background: white !important;
                 }
-                .no-print { display: none !important; }
-                .break-avoid { break-inside: avoid; }
-                .row-alt:nth-child(even) { background-color: #f9fafb !important; }
+                table, tr, td, th {
+                  page-break-inside: avoid !important;
+                }
               }
             `}
           </style>
@@ -117,17 +125,19 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               width: '210mm',
               height: '297mm',
               padding: '15mm',
-              transform: `scale(${isMobile ? 0.38 : 1})`,
-              fontFamily: "'Inter', system-ui, sans-serif",
+              boxSizing: 'border-box',
+              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
-              boxSizing: 'border-box'
+              transform: `scale(${isMobile ? 0.38 : 1})`,
+              fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+              backgroundColor: 'white'
             }}
           >
-            {/* TOP SECTION: Header & Branding */}
-            <div className="space-y-8">
-              <div className="flex justify-between items-start border-b-2 pb-8" style={{ borderColor: siteContent.primaryColor + '20' }}>
+            {/* 1. HEADER SECTION (Logo & Identity) */}
+            <div className="w-full">
+              <div className="flex justify-between items-start mb-8 pb-8 border-b-2" style={{ borderColor: siteContent.primaryColor + '20' }}>
                 <div className="space-y-4">
                   {siteContent.logo ? (
                     <img src={siteContent.logo} alt="Logo" className="h-16 w-auto object-contain" />
@@ -137,76 +147,77 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                     </h1>
                   )}
                   <div className="space-y-1">
-                    <p className="text-[12px] font-black uppercase tracking-widest text-gray-400">Authorized Merchant</p>
-                    <p className="text-sm font-bold text-gray-600 max-w-[250px] leading-relaxed">
-                      {order.customer?.address || 'Digital Order'}
+                    <p className="text-[11px] font-black uppercase tracking-[2px] text-gray-400">Authentic Kente Hub</p>
+                    <p className="text-sm font-bold text-gray-600 max-w-[300px] leading-snug">
+                      Ghana's Heritage, Delivered Globally.
                     </p>
                   </div>
                 </div>
 
                 <div className="text-right space-y-2">
-                  <h2 className="text-5xl font-black tracking-tighter opacity-10 absolute right-12 top-12 pointer-events-none uppercase">{docType}</h2>
-                  <div className="space-y-1 pt-4">
-                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Receipt Number</p>
-                    <p className="text-2xl font-black text-gray-900 tracking-tight">#{order.id}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Date Issued</p>
-                    <p className="text-sm font-bold text-gray-700">{order.date}</p>
+                  <h2 className="text-4xl font-black tracking-tighter text-gray-900 uppercase leading-none">Invoice</h2>
+                  <div className="pt-4 space-y-1">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Receipt #</span>
+                      <span className="text-xl font-black text-gray-950 tracking-tight">KHT-{order.id}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Date Issued</span>
+                      <span className="text-sm font-bold text-gray-800">{order.date}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Billing Info */}
-              <div className="grid grid-cols-2 gap-12 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+              {/* 2. PARTY INFO (Bill To / Pay Method) */}
+              <div className="grid grid-cols-2 gap-12 mb-10">
                 <div className="space-y-3">
-                  <h4 className="text-[11px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                    Customer Information
-                  </h4>
-                  <div className="space-y-1">
-                    <p className="text-lg font-black text-gray-900">{order.customer?.name || 'Guest'}</p>
+                  <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-[1.5px] border-b border-gray-100 pb-1">Billed To</h4>
+                  <div className="space-y-0.5">
+                    <p className="text-lg font-black text-gray-950">{order.customer?.name || 'Guest Customer'}</p>
                     <p className="text-sm font-medium text-gray-500">{order.customer?.email}</p>
                     <p className="text-sm font-medium text-gray-500">{order.customer?.phone}</p>
+                    <p className="text-sm font-bold text-gray-700 mt-2 max-w-[250px] leading-normal">{order.customer?.address || 'Digital Fulfillment'}</p>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <h4 className="text-[11px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                    Payment Summary
-                  </h4>
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-gray-700">Method: <span className="text-gray-900">{order.method || 'Processing'}</span></p>
-                    <p className="text-sm font-bold text-gray-700">Status:
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] bg-green-100 text-green-700 uppercase font-black tracking-wider">
+                <div className="space-y-3 text-right">
+                  <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-[1.5px] border-b border-gray-100 pb-1">Payment & Status</h4>
+                  <div className="space-y-2">
+                    <div className="flex flex-col items-end">
+                      <span className="text-[9px] font-black text-gray-400 uppercase">Method</span>
+                      <span className="text-sm font-black text-gray-950">{order.method || 'Not Specified'}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[9px] font-black text-gray-400 uppercase">Current Status</span>
+                      <span className="mt-1 px-3 py-1 rounded-lg text-[10px] bg-green-50 text-green-700 border border-green-100 uppercase font-black tracking-wider">
                         {order.status}
                       </span>
-                    </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Items Table */}
-              <div className="flex-grow">
-                <table className="w-full">
+              {/* 3. ITEMS TABLE */}
+              <div className="w-full">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr className="border-b-2 border-gray-900">
-                      <th className="py-4 text-left text-[11px] font-black uppercase tracking-widest text-gray-900">Description</th>
-                      <th className="py-4 text-center text-[11px] font-black uppercase tracking-widest text-gray-900">Qty</th>
-                      <th className="py-4 text-right text-[11px] font-black uppercase tracking-widest text-gray-900">Unit Price</th>
-                      <th className="py-4 text-right text-[11px] font-black uppercase tracking-widest text-gray-900">Amount</th>
+                    <tr className="border-b-2" style={{ borderColor: siteContent.primaryColor }}>
+                      <th className="py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-950" style={{ color: siteContent.primaryColor }}>Product Description</th>
+                      <th className="py-4 text-center text-[10px] font-black uppercase tracking-widest text-gray-950" style={{ color: siteContent.primaryColor }}>Qty</th>
+                      <th className="py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-950" style={{ color: siteContent.primaryColor }}>Price</th>
+                      <th className="py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-950" style={{ color: siteContent.primaryColor }}>Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-50">
                     {order.items?.map((item, idx) => (
-                      <tr key={idx} className="row-alt group">
-                        <td className="py-5">
-                          <p className="font-black text-gray-900">{item.name}</p>
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{item.category}</p>
+                      <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                        <td className="py-5 pr-4">
+                          <p className="font-black text-gray-950 text-sm leading-tight">{item.name}</p>
+                          <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-tight italic">{item.category}</p>
                         </td>
-                        <td className="py-5 text-center font-bold text-gray-700">{item.quantity}</td>
-                        <td className="py-5 text-right font-bold text-gray-700">₵{item.price.toFixed(2)}</td>
-                        <td className="py-5 text-right font-black text-gray-900">₵{(item.price * item.quantity).toFixed(2)}</td>
+                        <td className="py-5 text-center font-bold text-gray-700 text-sm">{item.quantity}</td>
+                        <td className="py-5 text-right font-bold text-gray-700 text-sm">₵{item.price.toFixed(2)}</td>
+                        <td className="py-5 text-right font-black text-gray-950 text-sm">₵{(item.price * item.quantity).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -214,36 +225,37 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               </div>
             </div>
 
-            {/* BOTTOM SECTION: Totals & Footer */}
-            <div className="space-y-8 pt-8 border-t border-gray-100 break-avoid">
-              <div className="flex justify-between items-start gap-12">
+            {/* 4. TOTALS SECTION (Pinned to Bottom Part 1) */}
+            <div className="w-full mt-auto">
+              <div className="flex justify-between items-end gap-16 pt-8 border-t-2 border-gray-100">
+                {/* Notes & Verification */}
                 <div className="flex-1 space-y-4">
-                  <div className="p-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                    <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">Notes & Policy</h4>
-                    <p className="text-[10px] leading-relaxed text-gray-500 font-medium">
-                      Thank you for choosing {siteContent.title}. This document serves as your official proof of purchase. For returns or support, please quote the receipt number above.
+                  <div className="p-5 bg-gray-50/80 rounded-2xl border-l-4" style={{ borderColor: siteContent.primaryColor }}>
+                    <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1.5">Official Terms</h4>
+                    <p className="text-[10px] leading-relaxed text-gray-600 font-medium">
+                      This is a computer-generated document from {siteContent.title}. No signature is required. Please retain this receipt for warranty and heritage verification. Delivery fees are non-refundable.
                     </p>
                   </div>
-                  <div className="flex gap-4">
-                    <Share2 className="w-4 h-4 text-gray-300 no-print" />
-                    <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest italic no-print">Original Digital Document</p>
+                  <div className="flex items-center gap-3 no-print">
+                    <Share2 size={12} className="text-gray-300" />
+                    <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Verify Authenticity Online</span>
                   </div>
                 </div>
 
-                <div className="w-64 space-y-3">
-                  <div className="flex justify-between text-sm font-bold text-gray-500">
+                {/* Subtotals & Grand Total */}
+                <div className="w-64 space-y-2.5">
+                  <div className="flex justify-between text-xs font-bold text-gray-500 px-2">
                     <span>Subtotal</span>
                     <span>₵{(order.total - (order.shippingFee || 0)).toFixed(2)}</span>
                   </div>
                   {order.shippingFee > 0 && (
-                    <div className="flex justify-between text-sm font-bold text-gray-500">
-                      <span>Delivery Fee</span>
+                    <div className="flex justify-between text-xs font-bold text-gray-500 px-2">
+                      <span>Shipping Fee</span>
                       <span>₵{order.shippingFee.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="h-px bg-gray-200" />
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-sm font-black text-gray-900 uppercase tracking-wider">Total</span>
+                  <div className="py-5 px-6 rounded-2xl flex flex-col items-end gap-1 shadow-sm" style={{ backgroundColor: '#f5f7fb', borderTop: `3px solid ${siteContent.primaryColor}` }}>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[2px]">Grand Total Paid</span>
                     <span className="text-3xl font-black tracking-tighter" style={{ color: siteContent.primaryColor }}>
                       ₵{order.total.toFixed(2)}
                     </span>
@@ -251,16 +263,17 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                 </div>
               </div>
 
-              <div className="flex justify-between items-end border-t border-gray-50 pt-6">
+              {/* 5. FOOTER SECTION (Pinned to Bottom Part 2) */}
+              <div className="mt-8 pt-8 border-t border-gray-100 flex justify-between items-end">
                 <div className="space-y-1">
-                  <p className="text-xs font-black text-gray-900 tracking-tight">{siteContent.title} Heritage</p>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Kente Culture & Innovation</p>
+                  <p className="text-xs font-black text-gray-950 tracking-tight">{siteContent.title} Heritage System</p>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Kente Culture & Weaver Guild Approved</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Scan to Verify</p>
-                  <div className="mt-2 w-12 h-12 ml-auto bg-gray-900 rounded-lg flex items-center justify-center p-2 opacity-10">
-                    <div className="w-full h-full border-2 border-white/50 border-dashed rounded" />
+                <div className="text-right flex flex-col items-end gap-2">
+                  <div className="w-10 h-10 bg-gray-950/5 rounded-lg flex items-center justify-center p-2">
+                    <div className="w-full h-full border border-gray-300 border-dashed rounded-sm opacity-50" />
                   </div>
+                  <p className="text-[9px] font-black text-gray-300 uppercase tracking-[2px]">Valid Global Document</p>
                 </div>
               </div>
             </div>
