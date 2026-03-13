@@ -197,7 +197,7 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
                         <input
                             className="w-full p-5 bg-gray-50 border-none rounded-[25px] font-black text-lg outline-none focus:ring-2 focus:ring-blue-200"
                             placeholder="e.g. Weave Your Story"
-                            value={siteContent.heroTitle}
+                            value={siteContent.heroTitle || ''}
                             onChange={e => updateField('heroTitle', e.target.value)}
                             onBlur={e => saveField('heroTitle', e.target.value, siteContent)}
                         />
@@ -210,11 +210,26 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
                         <input
                             className="w-full p-5 bg-gray-50 border-none rounded-[25px] font-bold text-gray-500 outline-none focus:ring-2 focus:ring-blue-200"
                             placeholder="Subtitle shown below the headline"
-                            value={siteContent.heroSubtitle}
+                            value={siteContent.heroSubtitle || ''}
                             onChange={e => updateField('heroSubtitle', e.target.value)}
                             onBlur={e => saveField('heroSubtitle', e.target.value, siteContent)}
                         />
                     </div>
+                </div>
+
+                {/* Heritage Summary */}
+                <div className="mt-8 border-t border-gray-100 pt-8">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Heritage Summary (Home Page)</label>
+                        <SaveIndicator field="heritageSummary" />
+                    </div>
+                    <textarea
+                        className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-32 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                        placeholder="A short story about your brand for the home page..."
+                        value={siteContent.heritageSummary || ''}
+                        onChange={e => updateField('heritageSummary', e.target.value)}
+                        onBlur={e => saveField('heritageSummary', e.target.value, siteContent)}
+                    />
                 </div>
             </div>
 
@@ -302,8 +317,60 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
                             placeholder="info@kentehaul.com"
                         />
                     </div>
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Store Address</label>
+                            <SaveIndicator field="address" />
+                        </div>
+                        <input
+                            type="text"
+                            className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-bold outline-none focus:ring-2 focus:ring-blue-200"
+                            value={siteContent.address || ''}
+                            onChange={e => updateField('address', e.target.value)}
+                            onBlur={e => saveField('address', e.target.value, siteContent)}
+                            placeholder="Accra, Ghana"
+                        />
+                    </div>
+                </div>
+
+                <div className="mt-8 border-t border-gray-100 pt-8 space-y-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Social Media Links</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Instagram URL</label>
+                            <input
+                                className="w-full p-3 bg-gray-50 border-none rounded-[15px] font-bold text-xs"
+                                value={siteContent.instagramLink || ''}
+                                onChange={e => updateField('instagramLink', e.target.value)}
+                                onBlur={e => saveField('instagramLink', e.target.value, siteContent)}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Facebook URL</label>
+                            <input
+                                className="w-full p-3 bg-gray-50 border-none rounded-[15px] font-bold text-xs"
+                                value={siteContent.facebookLink || ''}
+                                onChange={e => updateField('facebookLink', e.target.value)}
+                                onBlur={e => saveField('facebookLink', e.target.value, siteContent)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 border-t border-gray-100 pt-8">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Footer Copyright Text</label>
+                        <SaveIndicator field="footerText" />
+                    </div>
+                    <input
+                        className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-bold outline-none"
+                        placeholder="e.g. 2026 KenteHaul Ghana"
+                        value={siteContent.footerText || ''}
+                        onChange={e => updateField('footerText', e.target.value)}
+                        onBlur={e => saveField('footerText', e.target.value, siteContent)}
+                    />
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

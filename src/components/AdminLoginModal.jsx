@@ -3,12 +3,14 @@ import { Lock, Mail, Key } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from '../firebase';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminLoginModal({
   isOpen,
   onClose,
   siteContent
 }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +23,8 @@ export default function AdminLoginModal({
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Auth state listener in App.jsx will handle the redirect and closing
+      navigate('/admin');
+      // Auth state listener in App.jsx will handle closing the modal
     } catch (err) {
       console.error("Login Error:", err);
 
@@ -88,7 +91,7 @@ export default function AdminLoginModal({
             </h2>
             <p className="text-gray-500 mb-6 text-sm">Sign in to manage your store</p>
 
-            <form onSubmit={handleLogin} className="space-y-4 text-left">
+            <form onSubmit={handleLogin} className="space-y-4 text-left" autoComplete="off">
               <div className="relative">
                 <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -96,8 +99,9 @@ export default function AdminLoginModal({
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
+                  autoComplete="off"
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black/5 outline-none transition"
-                  placeholder="admin@kentehaul.com"
+                  placeholder="Email Address"
                 />
               </div>
 
@@ -108,6 +112,7 @@ export default function AdminLoginModal({
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
+                  autoComplete="new-password"
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black/5 outline-none transition"
                   placeholder="Password"
                 />

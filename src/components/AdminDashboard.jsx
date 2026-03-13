@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Package, Users, Edit, Settings, LogOut, Menu, X, ChevronRight } from 'lucide-react';
+import { Package, Users, Edit, Settings, LogOut, Menu, X, ChevronRight, MessageSquare } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from "firebase/auth";
 import { auth, db, messaging } from '../firebase';
 import { getToken } from 'firebase/messaging';
@@ -12,6 +13,7 @@ import AdminCRM from './admin/AdminCRM';
 import AdminProducts from './admin/AdminProducts';
 import AdminSettings from './admin/AdminSettings';
 import InvoiceCreator from './admin/InvoiceCreator';
+import AdminReviews from './admin/AdminReviews';
 
 // Shared Global Components
 import InvoiceModal from './InvoiceModal'; // For viewing invoices
@@ -84,6 +86,7 @@ export default function AdminDashboard({
     { id: 'orders', icon: Package, label: 'Sales & Invoices' },
     { id: 'customers', icon: Users, label: 'Client Directory' },
     { id: 'products', icon: Edit, label: 'Inventory' },
+    { id: 'reviews', icon: MessageSquare, label: 'Reviews' },
     { id: 'settings', icon: Settings, label: 'Settings' }
   ];
 
@@ -112,31 +115,39 @@ export default function AdminDashboard({
       />
 
       {/* MOBILE: HEADER */}
-      <div className="md:hidden fixed top-0 left-0 w-full bg-white z-[150] border-b border-gray-100 px-5 py-4 flex justify-between items-center shadow-sm h-18 backdrop-blur-lg bg-white/90">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black shadow-lg" style={{ backgroundColor: siteContent.primaryColor }}>
+      <div className="md:hidden fixed top-0 left-0 w-full bg-white/80 z-[150] border-b border-gray-100 px-6 py-5 flex justify-between items-center shadow-sm backdrop-blur-xl">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-black/5" style={{ backgroundColor: siteContent.primaryColor }}>
             A
           </div>
-          <span className="font-black text-gray-900 tracking-tight">KenteHaul Admin</span>
+          <span className="font-black text-gray-900 tracking-tight text-lg">Nexus Command</span>
         </div>
-        <button onClick={() => setIsSidebarOpen(true)} className="p-3 bg-gray-100 text-gray-800 rounded-2xl active:scale-90 transition-transform">
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-3 bg-gray-50 text-gray-900 rounded-[20px] active:scale-95 transition-all border border-gray-100 shadow-sm"
+        >
           <Menu size={24} />
         </button>
       </div>
 
       {/* MOBILE: OVERLAY */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/70 z-[210] md:hidden backdrop-blur-sm animate-fade-in"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-[210] md:hidden backdrop-blur-md"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* SIDEBAR */}
       <aside className={`
-        fixed inset-y-0 left-0 z-[220] w-[80%] max-w-xs bg-white flex flex-col shadow-[20px_0_60px_rgba(0,0,0,0.1)] md:shadow-none
-        transform transition-all duration-500 ease-in-out md:relative md:translate-x-0 md:w-72
-        ${isSidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 md:opacity-100'}
+        fixed inset-y-0 left-0 z-[220] w-[85%] max-w-[320px] bg-white flex flex-col shadow-[40px_0_80px_rgba(0,0,0,0.15)] md:shadow-none
+        transform transition-all duration-700 cubic-bezier(0.4, 0, 0.2, 1) md:relative md:translate-x-0 md:w-80 md:opacity-100
+        ${isSidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 md:translate-x-0'}
       `}>
         {/* Brand */}
         <div className="p-8 border-b border-gray-50 flex items-center justify-between">
@@ -219,6 +230,10 @@ export default function AdminDashboard({
               feedbacks={feedbacks}
               siteContent={siteContent}
             />
+          )}
+
+          {adminTab === 'reviews' && (
+            <AdminReviews products={products} />
           )}
 
           {adminTab === 'settings' && (

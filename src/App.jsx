@@ -7,7 +7,7 @@ import {
   updateDoc,
   getDoc
 } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth } from './firebase';
 
 // --- IMPORTING DEFAULT DATA (Fallback) ---
@@ -24,6 +24,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from
 // --- IMPORTING COMPONENTS (LAZY LOADED) ---
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 const Home = lazy(() => import('./components/PageViews').then(module => ({ default: module.Home })));
 const Heritage = lazy(() => import('./components/PageViews').then(module => ({ default: module.Heritage })));
 const Institute = lazy(() => import('./components/PageViews').then(module => ({ default: module.Institute })));
@@ -138,15 +139,16 @@ export default function App() {
 
     // G. Listen to Auth State
     const unsubAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
+      // Security Guard: Only allow the specific official admin account
+      if (user && user.uid === 'AMsPtIURf5gJoFivOkjwSFe1Uf33') {
         setIsAdminAuthenticated(true);
         setIsAdminLoginOpen(false);
-        // Optional: Redirect to admin if on login
       } else {
         setIsAdminAuthenticated(false);
-        // if (currentPage === 'admin') { // Removed currentPage logic
-        //   setCurrentPage('home');
-        // }
+        if (user) {
+          alert("Unauthorized Access: This account does not have admin privileges.");
+          signOut(auth);
+        }
       }
     });
 
@@ -432,139 +434,151 @@ export default function App() {
     }
   };
 
+  const navigate = useNavigate();
+
+  // Detect admin route to hide public elements
+  const isAdminPath = location.pathname.startsWith('/admin');
+
   // ==========================================
   // 7. MAIN RENDER
   // ==========================================
   return (
-    <Router>
-      <div className="min-h-screen bg-neutral-50 font-sans text-gray-800 flex flex-col">
+    <div className="min-h-screen bg-neutral-50 font-sans text-gray-800 flex flex-col overflow-x-hidden">
+      <ScrollToTop />
 
-        {/* GLOBAL NAVBAR */}
+      {/* GLOBAL NAVBAR */}
+      {!isAdminPath && (
         <Navbar
           siteContent={siteContent}
           cart={cart}
           setIsCartOpen={setIsCartOpen}
-          // onNavClick={handleNavClick} // Removed
           setIsTrackingOpen={setIsTrackingOpen}
         />
+      )}
 
-        {/* OVERLAY DRAWERS & MODALS */}
-        <CartDrawer
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          cart={cart}
-          updateQuantity={updateQuantity}
-          removeFromCart={removeFromCart}
-          cartTotal={cartTotal}
-          siteContent={siteContent}
-          onPaystackSuccess={handlePaystackSuccess}
-          onWhatsAppCheckout={handleCartWhatsApp}
-        />
+      {/* OVERLAY DRAWERS & MODALS */}
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cart={cart}
+        updateQuantity={updateQuantity}
+        removeFromCart={removeFromCart}
+        cartTotal={cartTotal}
+        siteContent={siteContent}
+        onPaystackSuccess={handlePaystackSuccess}
+        onWhatsAppCheckout={handleCartWhatsApp}
+      />
 
-        <ProductDetailModal
-          product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
-          addToCart={addToCart}
-          onSingleBuy={handleSingleBuy}
-          siteContent={siteContent}
-          allProducts={products}
-          onOpenProduct={setSelectedProduct}
-        />
+      <ProductDetailModal
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        addToCart={addToCart}
+        onSingleBuy={handleSingleBuy}
+        siteContent={siteContent}
+        allProducts={products}
+        onOpenProduct={setSelectedProduct}
+      />
 
-        <OrderTrackingModal
-          isOpen={isTrackingOpen}
-          onClose={() => setIsTrackingOpen(false)}
-          trackingInput={trackingInput}
-          setTrackingInput={setTrackingInput}
-          trackingResult={trackingResult}
-          handleTrackOrder={handleTrackOrder}
-          siteContent={siteContent}
-        />
+      <OrderTrackingModal
+        isOpen={isTrackingOpen}
+        onClose={() => setIsTrackingOpen(false)}
+        trackingInput={trackingInput}
+        setTrackingInput={setTrackingInput}
+        trackingResult={trackingResult}
+        handleTrackOrder={handleTrackOrder}
+        siteContent={siteContent}
+      />
 
-        <AdminLoginModal
-          isOpen={isAdminLoginOpen}
-          onClose={() => setIsAdminLoginOpen(false)}
-          siteContent={siteContent}
-        />
+      <AdminLoginModal
+        isOpen={isAdminLoginOpen}
+        onClose={() => setIsAdminLoginOpen(false)}
+        siteContent={siteContent}
+      />
 
-        {/* MAIN DYNAMIC CONTENT ROUTING */}
-        <main className="flex-grow">
-          <Suspense fallback={<div className="h-screen flex items-center justify-center"><div className="animate-pulse text-xl font-light">Loading Kente Heritage...</div></div>}>
-            <Routes>
-              <Route path="/" element={
-                <Home
-                  siteContent={siteContent}
-                  gallery={gallery}
-                  feedbacks={feedbacks}
-                // onNavClick={handleNavClick} // Removed
-                />
-              } />
+      {/* MAIN DYNAMIC CONTENT ROUTING */}
+      <main className="flex-grow">
+        <Suspense fallback={<div className="h-screen flex items-center justify-center"><div className="animate-pulse text-xl font-light">Loading Kente Heritage...</div></div>}>
+          <Routes>
+            <Route path="/" element={
+              <Home
+                siteContent={siteContent}
+                gallery={gallery}
+                feedbacks={feedbacks}
+              // onNavClick={handleNavClick} // Removed
+              />
+            } />
 
-              <Route path="/heritage" element={
-                <Heritage
-                  siteContent={siteContent}
-                // onNavClick={handleNavClick} // Removed
-                />
-              } />
+            <Route path="/heritage" element={
+              <Heritage
+                siteContent={siteContent}
+              // onNavClick={handleNavClick} // Removed
+              />
+            } />
 
-              <Route path="/shop" element={
-                <Shop
-                  products={products}
-                  currentCategory={currentCategory}
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  addToCart={addToCart}
-                  handleSingleBuy={handleSingleBuy}
-                  setSelectedProduct={setSelectedProduct}
-                  siteContent={siteContent}
-                />
-              } />
+            <Route path="/shop" element={
+              <Shop
+                products={products}
+                currentCategory={currentCategory}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                addToCart={addToCart}
+                handleSingleBuy={handleSingleBuy}
+                setSelectedProduct={setSelectedProduct}
+                siteContent={siteContent}
+              />
+            } />
 
-              <Route path="/institute" element={
-                <Institute
-                  siteContent={siteContent}
-                  products={products}
-                />
-              } />
+            <Route path="/institute" element={
+              <Institute
+                siteContent={siteContent}
+                products={products}
+              />
+            } />
 
-              <Route path="/contact" element={
-                <Contact
-                  siteContent={siteContent}
-                />
-              } />
+            <Route path="/contact" element={
+              <Contact
+                siteContent={siteContent}
+              />
+            } />
 
-              <Route path="/admin" element={
-                isAdminAuthenticated ? (
-                  <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="animate-spin text-4xl">⌛</div></div>}>
-                    <AdminDashboard
-                      siteContent={siteContent}
-                      setSiteContent={setSiteContent}
-                      products={products}
-                      orders={orders}
-                      setOrders={setOrders}
-                      gallery={gallery}
-                      setGallery={setGallery}
-                      feedbacks={feedbacks}
-                      setFeedbacks={setFeedbacks}
-                      customers={customers}
-                      setIsAdminAuthenticated={setIsAdminAuthenticated}
-                    />
-                  </Suspense>
-                ) : (
-                  <AdminLoginRequired setIsAdminLoginOpen={setIsAdminLoginOpen} />
-                )
-              } />
-            </Routes>
-          </Suspense>
-        </main>
+            <Route path="/admin" element={
+              isAdminAuthenticated ? (
+                <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="animate-spin text-4xl">⌛</div></div>}>
+                  <AdminDashboard
+                    siteContent={siteContent}
+                    setSiteContent={setSiteContent}
+                    products={products}
+                    orders={orders}
+                    setOrders={setOrders}
+                    gallery={gallery}
+                    setGallery={setGallery}
+                    feedbacks={feedbacks}
+                    setFeedbacks={setFeedbacks}
+                    customers={customers}
+                    setIsAdminAuthenticated={setIsAdminAuthenticated}
+                  />
+                </Suspense>
+              ) : (
+                <AdminLoginRequired setIsAdminLoginOpen={setIsAdminLoginOpen} />
+              )
+            } />
+          </Routes>
+        </Suspense>
+      </main>
 
-        {/* GLOBAL FOOTER */}
+      {/* GLOBAL FOOTER */}
+      {!isAdminPath && (
         <Footer
           siteContent={siteContent}
-          // onNavClick={handleNavClick} // Removed
-          onAdminClick={() => setIsAdminLoginOpen(true)}
+          onAdminClick={() => {
+            if (isAdminAuthenticated) {
+              navigate('/admin');
+            } else {
+              setIsAdminLoginOpen(true);
+            }
+          }}
         />
-      </div>
-    </Router>
+      )}
+    </div>
   );
 }

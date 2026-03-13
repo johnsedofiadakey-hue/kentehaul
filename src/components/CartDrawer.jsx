@@ -116,10 +116,11 @@ export default function CartDrawer({
                                                 <motion.div
                                                     key={item.id}
                                                     layout
-                                                    initial={{ opacity: 0, x: 20 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    exit={{ opacity: 0, x: -20 }}
-                                                    className="flex gap-3 items-center bg-gray-50 p-3 rounded-2xl border border-gray-100"
+                                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.95, x: -20 }}
+                                                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                                    className="flex gap-4 items-center bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
                                                 >
                                                     <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-200">
                                                         {item.image ? (
@@ -167,10 +168,10 @@ export default function CartDrawer({
                                         <p className="text-xs text-gray-400 mb-4">Delivery fee calculated at next step</p>
                                         <button
                                             onClick={() => setStep('details')}
-                                            className="w-full py-4 rounded-2xl font-black text-white text-base flex items-center justify-center gap-2 active:scale-98 transition-all shadow-lg"
+                                            className="shimmer-premium w-full py-5 rounded-[24px] font-black text-white text-sm uppercase tracking-[3px] flex items-center justify-center gap-3 active:scale-95 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] hover:shadow-[0_25px_50px_rgba(0,0,0,0.2)] transform hover:-translate-y-1"
                                             style={{ backgroundColor: siteContent.primaryColor }}
                                         >
-                                            Proceed to Checkout →
+                                            Secure Checkout
                                         </button>
                                     </div>
                                 )}
@@ -285,9 +286,9 @@ export default function CartDrawer({
                                     <button
                                         onClick={handleWhatsApp}
                                         disabled={!isFormValid}
-                                        className="w-full bg-green-500 text-white py-4 rounded-2xl font-black text-sm hover:bg-green-600 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none shadow-lg"
+                                        className="shimmer-premium w-full bg-green-500 text-white py-5 rounded-[24px] font-black text-sm uppercase tracking-[2px] hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-40 disabled:pointer-events-none shadow-[0_15px_30px_rgba(34,197,94,0.2)]"
                                     >
-                                        <Smartphone size={18} /> Send Order via WhatsApp
+                                        <Smartphone size={20} className="animate-pulse" /> Confirm on WhatsApp
                                     </button>
                                 </div>
                             </>

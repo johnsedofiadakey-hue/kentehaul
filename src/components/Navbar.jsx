@@ -64,15 +64,6 @@ export default function Navbar({
 
     return (
         <>
-            {/* Top Announcement Bar */}
-            <div className="bg-gray-900 text-white py-2 px-4 text-[10px] md:text-xs font-black uppercase tracking-[3px] text-center flex items-center justify-center gap-4 relative z-[60]">
-                <span className="opacity-70 flex items-center gap-1"><Truck size={12} /> Worldwide Royal Shipping</span>
-                <span className="hidden md:inline w-1 h-1 bg-white/30 rounded-full"></span>
-                <span className="flex items-center gap-1"><Sparkles size={12} className="text-amber-400" /> Authentic Bonwire Kente</span>
-                <span className="hidden md:inline w-1 h-1 bg-white/30 rounded-full"></span>
-                <span className="opacity-70 hidden sm:inline">Crafted for Royalty</span>
-            </div>
-
             <nav
                 className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'bg-white/90 backdrop-blur-xl shadow-2xl py-2' : 'bg-white py-4'
                     } border-b border-gray-50`}
@@ -83,7 +74,12 @@ export default function Navbar({
                         {/* Logo Area */}
                         <Link to="/" onClick={closeMenus} className="flex items-center gap-3 cursor-pointer group flex-shrink-0">
                             {siteContent.logo ? (
-                                <img src={siteContent.logo} alt="Logo" className="h-10 md:h-14 w-auto object-contain transition-transform group-hover:scale-105 duration-500" />
+                                <img
+                                    src={siteContent.logo}
+                                    alt="Logo"
+                                    className="h-14 md:h-20 w-auto object-contain transition-transform group-hover:scale-105 duration-500"
+                                    style={{ mixBlendMode: 'multiply' }}
+                                />
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <div
@@ -122,11 +118,11 @@ export default function Navbar({
                             >
                                 <button
                                     onClick={() => navigate('/shop')}
-                                    className={`px-5 py-2 rounded-full font-black text-[13px] uppercase tracking-widest transition-all flex items-center gap-1.5 ${isActive('/shop') || shopDropdownOpen ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-50'
+                                    className={`shimmer-premium px-5 py-2 rounded-full font-black text-[13px] uppercase tracking-widest transition-all flex items-center gap-1.5 active:scale-95 ${isActive('/shop') || shopDropdownOpen ? 'bg-gray-900 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'
                                         }`}
                                 >
                                     Collections
-                                    <ChevronDown size={14} className={`transition-transform duration-300 ${shopDropdownOpen ? 'rotate-180' : ''}`} />
+                                    <ChevronDown size={14} className={`transition-transform duration-500 ${shopDropdownOpen ? 'rotate-180 text-amber-500' : ''}`} />
                                 </button>
 
                                 {/* MEGA MENU CONTENT */}
@@ -149,8 +145,8 @@ export default function Navbar({
                                                                 onMouseEnter={() => setHoveredCat(cat.id)}
                                                                 onClick={() => { navigate(`/shop?category=${cat.id}`); closeMenus(); }}
                                                                 className={`w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between transition-all group ${hoveredCat === cat.id
-                                                                        ? 'bg-white shadow-xl translate-x-3 scale-105'
-                                                                        : 'hover:bg-white/50 text-gray-400'
+                                                                    ? 'bg-white shadow-xl translate-x-3 scale-105'
+                                                                    : 'hover:bg-white/50 text-gray-400'
                                                                     }`}
                                                             >
                                                                 <span className={`font-black text-sm uppercase tracking-wider ${hoveredCat === cat.id ? 'text-gray-900' : ''}`}>
@@ -254,10 +250,10 @@ export default function Navbar({
                                 onClick={() => setIsTrackingOpen(true)}
                                 className="hidden md:flex flex-col items-center group"
                             >
-                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition-all transform group-hover:-rotate-12">
-                                    <Truck size={20} />
+                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-amber-500 group-hover:text-white transition-all transform group-hover:-rotate-12 group-hover:scale-110 shadow-sm group-hover:shadow-md">
+                                    <Truck size={20} className="group-hover:animate-pulse" />
                                 </div>
-                                <span className="text-[9px] font-black text-gray-400 uppercase mt-1 tracking-widest">Track</span>
+                                <span className="text-[9px] font-black text-gray-400 uppercase mt-1 tracking-widest group-hover:text-amber-600 transition-colors">Track</span>
                             </button>
 
                             {/* CART BUTTON */}
@@ -266,12 +262,12 @@ export default function Navbar({
                                 className="relative flex flex-col items-center group pt-0.5"
                                 style={{ color: siteContent.primaryColor }}
                             >
-                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.1)] group-hover:-translate-y-1 transition-all relative">
-                                    <ShoppingBag size={22} className="group-hover:scale-110 transition-transform" />
+                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.15)] group-hover:-translate-y-1 transition-all relative group-hover:bg-white">
+                                    <ShoppingBag size={22} className="group-hover:scale-110 group-hover:text-amber-600 transition-all" />
                                     {cartCount > 0 && (
                                         <motion.span
                                             key={cartCount}
-                                            initial={{ scale: 0, opacity: 0 }}
+                                            initial={{ scale: 0.5, opacity: 0 }}
                                             animate={{ scale: 1, opacity: 1 }}
                                             className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] text-white text-[10px] font-black rounded-full flex items-center justify-center p-1 shadow-lg ring-4 ring-white"
                                             style={{ backgroundColor: siteContent.secondaryColor }}
@@ -280,7 +276,7 @@ export default function Navbar({
                                         </motion.span>
                                     )}
                                 </div>
-                                <span className="text-[9px] font-black text-gray-400 uppercase mt-1 tracking-widest">Cart</span>
+                                <span className="text-[9px] font-black text-gray-400 uppercase mt-1 tracking-widest group-hover:text-amber-600 transition-colors">Cart</span>
                             </button>
 
                             {/* Mobile Hamburger */}
@@ -301,44 +297,44 @@ export default function Navbar({
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.4, ease: "circOut" }}
-                            className="lg:hidden bg-white border-t border-gray-50 overflow-hidden shadow-2xl overflow-y-auto max-h-[85vh] sticky top-0"
+                            transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
+                            className="lg:hidden fixed inset-x-0 top-[72px] bottom-0 z-[100] bg-white/40 backdrop-blur-3xl overflow-hidden border-t border-white/20 shadow-[-20px_0_80px_rgba(0,0,0,0.1)]"
                         >
-                            <div className="p-6 space-y-2">
-                                {/* Large CTAs */}
-                                <div className="grid grid-cols-2 gap-3 mb-6">
+                            <div className="h-full overflow-y-auto custom-scrollbar p-6 pt-10 space-y-2">
+                                {/* Refined Quick Actions */}
+                                <div className="grid grid-cols-2 gap-4 mb-10">
                                     <button
                                         onClick={() => { navigate('/shop'); closeMenus(); }}
-                                        className="flex flex-col items-center justify-center p-6 bg-gray-900 text-white rounded-[32px] gap-3 active:scale-95 transition shadow-xl"
+                                        className="flex flex-col items-center justify-center p-4 bg-gray-900 text-white rounded-[24px] gap-2 active:scale-95 transition shadow-lg"
                                     >
-                                        <ShoppingBag size={28} />
-                                        <span className="font-black text-xs uppercase tracking-widest">Shop Shop</span>
+                                        <ShoppingBag size={24} />
+                                        <span className="font-black text-[10px] uppercase tracking-widest">Shop All</span>
                                     </button>
                                     <button
                                         onClick={() => { setIsTrackingOpen(true); closeMenus(); }}
-                                        className="flex flex-col items-center justify-center p-6 bg-gray-50 text-gray-900 rounded-[32px] gap-3 active:scale-95 transition"
+                                        className="flex flex-col items-center justify-center p-4 bg-gray-50 text-gray-900 rounded-[24px] gap-2 active:scale-95 transition"
                                     >
-                                        <Truck size={28} />
-                                        <span className="font-black text-xs uppercase tracking-widest">Track order</span>
+                                        <Truck size={24} />
+                                        <span className="font-black text-[10px] uppercase tracking-widest">Track order</span>
                                     </button>
                                 </div>
 
                                 {/* Main Links */}
                                 <div className="space-y-1">
                                     {[
-                                        { name: 'Home Garden', path: '/', desc: 'Return to start' },
-                                        { name: 'Our Heritage', path: '/heritage', desc: 'The Kente Legacy' },
-                                        { name: 'Kente Institute', path: '/institute', desc: 'Learn the symbols' },
-                                        { name: 'Contact Royal', path: '/contact', desc: 'Support & Help' }
+                                        { name: 'Home', path: '/', desc: 'Start' },
+                                        { name: 'Our Heritage', path: '/heritage', desc: 'The Legacy' },
+                                        { name: 'Kente History', path: '/institute', desc: 'Learn symbols' },
+                                        { name: 'Contact Us', path: '/contact', desc: 'Support' }
                                     ].map((link) => (
                                         <Link
                                             key={link.path}
                                             to={link.path}
-                                            className={`flex flex-col py-4 px-6 rounded-2xl transition-all ${isActive(link.path) ? 'bg-amber-50 border-l-4 border-amber-500' : 'hover:bg-gray-50'
+                                            className={`flex flex-col py-3 px-6 rounded-xl transition-all ${isActive(link.path) ? 'bg-amber-50 border-l-4 border-amber-500' : 'hover:bg-gray-50'
                                                 }`}
                                         >
-                                            <span className={`font-black text-lg uppercase tracking-tight ${isActive(link.path) ? 'text-amber-600' : 'text-gray-900'}`}>{link.name}</span>
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{link.desc}</span>
+                                            <span className={`font-black text-base uppercase tracking-tight ${isActive(link.path) ? 'text-amber-600' : 'text-gray-900'}`}>{link.name}</span>
+                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{link.desc}</span>
                                         </Link>
                                     ))}
                                 </div>

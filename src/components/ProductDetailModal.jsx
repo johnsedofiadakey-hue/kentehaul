@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingBag, Smartphone, BookOpen, Star, ChevronLeft, ChevronRight, Heart, Share2, Check, Minus, Plus, Truck, Shield, RefreshCw } from 'lucide-react';
+import { X, ShoppingBag, Smartphone, BookOpen, Star, ChevronLeft, ChevronRight, Heart, Share2, Check, Minus, Plus, Truck, Shield, RefreshCw, Send, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
 
 export default function ProductDetailModal({
     product,
@@ -16,13 +18,33 @@ export default function ProductDetailModal({
     const [activeTab, setActiveTab] = useState('description');
     const [wished, setWished] = useState(false);
 
+    // Reviews state
+    const [reviews, setReviews] = useState([]);
+    const [userReview, setUserReview] = useState({ rating: 5, comment: '', name: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Reset state when product changes
     useEffect(() => {
         if (product) {
             setQuantity(1);
             setAddedToCart(false);
             setActiveTab('description');
+            setUserReview({ rating: 5, comment: '', name: '' });
         }
+    }, [product?.id]);
+
+    // Fetch Reviews
+    useEffect(() => {
+        if (!product?.id) return;
+        const q = query(
+            collection(db, "reviews"),
+            where("productId", "==", product.id),
+            orderBy("createdAt", "desc")
+        );
+        const unsub = onSnapshot(q, (snap) => {
+            setReviews(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+        return () => unsub();
     }, [product?.id]);
 
     // Prevent body scroll when modal is open
@@ -57,6 +79,26 @@ export default function ProductDetailModal({
         }
     };
 
+    const submitReview = async (e) => {
+        e.preventDefault();
+        if (!userReview.comment || !userReview.name) return;
+        setIsSubmitting(true);
+        try {
+            await addDoc(collection(db, "reviews"), {
+                productId: product.id,
+                rating: userReview.rating,
+                comment: userReview.comment,
+                customerName: userReview.name,
+                createdAt: serverTimestamp()
+            });
+            setUserReview({ rating: 5, comment: '', name: '' });
+        } catch (err) {
+            console.error("Error submitting review:", err);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const stockLabel = product?.stock <= 0
         ? { text: 'Out of Stock', color: 'text-red-600 bg-red-50' }
         : product?.stock <= 3
@@ -78,11 +120,12 @@ export default function ProductDetailModal({
 
                     {/* Modal — bottom sheet on mobile, centered on desktop */}
                     <motion.div
-                        initial={{ y: '100%', opacity: 0 }}
+                        initial={{ y: 100, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: '100%', opacity: 0 }}
-                        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                        className="relative z-10 w-full md:max-w-5xl bg-white md:rounded-3xl rounded-t-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[92vh] md:max-h-[85vh]"
+                        exit={{ y: 100, opacity: 0 }}
+                        transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                        className="relative w-full max-w-4xl h-[92vh] md:h-[85vh] bg-white rounded-t-[40px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close Button */}
                         <button
@@ -97,7 +140,7 @@ export default function ProductDetailModal({
                             {/* Drag handle on mobile */}
                             <div className="md:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-300 rounded-full z-20" />
 
-                            <div className="aspect-[4/3] md:aspect-auto md:h-full min-h-[240px] md:min-h-0 relative overflow-hidden">
+                            <div className="aspect-[3/2] md:aspect-auto md:h-full min-h-[220px] md:min-h-0 relative overflow-hidden">
                                 {product.image ? (
                                     <img
                                         src={product.image}
@@ -143,13 +186,13 @@ export default function ProductDetailModal({
 
                         {/* === RIGHT: PRODUCT DETAILS === */}
                         <div className="flex-1 flex flex-col overflow-hidden">
-                            <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                            <div className="flex-1 overflow-y-auto p-4 md:p-8">
 
                                 {/* Category breadcrumb */}
                                 <div className="flex items-center gap-2 mb-3">
                                     <span
-                                        className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full"
-                                        style={{ color: siteContent.primaryColor, backgroundColor: siteContent.primaryColor + '15' }}
+                                        className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md"
+                                        style={{ color: siteContent.primaryColor, backgroundColor: siteContent.primaryColor + '10' }}
                                     >
                                         {product.category}
                                     </span>
@@ -157,8 +200,8 @@ export default function ProductDetailModal({
                                         <>
                                             <span className="text-gray-300">/</span>
                                             <span
-                                                className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full"
-                                                style={{ color: siteContent.secondaryColor, backgroundColor: siteContent.secondaryColor + '15' }}
+                                                className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md"
+                                                style={{ color: siteContent.secondaryColor, backgroundColor: siteContent.secondaryColor + '10' }}
                                             >
                                                 {product.subcategory}
                                             </span>
@@ -172,127 +215,166 @@ export default function ProductDetailModal({
                                 </h2>
 
                                 {/* Price + stock */}
-                                <div className="flex items-center gap-4 mb-5">
-                                    <span className="text-3xl font-black" style={{ color: siteContent.secondaryColor }}>
+                                <div className="flex items-center gap-3 mb-6">
+                                    <span className="text-2xl md:text-3xl font-black" style={{ color: siteContent.secondaryColor }}>
                                         ₵{product.price?.toLocaleString()}
                                     </span>
-                                    <span className={`text-xs font-black px-3 py-1.5 rounded-full ${stockLabel.color}`}>
+                                    <span className={`text-[10px] font-black px-2 py-1 rounded-full ${stockLabel.color}`}>
                                         {stockLabel.text}
                                     </span>
                                 </div>
 
-                                {/* Tabs */}
-                                <div className="flex gap-1 mb-5 border-b border-gray-100">
-                                    {['description', product.longHistory && 'story', 'delivery', 'reviews'].filter(Boolean).map(tab => (
-                                        <button
-                                            key={tab}
-                                            onClick={() => setActiveTab(tab)}
-                                            className={`px-4 py-2.5 text-xs font-black uppercase tracking-wider transition-all border-b-2 -mb-px capitalize ${activeTab === tab ? 'border-current' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-                                            style={activeTab === tab ? { color: siteContent.primaryColor, borderColor: siteContent.primaryColor } : {}}
-                                        >
-                                            {tab === 'story' ? '📖 Story' : tab === 'description' ? 'Details' : tab === 'delivery' ? '🚚 Delivery' : '⭐ Reviews'}
-                                        </button>
-                                    ))}
-                                </div>
+                                {/* Continuous Content Sections */}
+                                <div className="space-y-10 pb-20">
+                                    {/* 1. DESCRIPTION */}
+                                    <section>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Product Description</h3>
+                                        <p className="text-gray-600 text-[13px] md:text-sm leading-relaxed">
+                                            {product.description || 'No description available for this authentic piece.'}
+                                        </p>
+                                    </section>
 
-                                {/* Tab content */}
-                                <div className="text-gray-600 text-sm leading-relaxed min-h-[120px]">
-                                    {activeTab === 'description' && (
-                                        <p>{product.description || 'No description available.'}</p>
-                                    )}
-                                    {activeTab === 'story' && product.longHistory && (
-                                        <div className="p-4 rounded-2xl border-l-4" style={{ backgroundColor: siteContent.primaryColor + '08', borderColor: siteContent.secondaryColor }}>
-                                            <div className="flex items-center gap-2 mb-2" style={{ color: siteContent.primaryColor }}>
-                                                <BookOpen size={15} />
-                                                <span className="font-black text-xs uppercase tracking-wider">Cultural Heritage</span>
+                                    {/* 2. HERITAGE STORY (If active) */}
+                                    {product.longHistory && (
+                                        <section className="p-5 rounded-2xl border border-amber-100 relative overflow-hidden" style={{ backgroundColor: siteContent.primaryColor + '05' }}>
+                                            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                                                <BookOpen size={80} />
                                             </div>
-                                            <p className="italic">{product.longHistory}</p>
-                                        </div>
+                                            <div className="flex items-center gap-2 mb-3" style={{ color: siteContent.primaryColor }}>
+                                                <BookOpen size={16} />
+                                                <h3 className="font-black text-[10px] uppercase tracking-widest">Cultural Heritage</h3>
+                                            </div>
+                                            <p className="text-gray-700 text-[13px] leading-relaxed italic">
+                                                {product.longHistory}
+                                            </p>
+                                        </section>
                                     )}
-                                    {activeTab === 'delivery' && (
-                                        <div className="space-y-3">
-                                            <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-                                                <Truck size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+
+                                    {/* 3. SERVICE & DELIVERY */}
+                                    <section>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Service & Delivery</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div className="flex items-start gap-3 p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                                                <Truck size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
                                                 <div>
-                                                    <p className="font-bold text-gray-800 text-xs">Nationwide Delivery</p>
-                                                    <p className="text-gray-500 text-xs">Accra same-day / regional 2–4 days / international 7–14 days</p>
+                                                    <p className="font-bold text-gray-800 text-[11px]">Nationwide Shipping</p>
+                                                    <p className="text-gray-500 text-[10px]">Accra same-day / regional 2–4 days</p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-                                                <Shield size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                                            <div className="flex items-start gap-3 p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                                                <Shield size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
                                                 <div>
-                                                    <p className="font-bold text-gray-800 text-xs">Authenticity Guaranteed</p>
-                                                    <p className="text-gray-500 text-xs">Sourced directly from master weavers of Bonwire & Adanwomase</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-                                                <RefreshCw size={16} className="text-purple-500 mt-0.5 flex-shrink-0" />
-                                                <div>
-                                                    <p className="font-bold text-gray-800 text-xs">Exchanges</p>
-                                                    <p className="text-gray-500 text-xs">Contact us within 7 days for size or quality issues</p>
+                                                    <p className="font-bold text-gray-800 text-[11px]">Authenticity</p>
+                                                    <p className="text-gray-500 text-[10px]">Handcrafted in Bonwire & Adanwomase</p>
                                                 </div>
                                             </div>
                                         </div>
-                                    )}
-                                    {activeTab === 'reviews' && (
-                                        <div className="space-y-4">
-                                            {/* Review Prompt */}
-                                            <div className="bg-gray-50 p-4 rounded-2xl text-center">
-                                                <p className="font-bold text-gray-800 mb-2">Love this piece?</p>
-                                                <p className="text-xs text-gray-500 mb-3">Share your experience with others.</p>
+                                    </section>
+
+                                    {/* 4. REVIEWS (Dynamic) */}
+                                    <section>
+                                        <div className="flex items-center justify-between mb-6 border-b border-gray-50 pb-2">
+                                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Client Feedback</h3>
+                                            <div className="flex items-center gap-1.5 text-amber-500">
+                                                <Star size={10} fill="currentColor" />
+                                                <span className="text-[10px] font-black">
+                                                    {reviews.length > 0
+                                                        ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1)
+                                                        : "5.0"}
+                                                </span>
+                                                <span className="text-[9px] text-gray-400">({reviews.length})</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            {/* Review Form */}
+                                            <form onSubmit={submitReview} className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100 space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    {[1, 2, 3, 4, 5].map(star => (
+                                                        <button
+                                                            key={star}
+                                                            type="button"
+                                                            onClick={() => setUserReview(prev => ({ ...prev, rating: star }))}
+                                                            className={`p-1 transition-all ${userReview.rating >= star ? 'text-amber-400 scale-110' : 'text-gray-300'}`}
+                                                        >
+                                                            <Star size={18} fill={userReview.rating >= star ? 'currentColor' : 'none'} />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Your Name"
+                                                    required
+                                                    value={userReview.name}
+                                                    onChange={e => setUserReview(prev => ({ ...prev, name: e.target.value }))}
+                                                    className="w-full bg-white border border-gray-100 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-1 focus:ring-amber-500/30"
+                                                />
+                                                <textarea
+                                                    placeholder="Share your experience with this royal piece..."
+                                                    required
+                                                    value={userReview.comment}
+                                                    onChange={e => setUserReview(prev => ({ ...prev, comment: e.target.value }))}
+                                                    className="w-full bg-white border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:ring-1 focus:ring-amber-500/30 min-h-[80px] resize-none"
+                                                />
                                                 <button
-                                                    onClick={() => alert("Review submission is coming soon! You can also share your feedback via WhatsApp.")}
-                                                    className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-gray-100 transition shadow-sm"
-                                                    style={{ color: siteContent.primaryColor }}
+                                                    type="submit"
+                                                    disabled={isSubmitting}
+                                                    className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition disabled:opacity-50 flex items-center justify-center gap-2"
                                                 >
-                                                    Write a Review
+                                                    {isSubmitting ? "Submitting..." : <><Send size={12} /> Submit Review</>}
                                                 </button>
-                                            </div>
+                                            </form>
 
-                                            {/* Mock Reviews for Visuals */}
-                                            <div className="space-y-3 opacity-60">
-                                                <div className="p-3 border-b border-gray-100">
-                                                    <div className="flex text-amber-500 gap-0.5 mb-1"><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /></div>
-                                                    <p className="text-xs font-bold text-gray-800 mb-1">Absolutely Stunning!</p>
-                                                    <p className="text-[10px] text-gray-500">Authentic quality, just as described. Perfect for my graduation.</p>
-                                                </div>
-                                                <div className="p-3">
-                                                    <div className="flex text-amber-500 gap-0.5 mb-1"><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /></div>
-                                                    <p className="text-xs font-bold text-gray-800 mb-1">Exceeded Expectations</p>
-                                                    <p className="text-[10px] text-gray-500">The colors are even more vibrant in person. Highly recommend.</p>
-                                                </div>
+                                            {/* Reviews List */}
+                                            <div className="space-y-5">
+                                                {reviews.map(rev => (
+                                                    <div key={rev.id} className="border-b border-gray-50 pb-4 last:border-0">
+                                                        <div className="flex items-center justify-between mb-1.5">
+                                                            <p className="text-[11px] font-black text-gray-900 uppercase">{rev.customerName}</p>
+                                                            <div className="flex text-amber-500 gap-0.5">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Star key={i} size={8} fill={i < rev.rating ? 'currentColor' : 'none'} className={i < rev.rating ? '' : 'text-gray-200'} />
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-[11px] text-gray-500 leading-relaxed">{rev.comment}</p>
+                                                    </div>
+                                                ))}
+                                                {reviews.length === 0 && (
+                                                    <p className="text-[10px] text-gray-400 italic text-center py-4">Be the first to rate this piece.</p>
+                                                )}
                                             </div>
                                         </div>
-                                    )}
-                                </div>
-                            </div>
+                                    </section>
 
-                            {/* Related Products */}
-                            <div className="mt-8 pt-8 border-t border-gray-100 px-6 md:px-8">
-                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4 px-1">You Might Also Like</h3>
-                                <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-1 px-1">
-                                    {(allProducts || [])
-                                        .filter(p => p.id !== product.id && (p.category === product.category || p.subcategory === product.subcategory))
-                                        .slice(0, 4)
-                                        .map(item => (
-                                            <div
-                                                key={item.id}
-                                                onClick={() => { onClose(); setTimeout(() => onOpenProduct(item), 300); }}
-                                                className="min-w-[140px] w-[140px] group cursor-pointer"
-                                            >
-                                                <div className="aspect-square rounded-2xl bg-gray-100 overflow-hidden mb-2 relative">
-                                                    <img src={item.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={item.name} />
-                                                </div>
-                                                <p className="text-[10px] font-bold text-gray-900 truncate">{item.name}</p>
-                                                <p className="text-[10px] font-black" style={{ color: siteContent.secondaryColor }}>₵{item.price.toLocaleString()}</p>
-                                            </div>
-                                        ))}
+                                    {/* 5. RELATED PRODUCTS */}
+                                    <section className="pt-6 border-t border-gray-50">
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Explore Similar</h3>
+                                        <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-hide -mx-2 px-2">
+                                            {(allProducts || [])
+                                                .filter(p => p.id !== product.id && (p.category === product.category || p.subcategory === product.subcategory))
+                                                .slice(0, 4)
+                                                .map(item => (
+                                                    <div
+                                                        key={item.id}
+                                                        onClick={() => { onClose(); setTimeout(() => onOpenProduct(item), 300); }}
+                                                        className="min-w-[120px] w-[120px] group cursor-pointer"
+                                                    >
+                                                        <div className="aspect-square rounded-2xl bg-gray-50 overflow-hidden mb-2 relative">
+                                                            <img src={item.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={item.name} />
+                                                        </div>
+                                                        <p className="text-[9px] font-black text-gray-900 truncate uppercase mt-1 tracking-tight">{item.name}</p>
+                                                        <p className="text-[9px] font-black text-amber-600">₵{item.price.toLocaleString()}</p>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </section>
                                 </div>
                             </div>
                         </div>
 
                         {/* === STICKY FOOTER: QUANTITY + BUY BUTTONS === */}
-                        <div className="border-t border-gray-100 p-5 md:p-6 bg-white safe-bottom">
+                        <div className="border-t border-gray-100 p-4 md:p-6 bg-white safe-bottom">
                             {product.stock > 0 ? (
                                 <>
                                     {/* Quantity selector */}
@@ -322,14 +404,14 @@ export default function ProductDetailModal({
                                     <div className="flex gap-3">
                                         <motion.button
                                             onClick={handleAddToCart}
-                                            whileTap={{ scale: 0.97 }}
-                                            className="flex-1 py-4 rounded-2xl font-black text-white flex items-center justify-center gap-2 text-sm transition-all"
+                                            whileTap={{ scale: 0.95 }}
+                                            className="shimmer-premium flex-1 py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-white flex items-center justify-center gap-3 text-sm md:text-base transition-all shadow-[0_15px_30px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] transform hover:-translate-y-1"
                                             style={{ backgroundColor: addedToCart ? '#16a34a' : siteContent.primaryColor }}
                                         >
                                             {addedToCart ? (
-                                                <><Check size={18} /> Added to Cart!</>
+                                                <><Check size={20} className="animate-bounce" /> Added!</>
                                             ) : (
-                                                <><ShoppingBag size={18} /> Add to Cart</>
+                                                <><ShoppingBag size={20} className="group-hover:scale-110 transition-transform" /> Add to Cart</>
                                             )}
                                         </motion.button>
                                         <motion.button
