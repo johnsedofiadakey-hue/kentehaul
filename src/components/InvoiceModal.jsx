@@ -15,7 +15,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
 
   // Logic: If status is 'Paid' or 'Delivered', it's a RECEIPT. Otherwise, INVOICE.
   const isPaid = ['Paid', 'Delivered', 'Shipped'].includes(order.status);
-  const docType = isPaid ? "PAYMENT RECEIPT" : "INVOICE";
+  const docType = isPaid ? "OFFICIAL RECEIPT" : "PAYMENT BILL";
   const docColor = isPaid ? "#22c55e" : siteContent.primaryColor || "#000";
 
   const handleShare = async () => {
@@ -50,7 +50,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10 text-white font-black text-xs">INV</div>
             <div>
-              <h2 className="font-extrabold text-sm md:text-base leading-none">Document Viewer</h2>
+              <h2 className="font-extrabold text-sm md:text-base leading-none">View Bill</h2>
               <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-widest leading-none">Order #{order.id}</p>
             </div>
           </div>
@@ -152,7 +152,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                   </div>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Invoice No.</p>
+                      <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Bill No.</p>
                       <p className="font-mono font-bold text-2xl text-gray-900 tracking-tighter">#{order.id}</p>
                     </div>
                     <div>

@@ -83,9 +83,9 @@ export default function AdminDashboard({
 
   // --- NAVIGATION ---
   const sideMenu = [
-    { id: 'orders', icon: Package, label: 'Sales & Invoices' },
-    { id: 'customers', icon: Users, label: 'Client Directory' },
-    { id: 'products', icon: Edit, label: 'Inventory' },
+    { id: 'orders', icon: Package, label: 'Sales & Bills' },
+    { id: 'customers', icon: Users, label: 'Customers' },
+    { id: 'products', icon: Edit, label: 'Products' },
     { id: 'reviews', icon: MessageSquare, label: 'Reviews' },
     { id: 'settings', icon: Settings, label: 'Settings' }
   ];
@@ -120,7 +120,7 @@ export default function AdminDashboard({
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-black/5" style={{ backgroundColor: siteContent.primaryColor }}>
             A
           </div>
-          <span className="font-black text-gray-900 tracking-tight text-lg">Nexus Command</span>
+          <span className="font-black text-gray-900 tracking-tight text-lg">Admin Hub</span>
         </div>
         <button
           onClick={() => setIsSidebarOpen(true)}
@@ -156,8 +156,8 @@ export default function AdminDashboard({
               A
             </div>
             <div>
-              <h1 className="font-black text-gray-900 leading-tight">Master Control</h1>
-              <p className="text-[10px] text-gray-400 font-black uppercase tracking-[2px]">Admin 2.0</p>
+              <h1 className="font-black text-gray-900 leading-tight">Admin Center</h1>
+              <p className="text-[10px] text-gray-400 font-black uppercase tracking-[2px]">Shop Management</p>
             </div>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="md:hidden p-2 text-gray-300 hover:text-red-500 transition-colors">

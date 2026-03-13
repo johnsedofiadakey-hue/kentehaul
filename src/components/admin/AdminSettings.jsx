@@ -85,7 +85,7 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
             {/* 🎨 BRANDING — shown first since it's most used */}
             <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
                 <h3 className="font-black text-sm mb-8 flex items-center gap-4 text-gray-900 uppercase tracking-widest">
-                    <Palette className="text-purple-400" size={20} /> Global Branding Colors
+                    <Palette className="text-purple-400" size={20} /> Store Colors
                     <span className="ml-auto text-[10px] text-green-600 font-black flex items-center gap-1 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
                         <Eye size={10} /> Changes appear live on your site
                     </span>
@@ -152,7 +152,7 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
             {/* 🖼️ HERO + LOGO */}
             <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
                 <h3 className="font-black text-sm mb-8 flex items-center gap-4 text-gray-900 uppercase tracking-widest">
-                    <Sliders className="text-blue-400" size={20} /> Homepage & Brand Assets
+                    <Sliders className="text-blue-400" size={20} /> Store Photos & Text
                 </h3>
 
                 {/* Logo */}
@@ -236,7 +236,7 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
             {/* 📄 INVOICE CONFIG */}
             <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
                 <h3 className="font-black text-sm mb-8 flex items-center gap-4 text-gray-900 uppercase tracking-widest">
-                    <FileText className="text-gray-400" size={20} /> Invoice & Legal Configuration
+                    <FileText className="text-gray-400" size={20} /> Bill & Footer Text
                 </h3>
                 <div className="space-y-8">
                     <div>
@@ -271,7 +271,7 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
             {/* ⚙️ SYSTEM CONFIG */}
             <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
                 <h3 className="font-black text-sm mb-8 flex items-center gap-4 text-gray-900 uppercase tracking-widest">
-                    <Save className="text-gray-400" size={20} /> Payment & Contact Config
+                    <Save className="text-gray-400" size={20} /> Payments & Contact
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>

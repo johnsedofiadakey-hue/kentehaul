@@ -97,7 +97,7 @@ export default function Navbar({
                         <div className="hidden lg:flex items-center space-x-1">
                             {[
                                 { name: 'Home', path: '/' },
-                                { name: 'Heritage', path: '/heritage' },
+                                { name: 'Our Story', path: '/heritage' },
                             ].map((link) => (
                                 <Link
                                     key={link.path}
@@ -121,7 +121,7 @@ export default function Navbar({
                                     className={`shimmer-premium px-5 py-2 rounded-full font-black text-[13px] uppercase tracking-widest transition-all flex items-center gap-1.5 active:scale-95 ${isActive('/shop') || shopDropdownOpen ? 'bg-gray-900 text-white shadow-lg' : 'text-gray-500 hover:bg-gray-50'
                                         }`}
                                 >
-                                    Collections
+                                    Our Shop
                                     <ChevronDown size={14} className={`transition-transform duration-500 ${shopDropdownOpen ? 'rotate-180 text-amber-500' : ''}`} />
                                 </button>
 
@@ -137,7 +137,7 @@ export default function Navbar({
                                             <div className="max-w-7xl mx-auto flex h-[480px]">
                                                 {/* Left Sidebar: Categories */}
                                                 <div className="w-[300px] border-r border-gray-100 p-8 flex flex-col bg-gray-50/30">
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[4px] mb-6">Our Collections</p>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[4px] mb-6">Store Shop</p>
                                                     <div className="space-y-1 overflow-y-auto flex-1 pr-2 custom-scrollbar">
                                                         {categories.map(cat => (
                                                             <button
@@ -230,8 +230,8 @@ export default function Navbar({
                             </div>
 
                             {[
-                                { name: 'Institute', path: '/institute' },
-                                { name: 'Contact', path: '/contact' }
+                                { name: 'History', path: '/institute' },
+                                { name: 'Help', path: '/contact' }
                             ].map((link) => (
                                 <Link
                                     key={link.path}
@@ -323,9 +323,9 @@ export default function Navbar({
                                 <div className="space-y-1">
                                     {[
                                         { name: 'Home', path: '/', desc: 'Start' },
-                                        { name: 'Our Heritage', path: '/heritage', desc: 'The Legacy' },
-                                        { name: 'Kente History', path: '/institute', desc: 'Learn symbols' },
-                                        { name: 'Contact Us', path: '/contact', desc: 'Support' }
+                                        { name: 'Our Story', path: '/heritage', desc: 'The Legacy' },
+                                        { name: 'Kente History', path: '/institute', desc: 'Symbols' },
+                                        { name: 'Support', path: '/contact', desc: 'Help' }
                                     ].map((link) => (
                                         <Link
                                             key={link.path}

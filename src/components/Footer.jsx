@@ -33,11 +33,11 @@ export default function Footer({ siteContent, onNavClick, onAdminClick }) {
         <div>
           <h4 className="text-white font-bold text-lg mb-6">Explore</h4>
           <ul className="space-y-3">
-            <li><Link to="/heritage" className="hover:opacity-80 transition block">Our Heritage</Link></li>
-            <li><Link to="/shop" className="hover:opacity-80 transition block">Shop Collections</Link></li>
-            <li><Link to="/institute" className="hover:opacity-80 transition block">Kente History</Link></li>
+            <li><Link to="/heritage" className="hover:opacity-80 transition block">Our Story</Link></li>
+            <li><Link to="/shop" className="hover:opacity-80 transition block">Shop Products</Link></li>
+            <li><Link to="/institute" className="hover:opacity-80 transition block">Kente Stories</Link></li>
             {/* Admin Link Moved Here */}
-            <li><button className="hover:opacity-100 cursor-pointer transition text-white/20 hover:text-white text-[10px] uppercase tracking-widest mt-4" onClick={onAdminClick}>Admin Portal</button></li>
+            <li><button className="hover:opacity-100 cursor-pointer transition text-white/20 hover:text-white text-[10px] uppercase tracking-widest mt-4" onClick={onAdminClick}>Manager Access</button></li>
           </ul>
         </div>
 

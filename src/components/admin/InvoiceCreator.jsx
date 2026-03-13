@@ -129,7 +129,7 @@ export default function InvoiceCreator({
             <div className="bg-white w-full max-w-3xl rounded-3xl p-0 shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
                 <div className="bg-gray-50 p-6 flex justify-between items-center border-b shrink-0">
                     <h3 className="text-xl font-bold flex items-center gap-2">
-                        <FileText className="text-blue-600" /> {editingOrder ? "Modify Invoice" : "Generate Manual Invoice"}
+                        <FileText className="text-blue-600" /> {editingOrder ? "Update Bill" : "Create New Bill"}
                     </h3>
                     <button onClick={onClose} className="p-2 bg-white rounded-full shadow-sm hover:text-red-500 transition"><X size={24} /></button>
                 </div>
@@ -137,7 +137,7 @@ export default function InvoiceCreator({
                 <form onSubmit={saveCustomOrder} className="flex-1 overflow-y-auto p-8 space-y-8">
                     {/* Step 1: Customer Details */}
                     <div className="space-y-4">
-                        <h4 className="font-bold text-sm text-blue-600 uppercase tracking-widest">1. Customer Identification</h4>
+                        <h4 className="font-bold text-sm text-blue-600 uppercase tracking-widest">1. Customer Details</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50/30 p-6 rounded-3xl border border-blue-50">
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-400">Recipient Name</label>
@@ -157,7 +157,7 @@ export default function InvoiceCreator({
                     {/* Step 2: Line Items */}
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                            <h4 className="font-bold text-sm text-blue-600 uppercase tracking-widest">2. Itemized Charges</h4>
+                            <h4 className="font-bold text-sm text-blue-600 uppercase tracking-widest">2. Items & Charges</h4>
                             <button type="button" onClick={addLineItem} className="text-xs bg-gray-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-black flex items-center gap-1 transition">
                                 <Plus size={14} /> Add Row
                             </button>
@@ -197,7 +197,7 @@ export default function InvoiceCreator({
                     </div>
 
                     <button disabled={loading} className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black text-lg shadow-2xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center gap-3">
-                        {loading ? <Loader2 className="animate-spin" /> : <><CheckCircle size={24} /> Save & Process Official Invoice</>}
+                        {loading ? <Loader2 className="animate-spin" /> : <><CheckCircle size={24} /> Save & Print Bill</>}
                     </button>
                 </form>
             </div>

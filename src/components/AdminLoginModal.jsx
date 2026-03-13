@@ -66,7 +66,7 @@ export default function AdminLoginModal({
             <h2 className="text-2xl font-bold mb-2" style={{ color: siteContent.primaryColor }}>
               Admin Access
             </h2>
-            <p className="text-gray-500 mb-8 text-sm">Strictly for authorized personnel</p>
+            <p className="text-gray-500 mb-8 text-sm">Staff Only Access</p>
 
             <form onSubmit={handleEmailLogin} className="space-y-4 text-left">
               <div className="relative">
@@ -125,7 +125,7 @@ export default function AdminLoginModal({
                 className="w-full text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-xl hover:opacity-90 transform active:scale-95 transition-all mt-4"
                 style={{ backgroundColor: siteContent.primaryColor }}
               >
-                {loading ? "Authenticating..." : "Authorized Entry"}
+                {loading ? "Checking..." : "Log In Now"}
               </button>
             </form>
           </motion.div>

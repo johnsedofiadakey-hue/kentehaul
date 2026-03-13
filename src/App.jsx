@@ -83,7 +83,6 @@ export default function App() {
 
   // Admin Authentication State
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  // PIN state removed in favor of Firebase Auth
 
   // Order Tracking State
   const [trackingInput, setTrackingInput] = useState('');
@@ -241,7 +240,6 @@ export default function App() {
   // };
 
   // Admin login is now handled by onAuthStateChanged
-  // Legacy PIN logic removed
 
   // ==========================================
   // 6. E-COMMERCE CORE LOGIC
