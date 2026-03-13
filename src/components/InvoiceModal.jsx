@@ -82,9 +82,29 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
           <style>
             {`
               @media print {
-                @page { margin: 15mm; }
-                body { -webkit-print-color-adjust: exact; background: white !important; }
-                .invoice-container { box-shadow: none !important; margin: 0 !important; width: 100% !important; min-width: auto !important; }
+                @page { 
+                  size: A4 portrait;
+                  margin: 0; 
+                }
+                body { 
+                  -webkit-print-color-adjust: exact; 
+                  background: white !important; 
+                  margin: 0 !important;
+                  padding: 0 !important;
+                }
+                .invoice-container { 
+                  box-shadow: none !important; 
+                  margin: 0 !important; 
+                  width: 210mm !important; 
+                  height: 297mm !important;
+                  max-height: 297mm !important;
+                  min-width: 210mm !important;
+                  padding: 20mm !important;
+                  display: block !important;
+                  overflow: hidden !important;
+                }
+                .no-print { display: none !important; }
+                .break-avoid { break-inside: avoid; }
               }
               
               .invoice-container {
@@ -93,28 +113,26 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               }
 
               @media (max-width: 768px) {
-                /* AUTOMATIC SMART SCALING FOR MOBILE FULL VIEW */
                 .invoice-container {
-                   transform: scale(0.40); /* Slightly smaller to ensure fit */
+                   transform: scale(0.40);
                    transform-origin: top center;
                 }
                 .invoice-scroll-wrapper {
                   width: 100%;
                   display: flex;
                   justify-content: center;
-                  margin: 10px auto;
-                  min-height: 1000px; /* Compensation for scale */
+                  margin: 0 auto;
+                  min-height: 1100px;
                 }
               }
 
               @media (max-width: 480px) {
                 .invoice-container {
                    transform: scale(0.35);
-                   transform-origin: top center;
                 }
-                 .invoice-scroll-wrapper {
-                   min-height: 800px;
-                 }
+                .invoice-scroll-wrapper {
+                  min-height: 900px;
+                }
               }
             `}
           </style>
@@ -129,7 +147,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               </div>
 
               {/* 1. HEADER */}
-              <div className="flex justify-between items-start border-b-2 border-gray-100 pb-10 mb-10">
+              <div className="flex justify-between items-start border-b-2 border-gray-100 pb-10 mb-10 break-avoid">
                 <div>
                   {siteContent.logo ? (
                     <img src={siteContent.logo} alt="Logo" className="h-20 w-auto object-contain mb-6" />
@@ -164,7 +182,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               </div>
 
               {/* 2. BILL TO */}
-              <div className="mb-14">
+              <div className="mb-14 break-avoid">
                 <h3 className="text-[10px] font-black uppercase tracking-[3px] text-gray-400 mb-4">Client Destination</h3>
                 <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
                   <p className="font-black text-xl text-gray-900">{order.customer?.name || "Guest Customer"}</p>
@@ -205,7 +223,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               </div>
 
               {/* 4. TOTALS */}
-              <div className="flex justify-end mb-16 px-5">
+              <div className="flex justify-end mb-16 px-5 break-avoid">
                 <div className="w-72 space-y-4">
                   <div className="flex justify-between text-gray-400 text-xs font-bold uppercase tracking-widest">
                     <span>Subtotal</span>
@@ -224,7 +242,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               </div>
 
               {/* 5. FOOTER / BANK DETAILS */}
-              <div className="grid grid-cols-2 gap-12 text-xs border-t-2 border-gray-100 pt-10">
+              <div className="grid grid-cols-2 gap-12 text-xs border-t-2 border-gray-100 pt-10 break-avoid">
                 <div>
                   <h4 className="font-black text-gray-900 uppercase tracking-widest mb-3">Electronic Payment</h4>
                   <p className="text-gray-500 font-medium whitespace-pre-line leading-relaxed">
