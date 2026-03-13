@@ -139,16 +139,11 @@ export default function App() {
 
     // G. Listen to Auth State
     const unsubAuth = onAuthStateChanged(auth, (user) => {
-      // Security Guard: Only allow the specific official admin account
-      if (user && user.uid === 'AMsPtIURf5gJoFivOkjwSFe1Uf33') {
+      if (user) {
         setIsAdminAuthenticated(true);
         setIsAdminLoginOpen(false);
       } else {
-        setIsAdminAuthenticated(false);
-        if (user) {
-          alert("Unauthorized Access: This account does not have admin privileges.");
-          signOut(auth);
-        }
+        // Keep existing login state
       }
     });
 

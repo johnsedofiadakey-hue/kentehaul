@@ -2,12 +2,13 @@ import React from 'react';
 import { usePaystackPayment } from 'react-paystack';
 import { Upload, CreditCard, Loader2 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from '../firebase';
 
 // --- IMAGE UPLOAD COMPONENT ---
 export const ImageUpload = ({ image, onUpload, label = "Upload Image", height = "h-32", primaryColor }) => {
   const [uploading, setUploading] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -15,6 +16,7 @@ export const ImageUpload = ({ image, onUpload, label = "Upload Image", height = 
 
     try {
       setUploading(true);
+      setProgress(10); // Start progress
 
       // 1. Compress Image
       const options = {
@@ -23,17 +25,36 @@ export const ImageUpload = ({ image, onUpload, label = "Upload Image", height = 
         useWebWorker: true
       };
       const compressedFile = await imageCompression(file, options);
+      setProgress(30);
 
       // 2. Upload to Firebase Storage
-      const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, compressedFile);
-      const url = await getDownloadURL(snapshot.ref);
+      const fileExtension = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExtension}`;
+      const storageRef = ref(storage, `cms_images/${fileName}`);
 
-      onUpload(url);
+      const uploadTask = uploadBytesResumable(storageRef, compressedFile);
+
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          const p = 30 + (snapshot.bytesTransferred / snapshot.totalBytes) * 70;
+          setProgress(p);
+        },
+        (error) => {
+          console.error("Upload failed:", error);
+          alert("Image upload failed. Please try again.");
+          setUploading(false);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          onUpload(downloadURL);
+          setUploading(false);
+          setProgress(0);
+        }
+      );
+
     } catch (error) {
-      console.error("Upload failed:", error);
-      alert("Image upload failed. Please try again.");
-    } finally {
+      console.error("Compression/Upload failed:", error);
+      alert("Image processing failed.");
       setUploading(false);
     }
   };
@@ -46,9 +67,17 @@ export const ImageUpload = ({ image, onUpload, label = "Upload Image", height = 
       <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" disabled={uploading} />
 
       {uploading ? (
-        <div className="flex flex-col items-center text-gray-400">
-          <Loader2 className="w-8 h-8 mb-2 animate-spin" style={{ color: primaryColor }} />
-          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: primaryColor }}>Compressing & Uploading...</span>
+        <div className="flex flex-col items-center justify-center p-4">
+          <Loader2 className="w-8 h-8 animate-spin mb-2" style={{ color: primaryColor }} />
+          <div className="w-32 bg-gray-100 rounded-full h-1 overflow-hidden">
+            <div
+              className="h-full transition-all duration-300"
+              style={{ backgroundColor: primaryColor, width: `${progress}%` }}
+            />
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-widest mt-2" style={{ color: primaryColor }}>
+            {progress < 30 ? "Compressing..." : `Uploading ${Math.round(progress)}%`}
+          </span>
         </div>
       ) : image ? (
         <img src={image} alt="Preview" className="h-full w-full object-contain" />
