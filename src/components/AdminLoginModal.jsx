@@ -3,6 +3,7 @@ import { Lock, Mail, Key, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from "firebase/auth";
 import { auth } from '../firebase';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminLoginModal({
   isOpen,
@@ -14,6 +15,7 @@ export default function AdminLoginModal({
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
@@ -26,7 +28,9 @@ export default function AdminLoginModal({
       await setPersistence(auth, persistence);
 
       await signInWithEmailAndPassword(auth, email, password);
-      // Auth listener in App.jsx will handle closing the modal via state
+      // Explicitly navigate to admin portal on success
+      navigate('/admin');
+      onClose();
     } catch (err) {
       console.error("Login Error:", err);
       let errorMessage = "Login failed. Please verify credentials and try again.";
@@ -104,15 +108,19 @@ export default function AdminLoginModal({
                 <label className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none transition-all">Password</label>
               </div>
 
-              <div className="flex items-center gap-2 px-1">
-                <input
-                  type="checkbox"
-                  id="rememberMe"
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                />
-                <label htmlFor="rememberMe" className="text-xs font-bold text-gray-500 cursor-pointer">Remember me</label>
+              <div className="flex items-center gap-3 px-1 py-1">
+                <div className="relative flex items-center">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                    className="w-5 h-5 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition-all"
+                  />
+                </div>
+                <label htmlFor="rememberMe" className="text-[11px] font-black text-gray-500 cursor-pointer uppercase tracking-wider select-none">
+                  Remember me
+                </label>
               </div>
 
               {error && (
