@@ -25,5 +25,5 @@ export const analytics = getAnalytics(app);
 export const messaging = getMessaging(app);
 
 // Configure Persistence (Session Only)
-setPersistence(auth, browserSessionPersistence)
-  .catch((error) => console.error("Auth Persistence Error:", error));
+// setPersistence(auth, browserSessionPersistence)
+//   .catch((error) => console.error("Auth Persistence Error:", error));

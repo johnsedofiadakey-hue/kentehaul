@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Mail, Key, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from "firebase/auth";
 import { auth } from '../firebase';
 
 export default function AdminLoginModal({
@@ -11,6 +11,7 @@ export default function AdminLoginModal({
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -20,15 +21,17 @@ export default function AdminLoginModal({
     setError('');
 
     try {
+      // Set persistence based on "Remember me" checkbox
+      const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+      await setPersistence(auth, persistence);
+
       await signInWithEmailAndPassword(auth, email, password);
       // Auth listener in App.jsx will handle closing the modal via state
     } catch (err) {
       console.error("Login Error:", err);
-      let errorMessage = "Login failed. Please try again.";
-      switch (err.code) {
-        case 'auth/invalid-credential': errorMessage = "Invalid email or password."; break;
-        case 'auth/too-many-requests': errorMessage = "Too many attempts. try later."; break;
-        default: errorMessage = err.message;
+      let errorMessage = "Login failed. Please verify credentials and try again.";
+      if (err.code === 'auth/too-many-requests') {
+        errorMessage = "Too many failed attempts. Access temporarily locked.";
       }
       setError(errorMessage);
     }
@@ -73,10 +76,20 @@ export default function AdminLoginModal({
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
+                  autoComplete="email"
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black/5 outline-none transition"
-                  placeholder="Email Address"
+                  placeholder=" "
                 />
+                <label className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none transition-all">Email Address</label>
               </div>
+              <style>{`
+                input:focus + label, input:not(:placeholder-shown) + label {
+                  transform: translateY(-2.2rem) translateX(-2.5rem);
+                  font-size: 0.75rem;
+                  color: ${siteContent.primaryColor};
+                  font-weight: 800;
+                }
+              `}</style>
               <div className="relative">
                 <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -84,22 +97,35 @@ export default function AdminLoginModal({
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black/5 outline-none transition"
-                  placeholder="Password"
+                  placeholder=" "
                 />
+                <label className="absolute left-12 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none transition-all">Password</label>
+              </div>
+
+              <div className="flex items-center gap-2 px-1">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <label htmlFor="rememberMe" className="text-xs font-bold text-gray-500 cursor-pointer">Remember me</label>
               </div>
 
               {error && (
-                <p className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>
+                <p className="text-red-500 text-[10px] font-black text-center bg-red-50 py-2.5 rounded-xl border border-red-100 animate-pulse uppercase tracking-tight">{error}</p>
               )}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:opacity-90 transition flex justify-center items-center mt-4"
+                className="w-full text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-xl hover:opacity-90 transform active:scale-95 transition-all mt-4"
                 style={{ backgroundColor: siteContent.primaryColor }}
               >
-                {loading ? <span className="animate-pulse text-sm uppercase tracking-widest font-black">Authenticating...</span> : "Authorized Entry"}
+                {loading ? "Authenticating..." : "Authorized Entry"}
               </button>
             </form>
           </motion.div>
