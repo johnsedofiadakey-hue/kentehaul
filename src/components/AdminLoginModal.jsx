@@ -134,7 +134,7 @@ export default function AdminLoginModal({
                       onChange={e => setPassword(e.target.value)}
                       required
                       className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-black/5 outline-none transition"
-                      placeholder="Password"
+                      placeholder="admin123"
                     />
                   </div>
                 </>

@@ -143,7 +143,7 @@ export default function App() {
         setIsAdminAuthenticated(true);
         setIsAdminLoginOpen(false);
       } else {
-        // Keep existing login state
+        setIsAdminAuthenticated(false);
       }
     });
 

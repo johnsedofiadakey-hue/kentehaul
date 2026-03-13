@@ -108,18 +108,34 @@ export default function AdminProducts({
 
     const saveProduct = async (e) => {
         e.preventDefault();
+
+        if (!productForm.image) {
+            alert("Please upload a product image first.");
+            return;
+        }
+
         setLoading(true);
         try {
-            const sanitizedProduct = { ...productForm, price: Number(productForm.price), stock: Number(productForm.stock), date: Date.now() };
+            const sanitizedProduct = {
+                ...productForm,
+                price: Number(productForm.price),
+                stock: Number(productForm.stock),
+                date: Date.now()
+            };
+
             if (editingProduct) {
                 await updateDoc(doc(db, "products", editingProduct.id), sanitizedProduct);
                 setEditingProduct(null);
             } else {
                 await addDoc(collection(db, "products"), sanitizedProduct);
             }
+
             setProductForm({ name: '', price: '', stock: 1, category: '', subcategory: '', description: '', longHistory: '', image: '' });
             alert("Inventory updated successfully!");
-        } catch (error) { alert("Failed to save product."); }
+        } catch (error) {
+            console.error("Product Save Error:", error);
+            alert(`Failed to save product: ${error.message}`);
+        }
         setLoading(false);
     };
 
