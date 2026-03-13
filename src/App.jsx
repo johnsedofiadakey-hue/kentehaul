@@ -49,6 +49,9 @@ function AdminLoginRequired({ setIsAdminLoginOpen }) {
 }
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // ==========================================
   // 1. REAL-TIME DATA STATE (Syncs with Cloud)
   // ==========================================
@@ -436,8 +439,6 @@ export default function App() {
       alert("Unable to track order. Please check your connection.");
     }
   };
-
-  const navigate = useNavigate();
 
   // Detect admin route to hide public elements
   const isAdminPath = location.pathname.startsWith('/admin');
