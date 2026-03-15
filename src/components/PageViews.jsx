@@ -29,9 +29,9 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
           <div className="absolute inset-0 z-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
         )}
 
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white rounded-full mix-blend-overlay filter blur-[120px] opacity-20 animate-blob"></div>
-        <div className="absolute bottom-[-100px] left-[-100px] w-[600px] h-[600px] rounded-full mix-blend-overlay filter blur-[150px] opacity-20 animate-blob animation-delay-2000" style={{ backgroundColor: siteContent.secondaryColor }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/5 rounded-full filter blur-[200px] animate-blob animation-delay-4000"></div>
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white rounded-full mix-blend-overlay filter blur-[120px] opacity-20 animate-blob pointer-events-none"></div>
+        <div className="absolute bottom-[-100px] left-[-100px] w-[600px] h-[600px] rounded-full mix-blend-overlay filter blur-[150px] opacity-20 animate-blob animation-delay-2000 pointer-events-none" style={{ backgroundColor: siteContent.secondaryColor }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/5 rounded-full filter blur-[200px] animate-blob animation-delay-4000 pointer-events-none"></div>
 
         <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
           <motion.div
@@ -73,7 +73,7 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
               className="shimmer-premium group text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all transform hover:-translate-y-2 inline-flex items-center justify-center relative overflow-hidden active:scale-95"
               style={{ backgroundColor: siteContent.secondaryColor }}
             >
-              <span className="relative z-10 flex items-center gap-2">Start Exploring <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
+              <span className="relative z-10 flex items-center gap-2">Our Shop <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
             </Link>
             <Link to="/heritage" className="bg-white/5 backdrop-blur-2xl text-white border border-white/20 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] hover:bg-white/10 transition-all transform hover:-translate-y-2 inline-flex items-center justify-center active:scale-95 shadow-xl">
               Our Legacy
@@ -289,9 +289,17 @@ export const Institute = ({ siteContent, products }) => (
     <div className="max-w-4xl mx-auto -mt-12 px-6 relative z-20">
       <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl">
         <Quote className="w-16 h-16 mb-4 mx-auto" style={{ color: `${siteContent.secondaryColor}80` }} />
-        <p className="text-lg md:text-xl text-gray-700 leading-loose text-center font-light">
-          {siteContent.instituteText}
-        </p>
+        <div className="text-lg md:text-xl text-gray-700 leading-loose text-center font-light space-y-6">
+          {siteContent.instituteText && <p>{siteContent.instituteText}</p>}
+          {siteContent.globalArtifactStory && (
+            <div className="pt-6 border-t border-gray-100 text-left">
+              <h4 className="text-xs font-black uppercase tracking-[3px] mb-4 text-amber-600">The Living History</h4>
+              <p className="text-sm md:text-base text-gray-600 leading-relaxed italic whitespace-pre-wrap">
+                {siteContent.globalArtifactStory}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
 
