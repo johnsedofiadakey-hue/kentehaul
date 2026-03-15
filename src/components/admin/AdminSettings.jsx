@@ -491,42 +491,37 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                             onChange={e => updateField('instituteText', e.target.value)}
                             onBlur={e => saveField('instituteText', e.target.value, siteContent)}
                         />
-                        <div className="pt-2">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex flex-col">
-                                    <label className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Global Educational Content</label>
-                                    <p className="text-[10px] text-purple-400">Manage visibility and content of stories/artifacts</p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-[10px] font-black uppercase text-gray-400">Site visibility</span>
-                                    <button 
-                                        onClick={() => saveField('showInstituteArtifacts', siteContent.showInstituteArtifacts === false ? true : false, siteContent)}
-                                        className={`w-12 h-6 rounded-full relative transition-colors ${siteContent.showInstituteArtifacts !== false ? 'bg-purple-600' : 'bg-gray-200'}`}
-                                    >
-                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${siteContent.showInstituteArtifacts !== false ? 'left-7' : 'left-1'}`} />
-                                    </button>
-                                    <SaveIndicator field="showInstituteArtifacts" />
-                                </div>
-                            </div>
-                            <textarea
-                                className="w-full p-6 bg-purple-50/50 border border-purple-100 rounded-[30px] h-48 font-bold text-sm outline-none focus:ring-2 focus:ring-purple-200 leading-relaxed"
-                                placeholder="The Living History story..."
-                                defaultValue={siteContent.globalArtifactStory}
-                                onBlur={e => saveField('globalArtifactStory', e.target.value, siteContent)}
-                            />
-                        </div>
-
                         {/* PARTNER WITH US TEXTS */}
-                        <div className="mt-12 pt-8 border-t border-gray-100">
+                        <div className="mt-8 pt-8 border-t border-gray-100">
                              <div className="flex items-center justify-between mb-4">
                                 <div className="flex flex-col">
-                                    <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Partnership Invitation</label>
-                                    <p className="text-[10px] text-amber-500">Edit the CTA text that appears at the bottom</p>
+                                    <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Partnership Configuration</label>
+                                    <p className="text-[10px] text-amber-500">Full control over the collaboration section</p>
                                 </div>
                                 <SaveIndicator field="partnerHeadline" />
                             </div>
                             <RichTextLegend />
                             <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Small Tag (e.g. Collaborate)</label>
+                                        <input
+                                            className="w-full p-4 bg-gray-50 border-none rounded-2xl font-black text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                                            placeholder="Collaborate"
+                                            defaultValue={siteContent.partnerTag || "Collaborate"}
+                                            onBlur={e => saveField('partnerTag', e.target.value, siteContent)}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Button Text (CTA)</label>
+                                        <input
+                                            className="w-full p-4 bg-gray-50 border-none rounded-2xl font-black text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                                            placeholder="Partner With Us"
+                                            defaultValue={siteContent.partnerCTA || "Partner With Us"}
+                                            onBlur={e => saveField('partnerCTA', e.target.value, siteContent)}
+                                        />
+                                    </div>
+                                </div>
                                 <div>
                                     <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Headline</label>
                                     <input
