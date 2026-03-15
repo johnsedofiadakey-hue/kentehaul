@@ -17,14 +17,15 @@ export default function CartDrawer({
     const [step, setStep] = useState('cart'); // 'cart' | 'details' | 'success'
     const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '' });
     const [shippingRegion, setShippingRegion] = useState('Accra');
+    const shippingRegions = siteContent.deliveryRegions || [
+        { region: 'Accra', fee: 30 },
+        { region: 'Other Ghana', fee: 70 },
+        { region: 'International', fee: 250 }
+    ];
 
-    const shippingFees = {
-        'Accra': 30,
-        'Other Ghana': 70,
-        'International': 250
-    };
-
-    const shippingFee = shippingFees[shippingRegion] || 0;
+    // Find current shipping fee based on selected region name
+    const selectedRegion = shippingRegions.find(r => r.region === shippingRegion) || shippingRegions[0];
+    const shippingFee = selectedRegion?.fee || 0;
     const finalTotal = cartTotal + shippingFee;
 
     const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && customerForm.address.trim();
@@ -210,16 +211,16 @@ export default function CartDrawer({
                                     {/* Form fields */}
                                     <div className="space-y-3">
                                         <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Delivery Method</p>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {Object.keys(shippingFees).map(region => (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {shippingRegions.map(r => (
                                                 <button
-                                                    key={region}
-                                                    onClick={() => setShippingRegion(region)}
-                                                    className={`py-2 text-[10px] font-bold rounded-xl border transition-all ${shippingRegion === region ? 'bg-white shadow-sm border-gray-400' : 'bg-gray-50 border-transparent text-gray-400'}`}
-                                                    style={{ borderLeft: shippingRegion === region ? `4px solid ${siteContent.secondaryColor}` : '' }}
+                                                    key={r.region}
+                                                    onClick={() => setShippingRegion(r.region)}
+                                                    className={`py-3 px-4 text-left rounded-2xl border transition-all ${shippingRegion === r.region ? 'bg-white shadow-md border-gray-400' : 'bg-gray-50 border-transparent text-gray-400'}`}
+                                                    style={{ borderLeft: shippingRegion === r.region ? `4px solid ${siteContent.secondaryColor}` : '' }}
                                                 >
-                                                    {region}
-                                                    <div className="opacity-60">₵{shippingFees[region]}</div>
+                                                    <div className="text-[10px] font-black uppercase tracking-wider">{r.region}</div>
+                                                    <div className="text-xs font-black" style={{ color: shippingRegion === r.region ? siteContent.primaryColor : '' }}>₵{r.fee}</div>
                                                 </button>
                                             ))}
                                         </div>
@@ -273,23 +274,30 @@ export default function CartDrawer({
 
                                 <div className="p-5 border-t bg-white safe-bottom space-y-3">
                                     {/* Paystack */}
-                                    <div className={!isFormValid ? 'opacity-40 pointer-events-none' : ''}>
-                                        <PaystackButton
-                                            amount={finalTotal}
-                                            email={customerForm.email || "guest@kentehaul.com"}
-                                            publicKey={siteContent.paystackPublicKey}
-                                            onSuccess={handlePaystack}
-                                            onClose={() => { }}
-                                        />
-                                    </div>
+                                    {siteContent.paystackEnabled !== false && (
+                                        <div className={!isFormValid ? 'opacity-40 pointer-events-none' : ''}>
+                                            <PaystackButton
+                                                amount={finalTotal}
+                                                email={customerForm.email || "guest@kentehaul.com"}
+                                                publicKey={siteContent.paystackPublicKey}
+                                                onSuccess={handlePaystack}
+                                                onClose={() => { }}
+                                            />
+                                        </div>
+                                    )}
                                     {/* WhatsApp */}
-                                    <button
-                                        onClick={handleWhatsApp}
-                                        disabled={!isFormValid}
-                                        className="shimmer-premium w-full bg-green-500 text-white py-5 rounded-[24px] font-black text-sm uppercase tracking-[2px] hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-40 disabled:pointer-events-none shadow-[0_15px_30px_rgba(34,197,94,0.2)]"
-                                    >
-                                        <Smartphone size={20} className="animate-pulse" /> Confirm on WhatsApp
-                                    </button>
+                                    {siteContent.whatsappEnabled !== false && (
+                                        <button
+                                            onClick={handleWhatsApp}
+                                            disabled={!isFormValid}
+                                            className="shimmer-premium w-full bg-green-500 text-white py-5 rounded-[24px] font-black text-sm uppercase tracking-[2px] hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-40 disabled:pointer-events-none shadow-[0_15px_30px_rgba(34,197,94,0.2)]"
+                                        >
+                                            <Smartphone size={20} className="animate-pulse" /> Confirm on WhatsApp
+                                        </button>
+                                    )}
+                                    {siteContent.paystackEnabled === false && siteContent.whatsappEnabled === false && (
+                                        <p className="text-xs text-center text-gray-400 italic font-bold py-4">Checkout is currently unavailable. Please contact us.</p>
+                                    )}
                                 </div>
                             </>
                         )}

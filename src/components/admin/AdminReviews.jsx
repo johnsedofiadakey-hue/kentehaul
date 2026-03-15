@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, deleteDoc, doc, query, orderBy, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Star, Trash2, Search, Filter, MessageSquare, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

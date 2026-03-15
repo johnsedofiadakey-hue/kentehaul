@@ -94,7 +94,7 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
             >
               <div className="w-12 h-1 bg-amber-500 mb-6 rounded-full"></div>
               <h2 className="text-5xl md:text-7xl font-black mb-6 uppercase tracking-tighter" style={{ color: siteContent.primaryColor }}>
-                Lifestyle Gallery
+                {siteContent.galleryTitle || "Lifestyle Gallery"}
               </h2>
               <p className="text-gray-400 font-bold max-w-xl mx-auto uppercase tracking-widest text-xs">Curated moments of cultural excellence and royal style.</p>
             </motion.div>
@@ -151,7 +151,7 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
           >
             <span className="text-amber-500 font-black text-xs uppercase tracking-[5px] mb-4 block">Our Legacy</span>
             <h2 className="text-4xl md:text-6xl font-black mb-8 leading-tight tracking-tighter uppercase" style={{ color: siteContent.primaryColor }}>
-              A Story in <br /> Every Thread
+              {siteContent.heritageHomeTitle || "A Story in Every Thread"}
             </h2>
             <p className="text-gray-600 text-lg leading-relaxed mb-10 font-medium">
               {siteContent.heritageSummary || "Connecting the world to the royal heritage of Ghana. Authentic, handwoven, and timeless. Each piece in our collection is a testament to the skill of master weavers and the endurance of our traditions."}
@@ -173,7 +173,7 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4 flex items-center justify-center gap-2">
-              <MessageCircle style={{ color: siteContent.secondaryColor }} /> Love from our Clients
+              <MessageCircle style={{ color: siteContent.secondaryColor }} /> {siteContent.testimonialsTitle || "Love from our Clients"}
             </h2>
           </div>
           <div className="grid md:grid-cols-2 gap-8">
@@ -250,8 +250,16 @@ export const Heritage = ({ siteContent }) => (
     </div>
     <div className="max-w-3xl mx-auto py-16 px-6">
       <div className="prose prose-lg mx-auto text-gray-700 leading-loose first-letter:text-5xl first-letter:font-bold first-letter:mr-3 first-letter:float-left">
-        <span style={{ color: siteContent.secondaryColor }} className="float-left text-5xl font-bold mr-2">{siteContent.heritageText.charAt(0)}</span>
-        {siteContent.heritageText.slice(1)}
+        {siteContent.heritageText ? (
+          <>
+            <span style={{ color: siteContent.secondaryColor }} className="float-left text-5xl font-bold mr-2 text-balance leading-[0.8]">
+              {siteContent.heritageText.charAt(0)}
+            </span>
+            {siteContent.heritageText.slice(1)}
+          </>
+        ) : (
+          <p className="text-gray-400 italic">Heritage story coming soon...</p>
+        )}
       </div>
       <div className="mt-12 flex justify-center">
         <Link
@@ -288,7 +296,9 @@ export const Institute = ({ siteContent, products }) => (
     </div>
 
     <div className="max-w-6xl mx-auto py-20 px-6">
-      <h3 className="text-3xl font-bold text-center mb-12" style={{ color: siteContent.primaryColor }}>Educational Artifacts</h3>
+      <h3 className="text-3xl font-bold text-center mb-12" style={{ color: siteContent.primaryColor }}>
+        {siteContent.instituteArtifactsTitle || "Educational Artifacts"}
+      </h3>
       <div className="grid md:grid-cols-2 gap-8">
         {products.filter(p => p.longHistory).map(p => (
           <div key={p.id} className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 flex flex-col md:flex-row gap-6 hover:shadow-xl transition">

@@ -17,6 +17,8 @@ export default function Navbar({
     const [categories, setCategories] = useState(SHOP_CATEGORIES);
     const [hoveredCat, setHoveredCat] = useState(null);
     const [scrolled, setScrolled] = useState(false);
+    const [mobileShopExpanded, setMobileShopExpanded] = useState(false);
+    const [mobileActiveCat, setMobileActiveCat] = useState(null);
 
     const dropdownRef = useRef(null);
     const dropdownTimer = useRef(null);
@@ -137,7 +139,7 @@ export default function Navbar({
                                             <div className="max-w-7xl mx-auto flex h-[480px]">
                                                 {/* Left Sidebar: Categories */}
                                                 <div className="w-[300px] border-r border-gray-100 p-8 flex flex-col bg-gray-50/30">
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[4px] mb-6">Store Shop</p>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[4px] mb-6">{siteContent.navShopTitle || "Store Shop"}</p>
                                                     <div className="space-y-1 overflow-y-auto flex-1 pr-2 custom-scrollbar">
                                                         {categories.map(cat => (
                                                             <button
@@ -176,7 +178,7 @@ export default function Navbar({
                                                         return (
                                                             <div className="animate-fade-in">
                                                                 <h3 className="text-3xl font-black text-gray-900 mb-2 uppercase tracking-tight">{cat.name}</h3>
-                                                                <p className="text-gray-400 text-sm mb-10 font-bold max-w-md">Discover the finest {cat.name} Kente patterns, curated with cultural precision and royal elegance.</p>
+                                                                <p className="text-gray-400 text-sm mb-10 font-bold max-w-md">{siteContent.navShopSubtitle || `Discover the finest ${cat.name} Kente patterns, curated with cultural precision and royal elegance.`}</p>
 
                                                                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
                                                                     {cat.subcategories.map(sub => (
@@ -302,20 +304,89 @@ export default function Navbar({
                         >
                             <div className="h-full overflow-y-auto custom-scrollbar p-6 pt-10 space-y-2">
                                 {/* Refined Quick Actions */}
-                                <div className="grid grid-cols-2 gap-4 mb-10">
+                                <div className="space-y-3 mb-6">
                                     <button
-                                        onClick={() => { navigate('/shop'); closeMenus(); }}
-                                        className="flex flex-col items-center justify-center p-4 bg-gray-900 text-white rounded-[24px] gap-2 active:scale-95 transition shadow-lg"
+                                        onClick={() => setMobileShopExpanded(!mobileShopExpanded)}
+                                        className={`w-full flex items-center justify-between p-5 rounded-[24px] transition-all bg-gray-900 text-white shadow-lg`}
                                     >
-                                        <ShoppingBag size={24} />
-                                        <span className="font-black text-[10px] uppercase tracking-widest">Shop All</span>
+                                        <div className="flex items-center gap-3">
+                                            <ShoppingBag size={20} />
+                                            <span className="font-black text-xs uppercase tracking-widest">Shop Collections</span>
+                                        </div>
+                                        <ChevronDown size={18} className={`transition-transform duration-300 ${mobileShopExpanded ? 'rotate-180' : ''}`} />
                                     </button>
+
+                                    <AnimatePresence>
+                                        {mobileShopExpanded && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="overflow-hidden bg-gray-50 rounded-[24px] border border-gray-100"
+                                            >
+                                                <div className="p-2 space-y-1">
+                                                    {categories.map(cat => (
+                                                        <div key={cat.id} className="space-y-1">
+                                                            <button
+                                                                onClick={() => setMobileActiveCat(mobileActiveCat === cat.id ? null : cat.id)}
+                                                                className={`w-full flex items-center justify-between p-4 rounded-xl font-black text-xs uppercase tracking-wider ${mobileActiveCat === cat.id ? 'bg-white shadow-sm text-amber-600' : 'text-gray-500'}`}
+                                                            >
+                                                                {cat.name}
+                                                                <ChevronDown size={14} className={`transition-transform ${mobileActiveCat === cat.id ? 'rotate-180' : ''}`} />
+                                                            </button>
+                                                            
+                                                            <AnimatePresence>
+                                                                {mobileActiveCat === cat.id && (
+                                                                    <motion.div
+                                                                        initial={{ height: 0, opacity: 0 }}
+                                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                                        exit={{ height: 0, opacity: 0 }}
+                                                                        className="overflow-hidden"
+                                                                    >
+                                                                        <div className="pl-6 pb-2 space-y-1">
+                                                                            <button
+                                                                                onClick={() => { navigate(`/shop?category=${cat.id}`); closeMenus(); }}
+                                                                                className="w-full text-left p-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-900"
+                                                                            >
+                                                                                View All {cat.name}
+                                                                            </button>
+                                                                            {cat.subcategories.map(sub => (
+                                                                                <button
+                                                                                    key={sub}
+                                                                                    onClick={() => { navigate(`/shop?category=${cat.id}&sub=${sub}`); closeMenus(); }}
+                                                                                    className="w-full text-left p-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-900 flex items-center gap-2"
+                                                                                >
+                                                                                    <div className="w-1 h-1 rounded-full bg-amber-400" /> {sub}
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
+                                                                    </motion.div>
+                                                                )}
+                                                            </AnimatePresence>
+                                                        </div>
+                                                    ))}
+                                                    <div className="pt-2">
+                                                        <button
+                                                            onClick={() => { navigate('/shop'); closeMenus(); }}
+                                                            className="w-full p-4 bg-gray-200 text-gray-700 rounded-xl font-black text-[10px] uppercase tracking-[3px] flex items-center justify-center gap-2"
+                                                        >
+                                                            Browse Full Shop <ArrowRight size={12} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+
                                     <button
                                         onClick={() => { setIsTrackingOpen(true); closeMenus(); }}
-                                        className="flex flex-col items-center justify-center p-4 bg-gray-50 text-gray-900 rounded-[24px] gap-2 active:scale-95 transition"
+                                        className="w-full flex items-center justify-between p-5 bg-gray-50 text-gray-900 rounded-[24px] active:scale-95 transition"
                                     >
-                                        <Truck size={24} />
-                                        <span className="font-black text-[10px] uppercase tracking-widest">Track order</span>
+                                        <div className="flex items-center gap-3">
+                                            <Truck size={20} />
+                                            <span className="font-black text-xs uppercase tracking-widest">Track order</span>
+                                        </div>
+                                        <ArrowRight size={18} className="opacity-20" />
                                     </button>
                                 </div>
 

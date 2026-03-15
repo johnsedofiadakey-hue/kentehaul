@@ -341,8 +341,16 @@ export default function AdminProducts({
                         </div>
 
                         <div className="md:col-span-2 space-y-2">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Description</label>
-                            <textarea placeholder="Tell your customers about this item..." className="w-full p-5 bg-gray-50 border rounded-[30px] h-32 font-medium" value={productForm.description} onChange={e => setProductForm({ ...productForm, description: e.target.value })} />
+                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Short Description</label>
+                            <textarea placeholder="Quick overview for product details..." className="w-full p-5 bg-gray-50 border rounded-[30px] h-24 font-medium" value={productForm.description} onChange={e => setProductForm({ ...productForm, description: e.target.value })} />
+                        </div>
+
+                        <div className="md:col-span-2 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest text-purple-600">Educational History / Artifact Story</label>
+                                <span className="text-[10px] bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full">Shows in Kente Institute</span>
+                            </div>
+                            <textarea placeholder="The deep history, meaning of patterns, and cultural significance (Educational)..." className="w-full p-5 bg-purple-50/30 border border-purple-100 rounded-[30px] h-40 font-medium" value={productForm.longHistory} onChange={e => setProductForm({ ...productForm, longHistory: e.target.value })} />
                         </div>
 
                         <div className="md:col-span-2 flex flex-col md:flex-row gap-5 pt-4">

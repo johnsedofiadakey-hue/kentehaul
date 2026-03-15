@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { FileText, Palette, Sliders, CheckCircle, RefreshCw, Eye, Save } from 'lucide-react';
+import { FileText, Palette, Sliders, CheckCircle, RefreshCw, Eye, Save, Plus, Trash2, Truck } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../../firebase';
 import { ImageUpload } from '../UIComponents';
@@ -65,7 +65,6 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
         </span>
     );
 
-    // Live preview swatch
     const ColorPreview = ({ color, label }) => (
         <div className="flex items-center gap-3 mt-3 p-3 bg-gray-50 rounded-2xl">
             <div className="w-8 h-8 rounded-xl shadow-md border border-white" style={{ backgroundColor: color }} />
@@ -78,6 +77,31 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
             </div>
         </div>
     );
+
+    // Delivery Regions Handlers
+    const handleAddRegion = () => {
+        const regions = siteContent.deliveryRegions || [];
+        updateField('deliveryRegions', [...regions, { region: 'New Region', fee: 0 }]);
+        saveField('deliveryRegions', [...regions, { region: 'New Region', fee: 0 }], siteContent);
+    };
+
+    const handleUpdateRegion = (index, key, value) => {
+        const regions = [...(siteContent.deliveryRegions || [])];
+        regions[index][key] = key === 'fee' ? Number(value) : value;
+        updateField('deliveryRegions', regions);
+    };
+
+    const handleRemoveRegion = (index) => {
+        const regions = [...(siteContent.deliveryRegions || [])];
+        regions.splice(index, 1);
+        updateField('deliveryRegions', regions);
+        saveField('deliveryRegions', regions, siteContent);
+    };
+    
+    // Auto-save edited region on blur
+    const handleRegionBlur = () => {
+        saveField('deliveryRegions', siteContent.deliveryRegions, siteContent);
+    };
 
     return (
         <div className="max-w-4xl mx-auto space-y-10 animate-fade-in-up">
@@ -215,21 +239,135 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
                             onBlur={e => saveField('heroSubtitle', e.target.value, siteContent)}
                         />
                     </div>
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Gallery Section Title</label>
+                            <SaveIndicator field="galleryTitle" />
+                        </div>
+                        <input
+                            className="w-full p-5 bg-gray-50 border-none rounded-[25px] font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-200"
+                            placeholder="e.g. Lifestyle Gallery"
+                            value={siteContent.galleryTitle || ''}
+                            onChange={e => updateField('galleryTitle', e.target.value)}
+                            onBlur={e => saveField('galleryTitle', e.target.value, siteContent)}
+                        />
+                    </div>
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Testimonials Title</label>
+                            <SaveIndicator field="testimonialsTitle" />
+                        </div>
+                        <input
+                            className="w-full p-5 bg-gray-50 border-none rounded-[25px] font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-200"
+                            placeholder="e.g. Love from our Clients"
+                            value={siteContent.testimonialsTitle || ''}
+                            onChange={e => updateField('testimonialsTitle', e.target.value)}
+                            onBlur={e => saveField('testimonialsTitle', e.target.value, siteContent)}
+                        />
+                    </div>
+                </div>
+
+                {/* Navbar Content */}
+                <div className="mt-8 border-t border-gray-100 pt-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Navbar Hook & Featured</label>
+                        <SaveIndicator field="navShopTitle" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input
+                            className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-black text-xs outline-none"
+                            placeholder="Hook Title (e.g. Store Shop)"
+                            value={siteContent.navShopTitle || ''}
+                            onChange={e => updateField('navShopTitle', e.target.value)}
+                            onBlur={e => saveField('navShopTitle', e.target.value, siteContent)}
+                        />
+                        <input
+                            className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-black text-xs outline-none"
+                            placeholder="Hook Subtitle (e.g. Discover Excellence)"
+                            value={siteContent.navShopSubtitle || ''}
+                            onChange={e => updateField('navShopSubtitle', e.target.value)}
+                            onBlur={e => saveField('navShopSubtitle', e.target.value, siteContent)}
+                        />
+                    </div>
                 </div>
 
                 {/* Heritage Summary */}
                 <div className="mt-8 border-t border-gray-100 pt-8">
-                    <div className="flex items-center justify-between mb-2">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Heritage Summary (Home Page)</label>
+                    <div className="flex items-center justify-between mb-4">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Heritage Section (Home Page)</label>
                         <SaveIndicator field="heritageSummary" />
                     </div>
-                    <textarea
-                        className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-32 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                        placeholder="A short story about your brand for the home page..."
-                        value={siteContent.heritageSummary || ''}
-                        onChange={e => updateField('heritageSummary', e.target.value)}
-                        onBlur={e => saveField('heritageSummary', e.target.value, siteContent)}
-                    />
+                    <div className="space-y-4">
+                        <input
+                            className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-black text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                            placeholder="Section Title (e.g. A Story in Every Thread)"
+                            value={siteContent.heritageHomeTitle || ''}
+                            onChange={e => updateField('heritageHomeTitle', e.target.value)}
+                            onBlur={e => saveField('heritageHomeTitle', e.target.value, siteContent)}
+                        />
+                        <textarea
+                            className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-32 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                            placeholder="A short story about your brand for the home page..."
+                            value={siteContent.heritageSummary || ''}
+                            onChange={e => updateField('heritageSummary', e.target.value)}
+                            onBlur={e => saveField('heritageSummary', e.target.value, siteContent)}
+                        />
+                    </div>
+                </div>
+
+                {/* Our Story Page */}
+                <div className="mt-8 border-t border-gray-100 pt-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Our Story Page</label>
+                        <SaveIndicator field="heritageTitle" />
+                    </div>
+                    <div className="space-y-4">
+                        <input
+                            className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-black text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                            placeholder="Hero Title (e.g. Our Royal Heritage)"
+                            value={siteContent.heritageTitle || ''}
+                            onChange={e => updateField('heritageTitle', e.target.value)}
+                            onBlur={e => saveField('heritageTitle', e.target.value, siteContent)}
+                        />
+                        <textarea
+                            className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-48 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-200 leading-relaxed"
+                            placeholder="The full narrative for the Our Story page..."
+                            value={siteContent.heritageText || ''}
+                            onChange={e => updateField('heritageText', e.target.value)}
+                            onBlur={e => saveField('heritageText', e.target.value, siteContent)}
+                        />
+                    </div>
+                </div>
+
+                {/* Institute Page */}
+                <div className="mt-8 border-t border-gray-100 pt-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Institute Page</label>
+                        <SaveIndicator field="instituteTitle" />
+                    </div>
+                    <div className="space-y-4">
+                        <input
+                            className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-black text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                            placeholder="Hero Title (e.g. Kente Institute)"
+                            value={siteContent.instituteTitle || ''}
+                            onChange={e => updateField('instituteTitle', e.target.value)}
+                            onBlur={e => saveField('instituteTitle', e.target.value, siteContent)}
+                        />
+                        <textarea
+                            className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-48 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-200 leading-relaxed"
+                            placeholder="Information about Kente history and artifacts..."
+                            value={siteContent.instituteText || ''}
+                            onChange={e => updateField('instituteText', e.target.value)}
+                            onBlur={e => saveField('instituteText', e.target.value, siteContent)}
+                        />
+                        <input
+                            className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-black text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                            placeholder="Artifacts Grid Title (e.g. Educational Artifacts)"
+                            value={siteContent.instituteArtifactsTitle || ''}
+                            onChange={e => updateField('instituteArtifactsTitle', e.target.value)}
+                            onBlur={e => saveField('instituteArtifactsTitle', e.target.value, siteContent)}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -268,11 +406,87 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
                 </div>
             </div>
 
-            {/* ⚙️ SYSTEM CONFIG */}
+            {/* ⚙️ SYSTEM CONFIG & SHIPPING */}
             <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
                 <h3 className="font-black text-sm mb-8 flex items-center gap-4 text-gray-900 uppercase tracking-widest">
-                    <Save className="text-gray-400" size={20} /> Payments & Contact
+                    <Truck className="text-gray-400" size={20} /> Shipping & Delivery
                 </h3>
+                
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Delivery Regions & Fees</label>
+                        <SaveIndicator field="deliveryRegions" />
+                    </div>
+                    
+                    <div className="bg-gray-50 p-6 rounded-[30px] space-y-4">
+                        {(siteContent.deliveryRegions || []).map((region, index) => (
+                            <div key={index} className="flex gap-3 items-center">
+                                <input
+                                    type="text"
+                                    className="flex-1 p-4 bg-white border border-gray-200 rounded-[20px] font-bold text-sm outline-none focus:border-blue-300"
+                                    placeholder="Region Name (e.g., Accra)"
+                                    value={region.region}
+                                    onChange={e => handleUpdateRegion(index, 'region', e.target.value)}
+                                    onBlur={handleRegionBlur}
+                                />
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₵</span>
+                                    <input
+                                        type="number"
+                                        className="w-32 pl-8 pr-4 py-4 bg-white border border-gray-200 rounded-[20px] font-black text-sm outline-none focus:border-blue-300"
+                                        placeholder="Fee"
+                                        value={region.fee === 0 ? '' : region.fee}
+                                        onChange={e => handleUpdateRegion(index, 'fee', e.target.value)}
+                                        onBlur={handleRegionBlur}
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => handleRemoveRegion(index)}
+                                    className="p-4 bg-red-50 text-red-500 rounded-[20px] hover:bg-red-500 hover:text-white transition-all transform active:scale-95"
+                                >
+                                    <Trash2 size={20} />
+                                </button>
+                            </div>
+                        ))}
+                        
+                        <button
+                            onClick={handleAddRegion}
+                            className="w-full p-4 border-2 border-dashed border-gray-200 text-gray-500 rounded-[20px] font-black text-sm uppercase tracking-widest hover:border-blue-500 hover:text-blue-500 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Plus size={18} /> Add Region
+                        </button>
+                    </div>
+                </div>
+
+                <h3 className="font-black text-sm mb-8 mt-12 flex items-center gap-4 text-gray-900 uppercase tracking-widest pt-8 border-t border-gray-100">
+                    <Save className="text-gray-400" size={20} /> Checkout & Payment Modes
+                </h3>
+
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                    <button 
+                        onClick={() => saveField('paystackEnabled', siteContent.paystackEnabled === false ? true : false, siteContent)}
+                        className={`p-6 rounded-[30px] border-2 transition-all flex flex-col items-center gap-2 ${siteContent.paystackEnabled !== false ? 'border-blue-500 bg-blue-50' : 'border-gray-100 bg-gray-50'}`}
+                    >
+                        <SaveIndicator field="paystackEnabled" />
+                        <div className={`p-3 rounded-full ${siteContent.paystackEnabled !== false ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                            <Palette size={20} />
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-widest">Paystack (Card)</span>
+                        <span className="text-[10px] font-bold text-gray-400">{siteContent.paystackEnabled !== false ? 'ENABLED' : 'DISABLED'}</span>
+                    </button>
+                    <button 
+                        onClick={() => saveField('whatsappEnabled', siteContent.whatsappEnabled === false ? true : false, siteContent)}
+                        className={`p-6 rounded-[30px] border-2 transition-all flex flex-col items-center gap-2 ${siteContent.whatsappEnabled !== false ? 'border-green-500 bg-green-50' : 'border-gray-100 bg-gray-50'}`}
+                    >
+                        <SaveIndicator field="whatsappEnabled" />
+                        <div className={`p-3 rounded-full ${siteContent.whatsappEnabled !== false ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                            <RefreshCw size={20} />
+                        </div>
+                        <span className="text-xs font-black uppercase tracking-widest">WhatsApp Order</span>
+                        <span className="text-[10px] font-bold text-gray-400">{siteContent.whatsappEnabled !== false ? 'ENABLED' : 'DISABLED'}</span>
+                    </button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <div className="flex items-center justify-between mb-2">

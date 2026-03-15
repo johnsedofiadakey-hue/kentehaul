@@ -24,9 +24,6 @@ export default function Footer({ siteContent, onNavClick, onAdminClick }) {
               </>
             )}
           </div>
-          <p className="max-w-xs leading-relaxed opacity-80">
-            {siteContent.heritageSummary || "Connecting the world to the royal heritage of Ghana. Authentic, handwoven, and timeless."}
-          </p>
         </div>
 
         {/* Explore Column */}
