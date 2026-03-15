@@ -9,13 +9,27 @@ const LazyImage = ({ src, alt, className }) => (
   <img src={src} alt={alt} className={className} loading="lazy" />
 );
 
-// Helper for paragraphing and centering text from Admin
+// Helper for paragraphing and rich text (bold/italics) from Admin
 const FormattedText = ({ text, centered = false }) => {
   if (!text) return null;
+  
+  // Basic markdown-lite formatter
+  const formatText = (content) => {
+    return content.split(/(\*\*.*?\*\*|\*.*?\*)/g).map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i}>{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith('*') && part.endsWith('*')) {
+        return <em key={i}>{part.slice(1, -1)}</em>;
+      }
+      return part;
+    });
+  };
+
   return (
-    <div className={`space-y-4 ${centered ? 'text-center' : 'text-left'}`}>
+    <div className={`space-y-6 ${centered ? 'text-center' : 'text-left'}`}>
       {text.split('\n').filter(p => p.trim() !== '').map((para, i) => (
-        <p key={i} className="leading-relaxed">{para}</p>
+        <p key={i} className="leading-relaxed whitespace-pre-wrap">{formatText(para)}</p>
       ))}
     </div>
   );
@@ -51,9 +65,10 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-4 sm:mb-8"
           >
             <span
-              className="inline-block py-2 px-6 rounded-full text-white font-black text-[10px] sm:text-xs tracking-[5px] uppercase mb-8 border border-white/20 backdrop-blur-xl shadow-2xl"
+              className="inline-block py-2 px-6 rounded-full text-white font-black text-[10px] sm:text-xs tracking-[5px] uppercase border border-white/20 backdrop-blur-xl shadow-2xl"
               style={{ backgroundColor: `${siteContent.secondaryColor}30` }}
             >
               The Royal Standard
@@ -328,22 +343,70 @@ export const Institute = ({ siteContent, products }) => (
         ))}
       </div>
     </div>
-    {/* PARTNER WITH US SECTION */}
-    <div id="partner" className="bg-white py-24 px-6 md:py-32">
-      <div className="max-w-4xl mx-auto">
+    {/* PARTNER WITH US SECTION - REFINED */}
+    <div id="partner" className="bg-white py-32 px-6 md:py-48 overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-amber-500/5 rounded-full filter blur-[120px] pointer-events-none"></div>
+      <div className="max-w-4xl mx-auto relative z-10">
         <div className="text-center mb-16">
-          <span className="text-amber-500 font-black text-xs uppercase tracking-[5px] mb-4 block">Building Together</span>
-          <h2 className="text-4xl md:text-6xl font-black mb-8 uppercase tracking-tighter" style={{ color: siteContent.primaryColor }}>Partner With Us</h2>
-          <div className="text-gray-600 text-lg md:text-xl font-medium leading-relaxed max-w-2xl mx-auto">
-            <p>We welcome collaborations with institutions, cultural organizations, development partners, and individuals who share in this vision. Together, we can build a sustainable future for Kente weaving, empower young people and communities and keep the craft alive.</p>
-          </div>
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} viewport={{ once: true }}>
+            <span className="text-amber-500 font-black text-xs uppercase tracking-[8px] mb-6 block">Building Together</span>
+            <h2 className="text-5xl md:text-8xl font-black mb-10 uppercase tracking-tighter leading-[0.8]" style={{ color: siteContent.primaryColor }}>A Vision for <br className="hidden md:block"/> Ghana's Royal Craft</h2>
+            <div className="text-gray-600 text-lg md:text-xl font-medium leading-relaxed max-w-2xl mx-auto space-y-6 mb-16">
+              <p>We welcome collaborations with institutions, cultural organizations, development partners, and individuals who share in this vision.</p>
+              <p>Together, we can build a sustainable future for Kente weaving, empower young people and communities and keep the craft alive.</p>
+            </div>
+          </motion.div>
         </div>
 
-        <PartnerForm siteContent={siteContent} />
+        <PartnerInvitation siteContent={siteContent} />
       </div>
     </div>
   </div>
 );
+
+const PartnerInvitation = ({ siteContent }) => {
+  const [showForm, setShowForm] = useState(false);
+
+  return (
+    <div className="flex flex-col items-center">
+      <AnimatePresence mode="wait">
+        {!showForm ? (
+          <motion.button
+            key="cta"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -20, opacity: 0 }}
+            onClick={() => setShowForm(true)}
+            className="group relative overflow-hidden bg-gray-900 text-white px-16 py-8 rounded-[40px] font-black text-sm uppercase tracking-[6px] shadow-2xl shadow-black/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            <span className="relative z-10 flex items-center gap-3">
+              Partner With Us Now <ArrowRight size={20} className="group-hover:translate-x-2 transition-transform" />
+            </span>
+            <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300`} style={{ backgroundColor: siteContent.secondaryColor }}></div>
+          </motion.button>
+        ) : (
+          <motion.div
+            key="form"
+            initial={{ y: 50, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            className="w-full"
+          >
+            <div className="flex justify-between items-center mb-8 px-4">
+              <h3 className="text-sm font-black uppercase tracking-[3px] text-gray-400">Inquiry Application</h3>
+              <button 
+                onClick={() => setShowForm(false)}
+                className="text-[10px] font-black uppercase tracking-[2px] text-gray-400 hover:text-red-500 transition-colors"
+              >
+                Cancel inquiry
+              </button>
+            </div>
+            <PartnerForm siteContent={siteContent} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const PartnerForm = ({ siteContent }) => {
   const [form, setForm] = useState({ name: '', organization: '', email: '', phone: '', reason: '' });

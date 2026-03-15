@@ -76,6 +76,20 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
         </div>
     );
 
+    const RichTextLegend = () => (
+        <div className="flex flex-wrap gap-4 p-4 bg-amber-50 rounded-2xl border border-amber-100 mb-6 font-sans">
+            <div className="flex items-center gap-2 text-[10px] font-black text-amber-900 uppercase tracking-widest">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                Formatting Guide:
+            </div>
+            <div className="flex gap-6">
+                <span className="text-[10px] font-bold text-amber-700">**bold text**</span>
+                <span className="text-[10px] font-bold text-amber-700 italic">*italic text*</span>
+                <span className="text-[10px] font-bold text-amber-700">Enter for new paragraph</span>
+            </div>
+        </div>
+    );
+
     // Delivery Regions Handlers
     const handleAddRegion = () => {
         const regions = siteContent.deliveryRegions || [];
@@ -427,9 +441,13 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                 {/* Our Story Page */}
                 <div className="mt-8 border-t border-gray-100 pt-8">
                     <div className="flex items-center justify-between mb-4">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Our Story Page</label>
+                        <div className="flex flex-col">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Our Story Page</label>
+                            <p className="text-[10px] text-gray-400">Full narrative with formatting support</p>
+                        </div>
                         <SaveIndicator field="heritageTitle" />
                     </div>
+                    <RichTextLegend />
                     <div className="space-y-4">
                         <input
                             className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-black text-sm outline-none focus:ring-2 focus:ring-blue-200"
@@ -451,9 +469,13 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                 {/* Institute Page */}
                 <div className="mt-8 border-t border-gray-100 pt-8">
                     <div className="flex items-center justify-between mb-4">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Institute Page & History</label>
+                        <div className="flex flex-col">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Institute Page & History</label>
+                            <p className="text-[10px] text-gray-400">Educational and historical content</p>
+                        </div>
                         <SaveIndicator field="instituteTitle" />
                     </div>
+                    <RichTextLegend />
                     <div className="space-y-4">
                         <input
                             className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-black text-sm outline-none focus:ring-2 focus:ring-blue-200"
