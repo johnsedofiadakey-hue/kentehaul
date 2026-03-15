@@ -65,7 +65,7 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="mb-6 sm:mb-12 lg:mb-16 -mt-24 sm:-mt-32 lg:mt-0"
+            className="mb-12 sm:mb-20 lg:mb-24 -mt-24 sm:-mt-32 lg:mt-0"
           >
             <span
               className="inline-block py-2 px-6 rounded-full text-white font-black text-[10px] sm:text-xs tracking-[5px] uppercase border border-white/20 backdrop-blur-xl shadow-2xl"
