@@ -12,10 +12,11 @@ export default function CartDrawer({
     cartTotal,
     siteContent,
     onPaystackSuccess,
-    onWhatsAppCheckout
+    onWhatsAppCheckout,
+    isProcessing
 }) {
     const [step, setStep] = useState('cart'); // 'cart' | 'details' | 'success'
-    const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', riderName: '', riderPhone: '', riderCompany: '' });
+    const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', riderName: '', riderPhone: '', riderCompany: '', pickupLocationId: '' });
     const [deliveryMethod, setDeliveryMethod] = useState('seller_rider'); // 'customer_rider' | 'seller_rider' | 'pickup'
     const [shippingRegion, setShippingRegion] = useState('Accra');
     const shippingRegions = siteContent.deliveryRegions || [
@@ -29,7 +30,8 @@ export default function CartDrawer({
     const shippingFee = deliveryMethod === 'seller_rider' ? (selectedRegion?.fee || 0) : 0;
     const finalTotal = cartTotal + shippingFee;
 
-    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && (deliveryMethod === 'pickup' || customerForm.address.trim()) &&
+    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && 
+        (deliveryMethod === 'pickup' ? customerForm.pickupLocationId : customerForm.address.trim()) &&
         (deliveryMethod !== 'customer_rider' || (customerForm.riderName.trim() && customerForm.riderPhone.trim()));
     const cartCount = cart.reduce((a, b) => a + b.quantity, 0);
 
@@ -59,6 +61,22 @@ export default function CartDrawer({
                         onClick={handleClose}
                         className="fixed inset-0 bg-black/50 z-[300] backdrop-blur-sm"
                     />
+
+                    {/* PROCESSING OVERLAY */}
+                    <AnimatePresence>
+                        {isProcessing && (
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 bg-white/80 backdrop-blur-md z-[400] flex flex-col items-center justify-center p-6 text-center"
+                            >
+                                <div className="w-20 h-20 border-4 border-gray-100 border-t-amber-500 rounded-full animate-spin mb-6" />
+                                <h3 className="text-2xl font-black text-gray-900 mb-2">Processing Order</h3>
+                                <p className="text-gray-500 font-bold max-w-xs">We are weaving your order into our system securely. Please do not close this window.</p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     <motion.div
                         initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
@@ -332,12 +350,38 @@ export default function CartDrawer({
                                                 onChange={e => setCustomerForm({ ...customerForm, email: e.target.value })}
                                             />
                                         </div>
+                                        {deliveryMethod === 'pickup' && (
+                                            <div className="space-y-3 animate-fade-in">
+                                                <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Select Pickup Workshop</p>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {(siteContent.pickupLocations || [{ name: 'KenteHaul Workshop', address: 'Accra, Ghana', mapsLink: '' }]).map((loc, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => setCustomerForm({ ...customerForm, pickupLocationId: loc.name })}
+                                                            className={`py-4 px-5 text-left rounded-3xl border transition-all ${customerForm.pickupLocationId === loc.name ? 'bg-white shadow-md border-gray-400 border-l-[6px]' : 'bg-gray-50 border-transparent text-gray-400'}`}
+                                                            style={{ borderLeftColor: customerForm.pickupLocationId === loc.name ? '#22c55e' : '' }}
+                                                        >
+                                                            <div className="flex justify-between items-center">
+                                                                <p className="font-black text-sm text-gray-900">{loc.name}</p>
+                                                                {loc.mapsLink && (
+                                                                    <a href={loc.mapsLink} target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-100 rounded-full text-gray-400 hover:text-blue-500 transition-colors">
+                                                                        <MapPin size={12} />
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-[10px] text-gray-500 mt-1">{loc.address}</p>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="relative">
                                             <MapPin size={16} className="absolute left-4 top-4 text-gray-400" />
                                             <textarea
-                                                placeholder={deliveryMethod === 'pickup' ? 'Store Pickup Location' : 'Delivery Address * (e.g. Osu, Accra or full street address)'}
+                                                placeholder={deliveryMethod === 'pickup' ? 'Selected Pickup Point' : 'Delivery Address * (e.g. Osu, Accra or full street address)'}
                                                 className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm h-24 resize-none ${deliveryMethod === 'pickup' ? 'opacity-60 grayscale cursor-not-allowed' : ''}`}
-                                                value={deliveryMethod === 'pickup' ? (siteContent.pickupAddress || 'KenteHaul Workshop, Accra') : customerForm.address}
+                                                value={deliveryMethod === 'pickup' ? (customerForm.pickupLocationId ? `${customerForm.pickupLocationId}\n${siteContent.pickupLocations?.find(l => l.name === customerForm.pickupLocationId)?.address || ''}` : 'Please select a location above') : customerForm.address}
                                                 onChange={e => deliveryMethod !== 'pickup' && setCustomerForm({ ...customerForm, address: e.target.value })}
                                                 readOnly={deliveryMethod === 'pickup'}
                                             />

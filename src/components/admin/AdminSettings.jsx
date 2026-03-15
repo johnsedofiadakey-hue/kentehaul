@@ -98,9 +98,28 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
         saveField('deliveryRegions', regions, siteContent);
     };
     
-    // Auto-save edited region on blur
-    const handleRegionBlur = () => {
-        saveField('deliveryRegions', siteContent.deliveryRegions, siteContent);
+    // Pickup Locations Handlers
+    const handleAddLocation = () => {
+        const locations = siteContent.pickupLocations || [];
+        updateField('pickupLocations', [...locations, { name: 'New Workshop', address: '', mapsLink: '' }]);
+        saveField('pickupLocations', [...locations, { name: 'New Workshop', address: '', mapsLink: '' }], siteContent);
+    };
+
+    const handleUpdateLocation = (index, key, value) => {
+        const locations = [...(siteContent.pickupLocations || [])];
+        locations[index][key] = value;
+        updateField('pickupLocations', locations);
+    };
+
+    const handleRemoveLocation = (index) => {
+        const locations = [...(siteContent.pickupLocations || [])];
+        locations.splice(index, 1);
+        updateField('pickupLocations', locations);
+        saveField('pickupLocations', locations, siteContent);
+    };
+
+    const handleLocationBlur = () => {
+        saveField('pickupLocations', siteContent.pickupLocations, siteContent);
     };
 
     return (
@@ -455,6 +474,102 @@ export default function AdminSettings({ siteContent, setSiteContent }) {
                         >
                             <Plus size={18} /> Add Region
                         </button>
+                    </div>
+                </div>
+
+                <div className="space-y-4 mt-12 pt-8 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pickup Locations (Multi-Location)</label>
+                        <SaveIndicator field="pickupLocations" />
+                    </div>
+                    
+                    <div className="bg-gray-50 p-6 rounded-[30px] space-y-4">
+                        {(siteContent.pickupLocations || []).map((loc, index) => (
+                            <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start bg-white p-4 rounded-2xl border border-gray-200 shadow-sm relative">
+                                <button
+                                    onClick={() => handleRemoveLocation(index)}
+                                    className="absolute -top-2 -right-2 p-2 bg-red-50 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-sm z-10"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400">Location Name</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                                        placeholder="e.g. Accra Workshop"
+                                        value={loc.name}
+                                        onChange={e => handleUpdateLocation(index, 'name', e.target.value)}
+                                        onBlur={handleLocationBlur}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400">GPS/Maps Link</label>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                                        placeholder="Google Maps URL"
+                                        value={loc.mapsLink}
+                                        onChange={e => handleUpdateLocation(index, 'mapsLink', e.target.value)}
+                                        onBlur={handleLocationBlur}
+                                    />
+                                </div>
+                                <div className="md:col-span-2 space-y-2">
+                                    <label className="text-[10px] font-black text-gray-400">Full Address</label>
+                                    <textarea
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-xs outline-none h-20 resize-none"
+                                        placeholder="Detailed address and directions..."
+                                        value={loc.address}
+                                        onChange={e => handleUpdateLocation(index, 'address', e.target.value)}
+                                        onBlur={handleLocationBlur}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                        
+                        <button
+                            onClick={handleAddLocation}
+                            className="w-full p-4 border-2 border-dashed border-gray-200 text-gray-500 rounded-[20px] font-black text-sm uppercase tracking-widest hover:border-blue-500 hover:text-blue-500 transition-all flex items-center justify-center gap-2"
+                        >
+                            <Plus size={18} /> Add Pickup Location
+                        </button>
+                    </div>
+                </div>
+
+                <div className="space-y-4 mt-12 pt-8 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Notifications API (SMS/WhatsApp)</label>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Arkesel API Key</label>
+                                <SaveIndicator field="arkeselApiKey" />
+                            </div>
+                            <input
+                                type="password"
+                                className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-mono text-xs outline-none"
+                                value={siteContent.arkeselApiKey || ''}
+                                onChange={e => updateField('arkeselApiKey', e.target.value)}
+                                onBlur={e => saveField('arkeselApiKey', e.target.value, siteContent)}
+                                placeholder="Enter API Key"
+                            />
+                        </div>
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Arkesel Sender ID</label>
+                                <SaveIndicator field="arkeselSenderId" />
+                            </div>
+                            <input
+                                type="text"
+                                className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-bold text-sm outline-none"
+                                value={siteContent.arkeselSenderId || ''}
+                                onChange={e => updateField('arkeselSenderId', e.target.value)}
+                                onBlur={e => saveField('arkeselSenderId', e.target.value, siteContent)}
+                                placeholder="KenteHaul"
+                            />
+                        </div>
                     </div>
                 </div>
 

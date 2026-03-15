@@ -1,11 +1,10 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import {
-  collection,
-  onSnapshot,
-  doc,
-  setDoc,
   updateDoc,
-  getDoc
+  getDoc,
+  writeBatch,
+  increment,
+  serverTimestamp
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth } from './firebase';
@@ -81,6 +80,8 @@ export default function App() {
     }
   }, []);
 
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [siteContent, setSiteContent] = useState(() => {
     // Try to load cached theme from localStorage first
     const cached = localStorage.getItem('kente_theme');
@@ -101,8 +102,6 @@ export default function App() {
   });
 
   const [currentCategory, setCurrentCategory] = useState(null);
-  // currentPage state removed in favor of Router
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
 
@@ -232,53 +231,11 @@ export default function App() {
     localStorage.setItem('kente_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // CRM Helper: Automatically updates/creates customer profile upon purchase
-  const handleCustomerData = async (form, orderId, orderTotal) => {
-    // ID creation logic: Use phone number as the key to prevent duplicate profiles
-    const cleanPhone = form.phone.replace(/[^0-9]/g, '');
-    const existing = customers.find(c => c.id === cleanPhone || c.phone === form.phone);
-
-    if (existing) {
-      // Update existing customer profile stats
-      await updateDoc(doc(db, "customers", existing.id), {
-        name: form.name,
-        address: form.address,
-        email: form.email || existing.email,
-        totalSpent: (existing.totalSpent || 0) + orderTotal,
-        orderIds: [orderId, ...(existing.orderIds || [])],
-        lastOrderDate: new Date().toLocaleDateString()
-      });
-    } else {
-      // Create a brand new customer profile
-      const newId = cleanPhone || `cust-${Date.now()}`;
-      await setDoc(doc(db, "customers", newId), {
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        address: form.address,
-        totalSpent: orderTotal,
-        orderIds: [orderId],
-        joinedDate: new Date().toLocaleDateString(),
-        lastOrderDate: new Date().toLocaleDateString()
-      });
-    }
-  };
+  // CRM Helper: Removed in favor of Atomic Batches in checkout handlers
 
   // ==========================================
   // 5. NAVIGATION & ACTION HANDLERS
   // ==========================================
-
-  // Updated Navigation Fix: Ensures category clicks take you to the Shop
-  // handleNavClick removed in favor of react-router-dom Link components
-  // const handleNavClick = (page, category = null) => {
-  //   // Legacy handler kept temporarily for prop compatibility, but functionality moved to Links
-  //   // In a full refactor, we would remove this and update child components to not ask for it.
-  //   // For now, we will assume children might still call it, so we leave it as a no-op or partial.
-  //   if (category) setCurrentCategory(category);
-  //   window.scrollTo({ top: 0, behavior: 'smooth' });
-  // };
-
-  // Admin login is now handled by onAuthStateChanged
 
   // ==========================================
   // 6. E-COMMERCE CORE LOGIC
@@ -324,113 +281,112 @@ export default function App() {
 
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
 
-  // --- CHECKOUT LOGIC ---
+  // --- ATOMIC CHECKOUT LOGIC (Robust Firestore Writes) ---
 
-  const handleCartWhatsApp = async (customerForm) => {
-    if (cart.length === 0) return;
-
-    const orderId = generateOrderId('WA');
-
+  const onWhatsAppCheckout = async (customerForm) => {
+    setIsProcessing(true);
     try {
-      // Step 1: Update CRM History
-      await handleCustomerData(customerForm, orderId, cartTotal);
+      const orderId = `WA-${Date.now()}`;
+      const batch = writeBatch(db);
 
-      // Step 2: Save Order to Database
-      await setDoc(doc(db, "orders", orderId), {
+      // 1. Record/Update Customer Profile (CRM)
+      const cleanPhone = customerForm.phone.replace(/[^0-9]/g, '') || `cust-${Date.now()}`;
+      const custRef = doc(db, "customers", cleanPhone);
+      batch.set(custRef, {
+        name: customerForm.name,
+        email: customerForm.email || '',
+        phone: customerForm.phone,
+        address: customerForm.address || '',
+        totalSpent: increment(customerForm.finalTotal || cartTotal),
+        lastOrder: serverTimestamp(),
+        orderIds: increment(1) // Just a counter or we could use arrayUnion
+      }, { merge: true });
+
+      // 2. Save Official Order
+      const orderRef = doc(db, "orders", orderId);
+      batch.set(orderRef, {
         date: new Date().toLocaleDateString(),
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
         items: cart,
         total: customerForm.finalTotal || cartTotal,
         shippingRegion: customerForm.shippingRegion || 'Accra',
         shippingFee: customerForm.shippingFee || 0,
         deliveryMethod: customerForm.deliveryMethod || 'seller_rider',
         status: 'Order Placed',
-        method: 'WhatsApp Checkout',
+        method: 'WhatsApp Order',
         customer: customerForm
       });
 
-      // Step 2b: Update Stock Levels
+      // 3. Deduction of Stock (Atomic)
       for (const item of cart) {
         const prodRef = doc(db, "products", item.id);
-        const prodSnap = await getDoc(prodRef);
-        if (prodSnap.exists()) {
-          const currentStock = prodSnap.data().stockQuantity ?? prodSnap.data().stock ?? 0;
-          await updateDoc(prodRef, {
-            stockQuantity: Math.max(0, currentStock - item.quantity)
-          });
-        }
+        batch.update(prodRef, {
+          stockQuantity: increment(-item.quantity)
+        });
       }
 
-      // Step 3: Construct Professional WhatsApp Message
-      let message = `*KENTEHAUL ORDER:* ${orderId}\n\n`;
-      cart.forEach(item => {
-        message += `• ${item.name} (${item.sku || 'N/A'}) x${item.quantity} - ₵${item.price * item.quantity}\n`;
-      });
-      message += `\n*Subtotal:* ₵${cartTotal}`;
-      message += `\n*Delivery (${customerForm.deliveryMethod.replace('_', ' ')}):* ₵${customerForm.shippingFee}`;
-      message += `\n*Total:* ₵${customerForm.finalTotal}`;
-      message += `\n\n*CLIENT DETAILS:*`;
-      message += `\nName: ${customerForm.name}`;
-      message += `\nPhone: ${customerForm.phone}`;
-      if (customerForm.deliveryMethod !== 'pickup') {
-        message += `\nAddress: ${customerForm.address}`;
-      }
-      if (customerForm.deliveryMethod === 'customer_rider') {
-        message += `\n\n*RIDER DETAILS:*`;
-        message += `\nName: ${customerForm.riderName}`;
-        message += `\nPhone: ${customerForm.riderPhone}`;
-        if (customerForm.riderCompany) message += `\nCompany: ${customerForm.riderCompany}`;
-      }
-      message += `\n\n*Track Order:* ${window.location.origin}/track/${orderId}`;
-
-      // Step 3.5: Trigger Automated Email Receipt
+      // 4. Trigger Email (if provided)
       if (customerForm.email) {
-        await setDoc(doc(db, "mail", `receipt-${orderId}`), {
+        const mailRef = doc(db, "mail", `receipt-${orderId}`);
+        batch.set(mailRef, {
           to: customerForm.email,
           message: {
-            subject: `Your KenteHaul Order #${orderId} is Confirmed! 🎉`,
-            html: `
-              <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h1 style="color: #4F46E5;">Thank you for your order!</h1>
-                <p>Hi ${customerForm.name},</p>
-                <p>We've received your WhatsApp order request. <strong>Order ID: #${orderId}</strong></p>
-                <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <h3 style="margin-top: 0;">Order Summary:</h3>
-                  ${cart.map(item => `<div>• ${item.name} (x${item.quantity}) - ₵${item.price * item.quantity}</div>`).join('')}
-                  <p><strong>Grand Total: ₵${cartTotal}</strong></p>
-                </div>
-                <p>We'll be in touch shortly via WhatsApp to confirm delivery details.</p>
-                <p>— The KenteHaul Team</p>
-              </div>
-            `
+            subject: `Pending: Your KenteHaul Order #${orderId} 🎉`,
+            html: `<div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;"><h1 style="color: #4F46E5;">Thank You!</h1><p>Hi ${customerForm.name}, we've received your order request. <strong>Order ID: #${orderId}</strong></p><p>Track your weaving progress here: <a href="${window.location.origin}/track/${orderId}">${window.location.origin}/track/${orderId}</a></p></div>`
           }
         });
       }
 
-      // Step 4: Clear State & Redirect
+      // COMMIT ALL OR NOTHING
+      await batch.commit();
+
+      // Construct Professional WhatsApp Message
+      let message = `*KENTEHAUL ORDER:* ${orderId}\n\n`;
+      cart.forEach(item => { message += `• ${item.name} x${item.quantity} - ₵${item.price * item.quantity}\n`; });
+      message += `\n*Method:* ${customerForm.deliveryMethod.replace('_', ' ')}`;
+      if (customerForm.deliveryMethod === 'pickup') message += `\n*Pickup at:* ${customerForm.pickupLocationId}`;
+      message += `\n*Total:* ₵${customerForm.finalTotal}`;
+      message += `\n\n*TRACKING:* ${window.location.origin}/track/${orderId}`;
+
       setCart([]);
       setIsCartOpen(false);
-
+      
       setTimeout(() => {
-        alert(`Order Placed Successfully! Your Order ID is: ${orderId}`);
-        window.open(`https://wa.me/${siteContent.contactPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+        window.open(`https://wa.me/${siteContent.contactPhone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
       }, 500);
 
     } catch (error) {
-      console.error("Checkout Error:", error);
-      alert("Network timeout. The order could not be saved to the database.");
+      console.error("Atomic Checkout Failed:", error);
+      alert("System Busy: We couldn't secure your order right now. Please try again in 30 seconds.");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handlePaystackSuccess = async (reference, customerForm) => {
+    setIsProcessing(true);
     try {
-      // Step 1: Record Customer Purchase History
-      await handleCustomerData(customerForm, reference.reference, cartTotal);
+      const orderId = reference.reference;
+      const batch = writeBatch(db);
 
-      // Step 2: Record Official Paid Order
-      await setDoc(doc(db, "orders", reference.reference), {
+      // 1. CRM
+      const cleanPhone = customerForm.phone.replace(/[^0-9]/g, '') || `cust-${Date.now()}`;
+      const custRef = doc(db, "customers", cleanPhone);
+      batch.set(custRef, {
+        name: customerForm.name,
+        email: customerForm.email || '',
+        phone: customerForm.phone,
+        address: customerForm.address || '',
+        totalSpent: increment(customerForm.finalTotal || cartTotal),
+        lastOrder: serverTimestamp(),
+        orderIds: increment(1)
+      }, { merge: true });
+
+      // 2. PAID Order
+      const orderRef = doc(db, "orders", orderId);
+      batch.set(orderRef, {
         date: new Date().toLocaleDateString(),
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
         items: cart,
         total: customerForm.finalTotal || cartTotal,
         shippingRegion: customerForm.shippingRegion || 'Accra',
@@ -441,48 +397,23 @@ export default function App() {
         customer: customerForm
       });
 
-      // Step 2b: Update Stock Levels
+      // 3. Stock
       for (const item of cart) {
         const prodRef = doc(db, "products", item.id);
-        const prodSnap = await getDoc(prodRef);
-        if (prodSnap.exists()) {
-          const currentStock = prodSnap.data().stockQuantity ?? prodSnap.data().stock ?? 0;
-          await updateDoc(prodRef, {
-            stockQuantity: Math.max(0, currentStock - item.quantity)
-          });
-        }
+        batch.update(prodRef, { stockQuantity: increment(-item.quantity) });
       }
 
-      // Step 3: Trigger Automated Email Receipt
-      if (customerForm.email) {
-        await setDoc(doc(db, "mail", `receipt-${reference.reference}`), {
-          to: customerForm.email,
-          message: {
-            subject: `Payment Confirmed: KenteHaul Order #${reference.reference} 🎉`,
-            html: `
-              <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h1 style="color: #4F46E5;">Order Confirmed!</h1>
-                <p>Hi ${customerForm.name},</p>
-                <p>Your payment has been successfully processed. <strong>Order ID: #${reference.reference}</strong></p>
-                <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                  <h3 style="margin-top: 0;">Order Summary:</h3>
-                  ${cart.map(item => `<div>• ${item.name} (x${item.quantity}) - ₵${item.price * item.quantity}</div>`).join('')}
-                  <p><strong>Grand Total: ₵${cartTotal}</strong></p>
-                </div>
-                <p>Our team is now preparing your items for delivery. We'll contact you shortly.</p>
-                <p>— The KenteHaul Team</p>
-              </div>
-            `
-          }
-        });
-      }
+      // COMMIT
+      await batch.commit();
 
       setCart([]);
       setIsCartOpen(false);
-      alert(`Payment Confirmed! Your official Order ID is: ${reference.reference}`);
+      alert(`Success! Payment received and Order #${orderId} is being prepared.`);
     } catch (error) {
-      console.error("Payment Capture Error:", error);
-      alert("Payment was successful, but we had trouble saving the order. Please contact support with reference: " + reference.reference);
+      console.error("Atomic Payment Write Failed:", error);
+      alert("Payment was successful, but database sync failed. Keep your reference: " + reference.reference);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -495,22 +426,16 @@ export default function App() {
   const handleTrackOrder = async () => {
     const cleanInput = trackingInput.trim().toUpperCase();
     if (!cleanInput) { alert("Please enter an Order ID."); return; }
-
     setIsTrackingOpen(false);
     navigate(`/track/${cleanInput}`);
   };
 
-  // Detect admin route to hide public elements
   const isAdminPath = location.pathname.startsWith('/admin');
 
-  // ==========================================
-  // 7. MAIN RENDER
-  // ==========================================
   return (
     <div className="min-h-screen bg-neutral-50 font-sans text-gray-800 flex flex-col overflow-x-hidden">
       <ScrollToTop />
 
-      {/* GLOBAL NAVBAR */}
       {!isAdminPath && (
         <Navbar
           siteContent={siteContent}
@@ -520,7 +445,6 @@ export default function App() {
         />
       )}
 
-      {/* OVERLAY DRAWERS & MODALS */}
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
@@ -529,8 +453,9 @@ export default function App() {
         removeFromCart={removeFromCart}
         cartTotal={cartTotal}
         siteContent={siteContent}
+        isProcessing={isProcessing}
         onPaystackSuccess={handlePaystackSuccess}
-        onWhatsAppCheckout={handleCartWhatsApp}
+        onWhatsAppCheckout={onWhatsAppCheckout}
       />
 
       <ProductDetailModal
@@ -559,93 +484,30 @@ export default function App() {
         siteContent={siteContent}
       />
 
-      {/* MAIN DYNAMIC CONTENT ROUTING */}
       <main className="flex-grow">
         <Suspense fallback={<div className="h-screen flex items-center justify-center"><div className="animate-pulse text-xl font-light">Loading Kente Heritage...</div></div>}>
           <Routes>
-            <Route path="/" element={
-              <Home
-                siteContent={siteContent}
-                gallery={gallery}
-                feedbacks={feedbacks}
-              // onNavClick={handleNavClick} // Removed
-              />
-            } />
-
-            <Route path="/heritage" element={
-              <Heritage
-                siteContent={siteContent}
-              // onNavClick={handleNavClick} // Removed
-              />
-            } />
-
-            <Route path="/shop" element={
-              <Shop
-                products={products}
-                currentCategory={currentCategory}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                addToCart={addToCart}
-                handleSingleBuy={handleSingleBuy}
-                setSelectedProduct={setSelectedProduct}
-                siteContent={siteContent}
-              />
-            } />
-
-            <Route path="/institute" element={
-              <Institute
-                siteContent={siteContent}
-                products={products}
-              />
-            } />
-
-            <Route path="/contact" element={
-              <Contact
-                siteContent={siteContent}
-              />
-            } />
-
-            <Route path="/track/:orderId" element={
-              <TrackingPage
-                siteContent={siteContent}
-              />
-            } />
-
-            <Route path="/admin" element={
-              isAdminAuthenticated ? (
-                <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="animate-spin text-4xl">⌛</div></div>}>
-                  <AdminDashboard
-                    siteContent={siteContent}
-                    setSiteContent={setSiteContent}
-                    products={products}
-                    orders={orders}
-                    setOrders={setOrders}
-                    gallery={gallery}
-                    setGallery={setGallery}
-                    feedbacks={feedbacks}
-                    setFeedbacks={setFeedbacks}
-                    customers={customers}
-                    setIsAdminAuthenticated={setIsAdminAuthenticated}
-                  />
-                </Suspense>
-              ) : (
-                <AdminLoginRequired setIsAdminLoginOpen={setIsAdminLoginOpen} />
-              )
-            } />
+            <Route path="/" element={<Home siteContent={siteContent} gallery={gallery} feedbacks={feedbacks} />} />
+            <Route path="/heritage" element={<Heritage siteContent={siteContent} />} />
+            <Route path="/shop" element={<Shop products={products} currentCategory={currentCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} handleSingleBuy={handleSingleBuy} setSelectedProduct={setSelectedProduct} siteContent={siteContent} />} />
+            <Route path="/institute" element={<Institute siteContent={siteContent} products={products} />} />
+            <Route path="/contact" element={<Contact siteContent={siteContent} />} />
+            <Route path="/track/:orderId" element={<TrackingPage siteContent={siteContent} />} />
+            <Route path="/admin" element={isAdminAuthenticated ? (
+              <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="animate-spin text-4xl">⌛</div></div>}>
+                <AdminDashboard siteContent={siteContent} setSiteContent={setSiteContent} products={products} orders={orders} setOrders={setOrders} gallery={gallery} setGallery={setGallery} feedbacks={feedbacks} setFeedbacks={setFeedbacks} customers={customers} setIsAdminAuthenticated={setIsAdminAuthenticated} />
+              </Suspense>
+            ) : <AdminLoginRequired setIsAdminLoginOpen={setIsAdminLoginOpen} />} />
           </Routes>
         </Suspense>
       </main>
 
-      {/* GLOBAL FOOTER */}
       {!isAdminPath && (
         <Footer
           siteContent={siteContent}
           onAdminClick={() => {
-            if (isAdminAuthenticated) {
-              navigate('/admin');
-            } else {
-              setIsAdminLoginOpen(true);
-            }
+            if (isAdminAuthenticated) navigate('/admin');
+            else setIsAdminLoginOpen(true);
           }}
         />
       )}
