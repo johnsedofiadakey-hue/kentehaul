@@ -289,21 +289,29 @@ export default function App() {
 
   const onWhatsAppCheckout = async (customerForm) => {
     setIsProcessing(true);
+    console.log("Starting WhatsApp Checkout:", { customerForm, cart });
+    
     try {
       const orderId = `WA-${Date.now()}`;
       const batch = writeBatch(db);
 
+      // Ensure all numbers are clean
+      const totalAmount = Number(customerForm.finalTotal || cartTotal) || 0;
+      const shippingAmount = Number(customerForm.shippingFee) || 0;
+
       // 1. Record/Update Customer Profile (CRM)
-      const cleanPhone = customerForm.phone.replace(/[^0-9]/g, '') || `cust-${Date.now()}`;
+      const phoneInput = String(customerForm.phone || '');
+      const cleanPhone = phoneInput.replace(/[^0-9]/g, '') || `cust-${Date.now()}`;
       const custRef = doc(db, "customers", cleanPhone);
+      
       batch.set(custRef, {
         name: customerForm.name,
         email: customerForm.email || '',
         phone: customerForm.phone,
         address: customerForm.address || '',
-        totalSpent: increment(customerForm.finalTotal || cartTotal),
+        totalSpent: increment(totalAmount),
         lastOrder: serverTimestamp(),
-        orderIds: increment(1) // Just a counter or we could use arrayUnion
+        orderCount: increment(1)
       }, { merge: true });
 
       // 2. Save Official Order
@@ -312,33 +320,42 @@ export default function App() {
         date: new Date().toLocaleDateString(),
         createdAt: serverTimestamp(),
         items: cart,
-        total: customerForm.finalTotal || cartTotal,
+        total: totalAmount,
         shippingRegion: customerForm.shippingRegion || 'Accra',
-        shippingFee: customerForm.shippingFee || 0,
+        shippingFee: shippingAmount,
         deliveryMethod: customerForm.deliveryMethod || 'seller_rider',
         status: 'Order Placed',
         method: 'WhatsApp Order',
-        customer: customerForm
+        customer: {
+            ...customerForm,
+            finalTotal: totalAmount,
+            shippingFee: shippingAmount
+        }
       });
 
       // 3. Deduction of Stock (Atomic)
       for (const item of cart) {
+        if (!item.id) continue;
         const prodRef = doc(db, "products", item.id);
         batch.update(prodRef, {
-          stockQuantity: increment(-item.quantity)
+          stockQuantity: increment(-Number(item.quantity || 1))
         });
       }
 
-      // 4. Trigger Email (if provided)
+      // 4. Trigger Email (Wrapped in internal try to avoid blocking the whole order)
       if (customerForm.email) {
-        const mailRef = doc(db, "mail", `receipt-${orderId}`);
-        batch.set(mailRef, {
-          to: customerForm.email,
-          message: {
-            subject: `Pending: Your KenteHaul Order #${orderId} 🎉`,
-            html: `<div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;"><h1 style="color: #4F46E5;">Thank You!</h1><p>Hi ${customerForm.name}, we've received your order request. <strong>Order ID: #${orderId}</strong></p><p>Track your weaving progress here: <a href="${window.location.origin}/track/${orderId}">${window.location.origin}/track/${orderId}</a></p></div>`
-          }
-        });
+        try {
+          const mailRef = doc(db, "mail", `receipt-${orderId}`);
+          batch.set(mailRef, {
+            to: customerForm.email,
+            message: {
+              subject: `Pending: Your KenteHaul Order #${orderId} 🎉`,
+              html: `<div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;"><h1 style="color: #4F46E5;">Thank You!</h1><p>Hi ${customerForm.name}, we've received your order request. <strong>Order ID: #${orderId}</strong></p><p>Track your weaving progress here: <a href="${window.location.origin}/track/${orderId}">${window.location.origin}/track/${orderId}</a></p></div>`
+            }
+          });
+        } catch (emailErr) {
+          console.warn("Mail trigger setup failed (likely rules), but proceeding with order:", emailErr);
+        }
       }
 
       // COMMIT ALL OR NOTHING
@@ -347,21 +364,22 @@ export default function App() {
       // Construct Professional WhatsApp Message
       let message = `*KENTEHAUL ORDER:* ${orderId}\n\n`;
       cart.forEach(item => { message += `• ${item.name} x${item.quantity} - ₵${item.price * item.quantity}\n`; });
-      message += `\n*Method:* ${customerForm.deliveryMethod.replace('_', ' ')}`;
+      message += `\n*Method:* ${(customerForm.deliveryMethod || 'rider').replace('_', ' ')}`;
       if (customerForm.deliveryMethod === 'pickup') message += `\n*Pickup at:* ${customerForm.pickupLocationId}`;
-      message += `\n*Total:* ₵${customerForm.finalTotal}`;
+      message += `\n*Total:* ₵${totalAmount}`;
       message += `\n\n*TRACKING:* ${window.location.origin}/track/${orderId}`;
 
       setCart([]);
       setIsCartOpen(false);
       
+      const whatsappPhone = (siteContent.contactPhone || '').replace(/[^0-9]/g, '');
       setTimeout(() => {
-        window.open(`https://wa.me/${siteContent.contactPhone?.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+        window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
       }, 500);
 
     } catch (error) {
-      console.error("Atomic Checkout Failed:", error);
-      alert("System Busy: We couldn't secure your order right now. Please try again in 30 seconds.");
+      console.error("Atomic Checkout Failed (onWhatsAppCheckout):", error);
+      alert(`Checkout failed: ${error.message || "System Busy"}. Please try again.`);
     } finally {
       setIsProcessing(false);
     }
@@ -369,21 +387,28 @@ export default function App() {
 
   const handlePaystackSuccess = async (reference, customerForm) => {
     setIsProcessing(true);
+    console.log("Paystack Success - Syncing to Database:", { reference, customerForm });
+    
     try {
       const orderId = reference.reference;
       const batch = writeBatch(db);
 
+      const totalAmount = Number(customerForm.finalTotal || cartTotal) || 0;
+      const shippingAmount = Number(customerForm.shippingFee) || 0;
+
       // 1. CRM
-      const cleanPhone = customerForm.phone.replace(/[^0-9]/g, '') || `cust-${Date.now()}`;
+      const phoneInput = String(customerForm.phone || '');
+      const cleanPhone = phoneInput.replace(/[^0-9]/g, '') || `cust-${Date.now()}`;
       const custRef = doc(db, "customers", cleanPhone);
+      
       batch.set(custRef, {
         name: customerForm.name,
         email: customerForm.email || '',
         phone: customerForm.phone,
         address: customerForm.address || '',
-        totalSpent: increment(customerForm.finalTotal || cartTotal),
+        totalSpent: increment(totalAmount),
         lastOrder: serverTimestamp(),
-        orderIds: increment(1)
+        orderCount: increment(1)
       }, { merge: true });
 
       // 2. PAID Order
@@ -392,19 +417,26 @@ export default function App() {
         date: new Date().toLocaleDateString(),
         createdAt: serverTimestamp(),
         items: cart,
-        total: customerForm.finalTotal || cartTotal,
+        total: totalAmount,
         shippingRegion: customerForm.shippingRegion || 'Accra',
-        shippingFee: customerForm.shippingFee || 0,
+        shippingFee: shippingAmount,
         deliveryMethod: customerForm.deliveryMethod || 'seller_rider',
         status: 'Payment Confirmed',
         method: 'Paystack Card/Momo',
-        customer: customerForm
+        customer: {
+            ...customerForm,
+            finalTotal: totalAmount,
+            shippingFee: shippingAmount
+        }
       });
 
       // 3. Stock
       for (const item of cart) {
+        if (!item.id) continue;
         const prodRef = doc(db, "products", item.id);
-        batch.update(prodRef, { stockQuantity: increment(-item.quantity) });
+        batch.update(prodRef, { 
+            stockQuantity: increment(-Number(item.quantity || 1)) 
+        });
       }
 
       // COMMIT
@@ -414,8 +446,8 @@ export default function App() {
       setIsCartOpen(false);
       alert(`Success! Payment received and Order #${orderId} is being prepared.`);
     } catch (error) {
-      console.error("Atomic Payment Write Failed:", error);
-      alert("Payment was successful, but database sync failed. Keep your reference: " + reference.reference);
+      console.error("Atomic Payment Write Failed (handlePaystackSuccess):", error);
+      alert("Payment was successful, but database sync failed. Error: " + error.message + ". Keep your reference: " + reference.reference);
     } finally {
       setIsProcessing(false);
     }
