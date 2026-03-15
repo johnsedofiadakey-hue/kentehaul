@@ -8,15 +8,116 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
     const [saving, setSaving] = useState({});
     const [saved, setSaved] = useState({});
 
-    // ... (rest of logic remains same)
+    // INSTANT UPDATE: updates local state immediately
+    const updateField = useCallback((field, value) => {
+        setSiteContent(prev => ({ ...prev, [field]: value }));
+    }, [setSiteContent]);
 
-    const handleLocationBlur = () => {
-        saveField('pickupLocations', siteContent.pickupLocations, siteContent);
+    // SAVE TO FIRESTORE: called on blur or explicit save
+    const saveField = useCallback(async (field, value, currentContent) => {
+        setSaving(prev => ({ ...prev, [field]: true }));
+        try {
+            const merged = { ...currentContent, [field]: value };
+            await setDoc(doc(db, "settings", "siteContent"), merged);
+            setSaved(prev => ({ ...prev, [field]: true }));
+            setTimeout(() => setSaved(prev => ({ ...prev, [field]: false })), 2500);
+        } catch (e) {
+            console.error("Settings sync failed:", e);
+        }
+        setSaving(prev => ({ ...prev, [field]: false }));
+    }, []);
+
+    // For color pickers
+    const handleColorChange = useCallback(async (field, value) => {
+        updateField(field, value);
+        clearTimeout(window[`colorTimer_${field}`]);
+        window[`colorTimer_${field}`] = setTimeout(async () => {
+            setSaving(prev => ({ ...prev, [field]: true }));
+            try {
+                const merged = { ...siteContent, [field]: value };
+                await setDoc(doc(db, "settings", "siteContent"), merged);
+                setSaved(prev => ({ ...prev, [field]: true }));
+                setTimeout(() => setSaved(prev => ({ ...prev, [field]: false })), 2000);
+            } catch (e) { console.error(e); }
+            setSaving(prev => ({ ...prev, [field]: false }));
+        }, 400);
+    }, [siteContent, updateField, saveField]);
+
+    // For images
+    const handleImageUpload = useCallback(async (field, value) => {
+        updateField(field, value);
+        setSaving(prev => ({ ...prev, [field]: true }));
+        try {
+            const merged = { ...siteContent, [field]: value };
+            await setDoc(doc(db, "settings", "siteContent"), merged);
+            setSaved(prev => ({ ...prev, [field]: true }));
+            setTimeout(() => setSaved(prev => ({ ...prev, [field]: false })), 2500);
+        } catch (e) { console.error(e); }
+        setSaving(prev => ({ ...prev, [field]: false }));
+    }, [siteContent, updateField]);
+
+    const SaveIndicator = ({ field }) => (
+        <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-black">
+            {saving[field] && <RefreshCw size={10} className="animate-spin text-blue-500" />}
+            {saved[field] && !saving[field] && <><CheckCircle size={10} className="text-green-500" /> <span className="text-green-500">Saved & Live</span></>}
+        </span>
+    );
+
+    const ColorPreview = ({ color, label }) => (
+        <div className="flex items-center gap-3 mt-3 p-3 bg-gray-50 rounded-2xl">
+            <div className="w-8 h-8 rounded-xl shadow-md border border-white" style={{ backgroundColor: color }} />
+            <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">{label}</p>
+                <p className="text-xs font-mono font-bold text-gray-600">{color}</p>
+            </div>
+            <div className="ml-auto flex items-center gap-1.5 text-[10px] text-green-600 font-black">
+                <Eye size={10} /> Live Preview
+            </div>
+        </div>
+    );
+
+    // Delivery Regions Handlers
+    const handleAddRegion = () => {
+        const regions = siteContent.deliveryRegions || [];
+        const updated = [...regions, { region: 'New Region', fee: 0 }];
+        updateField('deliveryRegions', updated);
+        saveField('deliveryRegions', updated, siteContent);
     };
 
-    const handleRegionBlur = () => {
-        saveField('deliveryRegions', siteContent.deliveryRegions, siteContent);
+    const handleUpdateRegion = (index, key, value) => {
+        const regions = [...(siteContent.deliveryRegions || [])];
+        regions[index][key] = key === 'fee' ? Number(value) : value;
+        updateField('deliveryRegions', regions);
     };
+
+    const handleRemoveRegion = (index) => {
+        const regions = [...(siteContent.deliveryRegions || [])];
+        regions.splice(index, 1);
+        updateField('deliveryRegions', regions);
+        saveField('deliveryRegions', regions, siteContent);
+    };
+    
+    // Pickup Locations Handlers
+    const handleAddLocation = () => {
+        const locations = siteContent.pickupLocations || [];
+        const updated = [...locations, { name: 'New Workshop', address: '', mapsLink: '' }];
+        updateField('pickupLocations', updated);
+        saveField('pickupLocations', updated, siteContent);
+    };
+
+    const handleUpdateLocation = (index, key, value) => {
+        const locations = [...(siteContent.pickupLocations || [])];
+        locations[index][key] = value;
+        updateField('pickupLocations', locations);
+    };
+
+    const handleRemoveLocation = (index) => {
+        const locations = [...(siteContent.pickupLocations || [])];
+        locations.splice(index, 1);
+        updateField('pickupLocations', locations);
+        saveField('pickupLocations', locations, siteContent);
+    };
+
 
     if (onlyLogistics) {
         return (

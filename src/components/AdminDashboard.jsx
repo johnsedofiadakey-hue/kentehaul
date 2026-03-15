@@ -32,28 +32,9 @@ export default function AdminDashboard({
   const [adminTab, setAdminTab] = useState('orders');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // --- FCM: Step 1 (Save Admin Push Token) ---
+  // --- FCM: Placeholder ---
   useEffect(() => {
-    const setupNotifications = async () => {
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          const token = await getToken(messaging, {
-            vapidKey: 'BGHQG-XXXXXXXXXXX-XXXXXXXXXX' // Replace with actual VAPID key from Firebase Console
-          });
-          if (token) {
-            await setDoc(doc(db, "admin", "pushTokens"), {
-              latestToken: token,
-              updatedAt: new Date().toISOString()
-            }, { merge: true });
-            console.log("FCM Token Saved:", token);
-          }
-        }
-      } catch (err) {
-        console.error("FCM Setup Error:", err);
-      }
-    };
-    setupNotifications();
+    // FCM Setup disabled to prevent console noise until ready for full integration
   }, []);
 
   // --- INVOICE STATE (Shared between Orders & CRM) ---
