@@ -118,6 +118,14 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
         saveField('pickupLocations', locations, siteContent);
     };
 
+    const handleRegionBlur = () => {
+        saveField('deliveryRegions', siteContent.deliveryRegions, siteContent);
+    };
+
+    const handleLocationBlur = () => {
+        saveField('pickupLocations', siteContent.pickupLocations, siteContent);
+    };
+
 
     if (onlyLogistics) {
         return (
