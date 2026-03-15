@@ -16,6 +16,7 @@ export default function Navbar({
     const [shopDropdownOpen, setShopDropdownOpen] = useState(false);
     const [categories, setCategories] = useState(SHOP_CATEGORIES);
     const [hoveredCat, setHoveredCat] = useState(null);
+    const [scrolled, setScrolled] = useState(false);
     const [mobileShopExpanded, setMobileShopExpanded] = useState(false);
     const [mobileActiveCat, setMobileActiveCat] = useState(null);
     const [searchExpanded, setSearchExpanded] = useState(false);
