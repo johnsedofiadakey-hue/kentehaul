@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Users, Edit, Settings, LogOut, Menu, X, ChevronRight, MessageSquare } from 'lucide-react';
+import { Package, Users, Edit, Settings, LogOut, Menu, X, ChevronRight, MessageSquare, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from "firebase/auth";
 import { auth, db, messaging } from '../firebase';
@@ -83,10 +83,11 @@ export default function AdminDashboard({
 
   // --- NAVIGATION ---
   const sideMenu = [
-    { id: 'orders', icon: Package, label: 'Sales & Bills' },
+    { id: 'orders', icon: Package, label: 'Order Management' },
     { id: 'customers', icon: Users, label: 'Customers' },
-    { id: 'products', icon: Edit, label: 'Products' },
-    { id: 'reviews', icon: MessageSquare, label: 'Reviews' },
+    { id: 'products', icon: Edit, label: 'Our Products' },
+    { id: 'logistics', icon: Truck, label: 'Delivery & Logistics' },
+    { id: 'reviews', icon: MessageSquare, label: 'Shop Reviews' },
     { id: 'settings', icon: Settings, label: 'Settings' }
   ];
 
@@ -234,6 +235,14 @@ export default function AdminDashboard({
 
           {adminTab === 'reviews' && (
             <AdminReviews products={products} />
+          )}
+
+          {adminTab === 'logistics' && (
+            <AdminSettings
+              siteContent={siteContent}
+              setSiteContent={setSiteContent}
+              onlyLogistics={true}
+            />
           )}
 
           {adminTab === 'settings' && (
