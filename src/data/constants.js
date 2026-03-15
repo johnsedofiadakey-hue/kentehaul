@@ -83,19 +83,30 @@ export const INITIAL_FEEDBACK = [
   { id: 2, name: "John D.", text: "Fast delivery to London. The colors are even more vibrant in person.", rating: 5, image: null }
 ];
 
-export const ORDER_STATUSES = ['Pending', 'Paid', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+export const ORDER_STATUSES = [
+  'Order Placed',
+  'Payment Confirmed',
+  'Preparing Order',
+  'Ready for Pickup',
+  'Rider Assigned',
+  'Rider On The Way',
+  'Delivered',
+  'Cancelled'
+];
+
+export const DELIVERY_METHODS = [
+  { id: 'customer_rider', label: 'I will send my own rider' },
+  { id: 'seller_rider', label: 'Seller should arrange rider' },
+  { id: 'pickup', label: 'Pickup from store' }
+];
 
 export const INITIAL_GALLERY = [];
 
 // ============================================================
 // ORDER ID GENERATION - Production-grade readable format
 // ============================================================
-export const generateOrderId = (method = 'WA') => {
-  const prefix = method === 'paystack' ? 'KH' : 'KW';
-  const date = new Date();
-  const datePart = `${String(date.getFullYear()).slice(-2)}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+export const generateOrderId = () => {
   const rand = Math.floor(1000 + Math.random() * 9000);
-  return `${prefix}-${datePart}-${rand}`;
-  // Example: KW-250312-4821 (WhatsApp order, March 12 2025)
-  // Example: KH-250312-4821 (Paystack/KenteHaul online)
+  return `KH${rand}`;
+  // Example: KH4821
 };

@@ -76,7 +76,9 @@ export default function ProductDetailModal({
     }, [onClose]);
 
     const handleAddToCart = () => {
-        for (let i = 0; i < quantity; i++) addToCart(product);
+        const availableStock = product.stockQuantity ?? product.stock ?? 0;
+        const finalQuantity = Math.min(quantity, availableStock);
+        for (let i = 0; i < finalQuantity; i++) addToCart(product);
         setAddedToCart(true);
         setTimeout(() => setAddedToCart(false), 2500);
     };
@@ -113,11 +115,12 @@ export default function ProductDetailModal({
         }
     };
 
-    const stockLabel = product?.stock <= 0
+    const stockVal = product?.stockQuantity ?? product?.stock ?? 0;
+    const stockLabel = stockVal <= 0
         ? { text: 'Out of Stock', color: 'text-red-600 bg-red-50' }
-        : product?.stock <= 3
-            ? { text: `Only ${product.stock} left!`, color: 'text-orange-600 bg-orange-50' }
-            : { text: `${product?.stock} in stock`, color: 'text-green-600 bg-green-50' };
+        : stockVal <= 3
+            ? { text: `Only ${stockVal} left!`, color: 'text-orange-600 bg-orange-50' }
+            : { text: `${stockVal} in stock`, color: 'text-green-600 bg-green-50' };
 
     return (
         <AnimatePresence>
@@ -168,7 +171,7 @@ export default function ProductDetailModal({
                                 )}
 
                                 {/* Sold out overlay */}
-                                {product.stock <= 0 && (
+                                {(product.stockQuantity ?? product.stock) <= 0 && (
                                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                                         <span className="bg-red-600 text-white px-6 py-3 rounded-full font-black text-lg -rotate-12 border-4 border-white shadow-2xl">
                                             SOLD OUT
@@ -389,7 +392,7 @@ export default function ProductDetailModal({
 
                         {/* === STICKY FOOTER: QUANTITY + BUY BUTTONS === */}
                         <div className="border-t border-gray-100 p-4 md:p-6 bg-white safe-bottom">
-                            {product.stock > 0 ? (
+                            { (product.stockQuantity ?? product.stock) > 0 ? (
                                 <>
                                     {/* Quantity selector */}
                                     <div className="flex items-center gap-4 mb-4">
@@ -403,7 +406,7 @@ export default function ProductDetailModal({
                                             </button>
                                             <span className="w-8 text-center font-black text-lg">{quantity}</span>
                                             <button
-                                                onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}
+                                                onClick={() => setQuantity(q => Math.min(product.stockQuantity ?? product.stock ?? 999, q + 1))}
                                                 className="w-9 h-9 rounded-xl bg-white shadow-sm flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all"
                                             >
                                                 <Plus size={14} />

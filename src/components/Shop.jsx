@@ -70,14 +70,19 @@ export default function Shop({
     let result = products.filter(p =>
       (!activeCategory || p.category === activeCategory) &&
       (!activeSubcategory || p.subcategory === activeSubcategory) &&
-      (p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.description || '').toLowerCase().includes(searchQuery.toLowerCase()))
+      (
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.longHistory || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.color || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.symbolism || '').toLowerCase().includes(searchQuery.toLowerCase())
+      )
     );
 
     if (sortBy === 'price-asc') result = [...result].sort((a, b) => a.price - b.price);
     else if (sortBy === 'price-desc') result = [...result].sort((a, b) => b.price - a.price);
     else if (sortBy === 'newest') result = [...result].sort((a, b) => (b.date || 0) - (a.date || 0));
-    else if (sortBy === 'stock') result = [...result].sort((a, b) => b.stock - a.stock);
+    else if (sortBy === 'stock') result = [...result].sort((a, b) => (b.stockQuantity || 0) - (a.stockQuantity || 0));
 
     return result;
   }, [products, activeCategory, activeSubcategory, searchQuery, sortBy]);
@@ -390,7 +395,7 @@ export default function Shop({
                         <LazyImage
                           src={p.image}
                           alt={p.name}
-                          className={`w-full h-full object-cover transition-transform duration-[2s] ease-out group-hover:scale-110 ${p.stock <= 0 ? 'grayscale opacity-50' : ''}`}
+                          className={`w-full h-full object-cover transition-transform duration-[2s] ease-out group-hover:scale-110 ${p.stockQuantity <= 0 ? 'grayscale opacity-50' : ''}`}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-200">
@@ -408,9 +413,9 @@ export default function Shop({
 
                       {/* Status Badges */}
                       <div className="absolute top-4 left-4 right-4 md:top-8 md:left-8 md:right-8 flex justify-between items-start z-30 pointer-events-none">
-                        {p.stock <= 0 ? (
+                        {p.stockQuantity <= 0 ? (
                           <span className="bg-red-600 text-white text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-1 md:px-4 md:py-2 rounded-full shadow-2xl border border-white/20">Sold Out</span>
-                        ) : p.stock <= 3 && (
+                        ) : p.stockQuantity <= 3 && (
                           <span className="bg-amber-600 text-white text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-1 md:px-4 md:py-2 rounded-full shadow-2xl">Low Stock</span>
                         )}
 
@@ -444,9 +449,9 @@ export default function Shop({
                       <div className="flex gap-2 md:gap-4">
                         <button
                           onClick={() => addToCart(p)}
-                          disabled={p.stock <= 0}
+                          disabled={p.stockQuantity <= 0}
                           className="shimmer-premium flex-1 h-10 md:h-16 rounded-[12px] md:rounded-[24px] font-black text-[8px] md:text-xs uppercase tracking-[1px] md:tracking-[3px] transition-all relative overflow-hidden group/btn disabled:bg-gray-50 disabled:text-gray-200 border-2 border-transparent hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] active:scale-95 transform hover:-translate-y-1"
-                          style={{ backgroundColor: p.stock > 0 ? siteContent.primaryColor : undefined, color: p.stock > 0 ? 'white' : undefined }}
+                          style={{ backgroundColor: p.stockQuantity > 0 ? siteContent.primaryColor : undefined, color: p.stockQuantity > 0 ? 'white' : undefined }}
                         >
                           <span className="relative z-10 flex items-center justify-center gap-1 md:gap-3">
                             <ShoppingBag size={12} className="md:size-[16px] group-hover/btn:scale-110 transition-transform" /> Buy Now
@@ -456,7 +461,7 @@ export default function Shop({
 
                         <button
                           onClick={() => handleSingleBuy(p)}
-                          disabled={p.stock <= 0}
+                          disabled={p.stockQuantity <= 0}
                           className="w-10 h-10 md:w-16 md:h-16 rounded-[12px] md:rounded-[24px] bg-green-500 text-white flex items-center justify-center hover:bg-green-600 transition-all shadow-xl shadow-green-200 disabled:bg-gray-50 disabled:text-gray-200 active:scale-95"
                           title="Buy via WhatsApp"
                         >

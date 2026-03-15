@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, ShoppingBag, ChevronDown, Truck, ArrowRight, Star, Sparkles, Phone, MapPin } from 'lucide-react';
+import { Menu, X, ShoppingBag, ChevronDown, Truck, ArrowRight, Star, Sparkles, Phone, MapPin, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -16,9 +15,10 @@ export default function Navbar({
     const [shopDropdownOpen, setShopDropdownOpen] = useState(false);
     const [categories, setCategories] = useState(SHOP_CATEGORIES);
     const [hoveredCat, setHoveredCat] = useState(null);
-    const [scrolled, setScrolled] = useState(false);
     const [mobileShopExpanded, setMobileShopExpanded] = useState(false);
     const [mobileActiveCat, setMobileActiveCat] = useState(null);
+    const [searchExpanded, setSearchExpanded] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const dropdownRef = useRef(null);
     const dropdownTimer = useRef(null);
@@ -41,7 +41,19 @@ export default function Navbar({
         return () => unsub();
     }, []);
 
-    useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
+    useEffect(() => { 
+        setMobileMenuOpen(false); 
+        setSearchExpanded(false);
+    }, [location.pathname]);
+
+    const handleSearch = (e) => {
+        if (e) e.preventDefault();
+        if (searchQuery.trim()) {
+            navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+            setSearchExpanded(false);
+            setSearchQuery('');
+        }
+    };
 
     const closeMenus = () => {
         setMobileMenuOpen(false);
@@ -246,8 +258,38 @@ export default function Navbar({
                             ))}
                         </div>
 
-                        {/* Actions (Cart, Tracking, Mobile Search placeholder) */}
+                        {/* Actions (Cart, Tracking, Search) */}
                         <div className="flex items-center gap-2 md:gap-4">
+                            {/* SEARCH TRIGGER */}
+                            <div className="hidden md:flex items-center relative">
+                                <AnimatePresence>
+                                    {searchExpanded && (
+                                        <motion.form 
+                                            initial={{ width: 0, opacity: 0 }}
+                                            animate={{ width: 280, opacity: 1 }}
+                                            exit={{ width: 0, opacity: 0 }}
+                                            onSubmit={handleSearch}
+                                            className="overflow-hidden mr-2"
+                                        >
+                                            <input 
+                                                autoFocus
+                                                type="text"
+                                                placeholder="Search by color, symbol, or type..."
+                                                className="w-full px-5 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                            />
+                                        </motion.form>
+                                    )}
+                                </AnimatePresence>
+                                <button
+                                    onClick={() => setSearchExpanded(!searchExpanded)}
+                                    className={`p-3 rounded-2xl transition-all ${searchExpanded ? 'bg-amber-500 text-white shadow-lg' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+                                >
+                                    <Search size={20} />
+                                </button>
+                            </div>
+
                             <button
                                 onClick={() => setIsTrackingOpen(true)}
                                 className="hidden md:flex flex-col items-center group"
@@ -299,10 +341,24 @@ export default function Navbar({
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
+                             transition={{ duration: 0.5, ease: [0.33, 1, 0.68, 1] }}
                             className="lg:hidden fixed inset-x-0 top-[72px] bottom-0 z-[100] bg-white/40 backdrop-blur-3xl overflow-hidden border-t border-white/20 shadow-[-20px_0_80px_rgba(0,0,0,0.1)]"
                         >
                             <div className="h-full overflow-y-auto custom-scrollbar p-6 pt-10 space-y-2">
+                                {/* MOBILE SEARCH */}
+                                <form onSubmit={handleSearch} className="mb-6 relative">
+                                    <input 
+                                        type="text"
+                                        placeholder="Search Kente pieces..."
+                                        className="w-full pl-6 pr-14 py-5 bg-white shadow-xl rounded-[24px] font-black text-xs uppercase tracking-widest outline-none border border-transparent focus:border-amber-500 transition-all"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                    <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center">
+                                        <Search size={18} />
+                                    </button>
+                                </form>
+
                                 {/* Refined Quick Actions */}
                                 <div className="space-y-3 mb-6">
                                     <button

@@ -35,6 +35,7 @@ import ProductDetailModal from './components/ProductDetailModal';
 import OrderTrackingModal from './components/OrderTrackingModal';
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 import AdminLoginModal from './components/AdminLoginModal';
+import TrackingPage from './components/TrackingPage';
 
 // Protected Route Component
 function AdminLoginRequired({ setIsAdminLoginOpen }) {
@@ -55,6 +56,31 @@ export default function App() {
   // ==========================================
   // 1. REAL-TIME DATA STATE (Syncs with Cloud)
   // ==========================================
+  // --- ANALYTICS & PIXEL INITIALIZATION ---
+  useEffect(() => {
+    const gaId = 'G-XXXXXXXXXX'; 
+    if (gaId !== 'G-XXXXXXXXXX') {
+      const script = document.createElement('script');
+      script.async = true; script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+      document.head.appendChild(script);
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { window.dataLayer.push(arguments); }
+      gtag('js', new Date()); gtag('config', gaId);
+    }
+    const pixelId = 'PIXEL_ID';
+    if (pixelId !== 'PIXEL_ID') {
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', pixelId); fbq('track', 'PageView');
+    }
+  }, []);
+
   const [siteContent, setSiteContent] = useState(() => {
     // Try to load cached theme from localStorage first
     const cached = localStorage.getItem('kente_theme');
@@ -119,7 +145,8 @@ export default function App() {
           id: doc.id,
           // Ensure price and stock are treated as Math Numbers for the Shop filters
           price: typeof data.price === 'number' ? data.price : parseFloat(data.price || 0),
-          stock: typeof data.stock === 'number' ? data.stock : parseInt(data.stock || 0)
+          stockQuantity: typeof data.stockQuantity === 'number' ? data.stockQuantity : parseInt(data.stockQuantity || data.stock || 0),
+          sku: data.sku || ''
         };
       });
       setProducts(sanitizedProducts);
@@ -260,15 +287,19 @@ export default function App() {
   const addToCart = (product) => {
     const existingItem = cart.find(item => item.id === product.id);
     if (existingItem) {
-      if (existingItem.quantity < product.stock) {
+      if (existingItem.quantity < (product.stockQuantity ?? product.stock ?? 0)) {
         setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
         setIsCartOpen(true);
       } else {
         alert("Maximum available stock reached for this item.");
       }
     } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
-      setIsCartOpen(true);
+      if ((product.stockQuantity ?? product.stock ?? 0) > 0) {
+        setCart([...cart, { ...product, quantity: 1 }]);
+        setIsCartOpen(true);
+      } else {
+        alert("This item is currently out of stock.");
+      }
     }
   };
 
@@ -280,7 +311,7 @@ export default function App() {
     setCart(cart.map(item => {
       if (item.id === id) {
         const product = products.find(p => p.id === id);
-        const maxStock = product ? product.stock : 999;
+        const maxStock = product ? (product.stockQuantity ?? product.stock ?? 999) : 999;
         const newQuantity = Math.max(1, item.quantity + delta);
         if (newQuantity <= maxStock) {
           return { ...item, quantity: newQuantity };
@@ -307,22 +338,50 @@ export default function App() {
       // Step 2: Save Order to Database
       await setDoc(doc(db, "orders", orderId), {
         date: new Date().toLocaleDateString(),
+        createdAt: new Date(),
         items: cart,
         total: customerForm.finalTotal || cartTotal,
         shippingRegion: customerForm.shippingRegion || 'Accra',
         shippingFee: customerForm.shippingFee || 0,
-        status: 'Pending',
+        deliveryMethod: customerForm.deliveryMethod || 'seller_rider',
+        status: 'Order Placed',
         method: 'WhatsApp Checkout',
         customer: customerForm
       });
 
+      // Step 2b: Update Stock Levels
+      for (const item of cart) {
+        const prodRef = doc(db, "products", item.id);
+        const prodSnap = await getDoc(prodRef);
+        if (prodSnap.exists()) {
+          const currentStock = prodSnap.data().stockQuantity ?? prodSnap.data().stock ?? 0;
+          await updateDoc(prodRef, {
+            stockQuantity: Math.max(0, currentStock - item.quantity)
+          });
+        }
+      }
+
       // Step 3: Construct Professional WhatsApp Message
-      let message = `Hello KenteHaul! I would like to place an order (Order ID: ${orderId}):\n\n`;
+      let message = `*KENTEHAUL ORDER:* ${orderId}\n\n`;
       cart.forEach(item => {
-        message += `• ${item.name} (x${item.quantity}) - ₵${item.price * item.quantity}\n`;
+        message += `• ${item.name} (${item.sku || 'N/A'}) x${item.quantity} - ₵${item.price * item.quantity}\n`;
       });
-      message += `\n*Grand Total: ₵${cartTotal}*`;
-      message += `\n\n*Client Details:*\nName: ${customerForm.name}\nDelivery: ${customerForm.address}`;
+      message += `\n*Subtotal:* ₵${cartTotal}`;
+      message += `\n*Delivery (${customerForm.deliveryMethod.replace('_', ' ')}):* ₵${customerForm.shippingFee}`;
+      message += `\n*Total:* ₵${customerForm.finalTotal}`;
+      message += `\n\n*CLIENT DETAILS:*`;
+      message += `\nName: ${customerForm.name}`;
+      message += `\nPhone: ${customerForm.phone}`;
+      if (customerForm.deliveryMethod !== 'pickup') {
+        message += `\nAddress: ${customerForm.address}`;
+      }
+      if (customerForm.deliveryMethod === 'customer_rider') {
+        message += `\n\n*RIDER DETAILS:*`;
+        message += `\nName: ${customerForm.riderName}`;
+        message += `\nPhone: ${customerForm.riderPhone}`;
+        if (customerForm.riderCompany) message += `\nCompany: ${customerForm.riderCompany}`;
+      }
+      message += `\n\n*Track Order:* ${window.location.origin}/track/${orderId}`;
 
       // Step 3.5: Trigger Automated Email Receipt
       if (customerForm.email) {
@@ -371,14 +430,28 @@ export default function App() {
       // Step 2: Record Official Paid Order
       await setDoc(doc(db, "orders", reference.reference), {
         date: new Date().toLocaleDateString(),
+        createdAt: new Date(),
         items: cart,
         total: customerForm.finalTotal || cartTotal,
         shippingRegion: customerForm.shippingRegion || 'Accra',
         shippingFee: customerForm.shippingFee || 0,
-        status: 'Paid',
+        deliveryMethod: customerForm.deliveryMethod || 'seller_rider',
+        status: 'Payment Confirmed',
         method: 'Paystack Card/Momo',
         customer: customerForm
       });
+
+      // Step 2b: Update Stock Levels
+      for (const item of cart) {
+        const prodRef = doc(db, "products", item.id);
+        const prodSnap = await getDoc(prodRef);
+        if (prodSnap.exists()) {
+          const currentStock = prodSnap.data().stockQuantity ?? prodSnap.data().stock ?? 0;
+          await updateDoc(prodRef, {
+            stockQuantity: Math.max(0, currentStock - item.quantity)
+          });
+        }
+      }
 
       // Step 3: Trigger Automated Email Receipt
       if (customerForm.email) {
@@ -423,21 +496,8 @@ export default function App() {
     const cleanInput = trackingInput.trim().toUpperCase();
     if (!cleanInput) { alert("Please enter an Order ID."); return; }
 
-    try {
-      // Direct Database Fetch (More Secure)
-      const docRef = doc(db, "orders", cleanInput);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        setTrackingResult({ ...docSnap.data(), id: docSnap.id });
-      } else {
-        setTrackingResult(null);
-        alert(`Order "${cleanInput}" not found in our database.`);
-      }
-    } catch (error) {
-      console.error("Tracking Error:", error);
-      alert("Unable to track order. Please check your connection.");
-    }
+    setIsTrackingOpen(false);
+    navigate(`/track/${cleanInput}`);
   };
 
   // Detect admin route to hide public elements
@@ -541,6 +601,12 @@ export default function App() {
 
             <Route path="/contact" element={
               <Contact
+                siteContent={siteContent}
+              />
+            } />
+
+            <Route path="/track/:orderId" element={
+              <TrackingPage
                 siteContent={siteContent}
               />
             } />

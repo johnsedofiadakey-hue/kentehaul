@@ -17,6 +17,8 @@ service cloud.firestore {
     match /products/{product} {
       allow read: if true;
       allow write: if isAdmin();
+      // Ensure stockQuantity is always non-negative during admin updates
+      allow update: if isAdmin() && request.resource.data.stockQuantity >= 0;
     }
     
     match /gallery/{image} {
@@ -47,8 +49,9 @@ service cloud.firestore {
     match /orders/{order} {
       allow list: if isAdmin();
       allow get: if true; 
-      allow create: if true;
-      allow update, delete: if isAdmin();
+      allow create: if request.resource.data.status == 'Order Placed' || request.resource.data.status == 'Payment Confirmed';
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
     
     // Email Extension Collection

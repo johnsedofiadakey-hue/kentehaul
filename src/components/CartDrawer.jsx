@@ -15,7 +15,8 @@ export default function CartDrawer({
     onWhatsAppCheckout
 }) {
     const [step, setStep] = useState('cart'); // 'cart' | 'details' | 'success'
-    const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '' });
+    const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', riderName: '', riderPhone: '', riderCompany: '' });
+    const [deliveryMethod, setDeliveryMethod] = useState('seller_rider'); // 'customer_rider' | 'seller_rider' | 'pickup'
     const [shippingRegion, setShippingRegion] = useState('Accra');
     const shippingRegions = siteContent.deliveryRegions || [
         { region: 'Accra', fee: 30 },
@@ -25,10 +26,11 @@ export default function CartDrawer({
 
     // Find current shipping fee based on selected region name
     const selectedRegion = shippingRegions.find(r => r.region === shippingRegion) || shippingRegions[0];
-    const shippingFee = selectedRegion?.fee || 0;
+    const shippingFee = deliveryMethod === 'seller_rider' ? (selectedRegion?.fee || 0) : 0;
     const finalTotal = cartTotal + shippingFee;
 
-    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && customerForm.address.trim();
+    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && (deliveryMethod === 'pickup' || customerForm.address.trim()) &&
+        (deliveryMethod !== 'customer_rider' || (customerForm.riderName.trim() && customerForm.riderPhone.trim()));
     const cartCount = cart.reduce((a, b) => a + b.quantity, 0);
 
     const handleClose = () => {
@@ -38,13 +40,13 @@ export default function CartDrawer({
 
     const handleWhatsApp = () => {
         if (isFormValid) {
-            onWhatsAppCheckout({ ...customerForm, shippingRegion, shippingFee, finalTotal });
+            onWhatsAppCheckout({ ...customerForm, deliveryMethod, shippingRegion, shippingFee, finalTotal });
             setStep('cart');
         }
     };
 
     const handlePaystack = (ref) => {
-        onPaystackSuccess(ref, { ...customerForm, shippingRegion, shippingFee, finalTotal });
+        onPaystackSuccess(ref, { ...customerForm, deliveryMethod, shippingRegion, shippingFee, finalTotal });
         setStep('cart');
     };
 
@@ -209,20 +211,93 @@ export default function CartDrawer({
                                     </div>
 
                                     {/* Form fields */}
-                                    <div className="space-y-3">
-                                        <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Delivery Method</p>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {shippingRegions.map(r => (
+                                    <div className="space-y-6">
+                                        <div className="space-y-3">
+                                            <p className="text-xs font-black text-gray-400 uppercase tracking-wider">How do you want to receive your order?</p>
+                                            <div className="grid grid-cols-1 gap-2">
                                                 <button
-                                                    key={r.region}
-                                                    onClick={() => setShippingRegion(r.region)}
-                                                    className={`py-3 px-4 text-left rounded-2xl border transition-all ${shippingRegion === r.region ? 'bg-white shadow-md border-gray-400' : 'bg-gray-50 border-transparent text-gray-400'}`}
-                                                    style={{ borderLeft: shippingRegion === r.region ? `4px solid ${siteContent.secondaryColor}` : '' }}
+                                                    onClick={() => setDeliveryMethod('seller_rider')}
+                                                    className={`py-4 px-5 text-left rounded-3xl border transition-all ${deliveryMethod === 'seller_rider' ? 'bg-white shadow-md border-gray-400 border-l-[6px]' : 'bg-gray-50 border-transparent text-gray-400'}`}
+                                                    style={{ borderLeftColor: deliveryMethod === 'seller_rider' ? siteContent.secondaryColor : '' }}
                                                 >
-                                                    <div className="text-[10px] font-black uppercase tracking-wider">{r.region}</div>
-                                                    <div className="text-xs font-black" style={{ color: shippingRegion === r.region ? siteContent.primaryColor : '' }}>₵{r.fee}</div>
+                                                    <p className="font-black text-sm text-gray-900">Arrange Rider for Me</p>
+                                                    <p className="text-[10px] text-gray-500">We will find a rider and deliver to your doorstep.</p>
                                                 </button>
-                                            ))}
+                                                <button
+                                                    onClick={() => setDeliveryMethod('customer_rider')}
+                                                    className={`py-4 px-5 text-left rounded-3xl border transition-all ${deliveryMethod === 'customer_rider' ? 'bg-white shadow-md border-gray-400 border-l-[6px]' : 'bg-gray-50 border-transparent text-gray-400'}`}
+                                                    style={{ borderLeftColor: deliveryMethod === 'customer_rider' ? siteContent.primaryColor : '' }}
+                                                >
+                                                    <p className="font-black text-sm text-gray-900">I will send my own rider</p>
+                                                    <p className="text-[10px] text-gray-500">Provide rider details so we can release the order.</p>
+                                                </button>
+                                                <button
+                                                    onClick={() => setDeliveryMethod('pickup')}
+                                                    className={`py-4 px-5 text-left rounded-3xl border transition-all ${deliveryMethod === 'pickup' ? 'bg-white shadow-md border-gray-400 border-l-[6px]' : 'bg-gray-50 border-transparent text-gray-400'}`}
+                                                    style={{ borderLeftColor: deliveryMethod === 'pickup' ? '#22c55e' : '' }}
+                                                >
+                                                    <p className="font-black text-sm text-gray-900">Pickup from Store</p>
+                                                    <p className="text-[10px] text-gray-500">Collect your order directly from our workshop.</p>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {deliveryMethod === 'seller_rider' && (
+                                            <div className="space-y-3 animate-fade-in">
+                                                <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Select Delivery Region</p>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {shippingRegions.map(r => (
+                                                        <button
+                                                            key={r.region}
+                                                            onClick={() => setShippingRegion(r.region)}
+                                                            className={`py-3 px-4 text-left rounded-2xl border transition-all ${shippingRegion === r.region ? 'bg-white shadow-md border-gray-400' : 'bg-gray-50 border-transparent text-gray-400'}`}
+                                                            style={{ borderLeft: shippingRegion === r.region ? `4px solid ${siteContent.secondaryColor}` : '' }}
+                                                        >
+                                                            <div className="text-[10px] font-black uppercase tracking-wider">{r.region}</div>
+                                                            <div className="text-xs font-black" style={{ color: shippingRegion === r.region ? siteContent.primaryColor : '' }}>₵{r.fee}</div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {deliveryMethod === 'customer_rider' && (
+                                            <div className="space-y-3 animate-fade-in">
+                                                <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Rider Details</p>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Rider Name *"
+                                                    className="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
+                                                    value={customerForm.riderName}
+                                                    onChange={e => setCustomerForm({ ...customerForm, riderName: e.target.value })}
+                                                />
+                                                <input
+                                                    type="tel"
+                                                    placeholder="Rider Phone *"
+                                                    className="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
+                                                    value={customerForm.riderPhone}
+                                                    onChange={e => setCustomerForm({ ...customerForm, riderPhone: e.target.value })}
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Dispatch Company (Optional)"
+                                                    className="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
+                                                    value={customerForm.riderCompany}
+                                                    onChange={e => setCustomerForm({ ...customerForm, riderCompany: e.target.value })}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Delivery Summary Mini */}
+                                        <div className="bg-gray-50 p-4 rounded-3xl border border-gray-100">
+                                            <div className="flex justify-between items-center text-sm mb-1">
+                                                <span className="text-gray-500">Method</span>
+                                                <span className="font-bold capitalize">{deliveryMethod.replace('_', ' ')}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-gray-500">Delivery Fee</span>
+                                                <span className="font-black text-amber-600">₵{shippingFee}</span>
+                                            </div>
                                         </div>
 
                                         <p className="text-xs font-black text-gray-400 uppercase tracking-wider pt-2">Your Details</p>
@@ -260,10 +335,11 @@ export default function CartDrawer({
                                         <div className="relative">
                                             <MapPin size={16} className="absolute left-4 top-4 text-gray-400" />
                                             <textarea
-                                                placeholder="Delivery Address * (e.g. Osu, Accra or full street address)"
-                                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm h-24 resize-none"
-                                                value={customerForm.address}
-                                                onChange={e => setCustomerForm({ ...customerForm, address: e.target.value })}
+                                                placeholder={deliveryMethod === 'pickup' ? 'Store Pickup Location' : 'Delivery Address * (e.g. Osu, Accra or full street address)'}
+                                                className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm h-24 resize-none ${deliveryMethod === 'pickup' ? 'opacity-60 grayscale cursor-not-allowed' : ''}`}
+                                                value={deliveryMethod === 'pickup' ? (siteContent.pickupAddress || 'KenteHaul Workshop, Accra') : customerForm.address}
+                                                onChange={e => deliveryMethod !== 'pickup' && setCustomerForm({ ...customerForm, address: e.target.value })}
+                                                readOnly={deliveryMethod === 'pickup'}
                                             />
                                         </div>
                                         {!isFormValid && (

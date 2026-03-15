@@ -19,7 +19,7 @@ export default function AdminProducts({
     // --- STATE: PRODUCTS ---
     const [editingProduct, setEditingProduct] = useState(null);
     const [productForm, setProductForm] = useState({
-        name: '', price: '', stock: 1, category: '', subcategory: '',
+        name: '', price: '', stockQuantity: 1, sku: '', category: '', subcategory: '',
         description: '', longHistory: '', image: ''
     });
 
@@ -130,7 +130,7 @@ export default function AdminProducts({
                 await addDoc(collection(db, "products"), sanitizedProduct);
             }
 
-            setProductForm({ name: '', price: '', stock: 1, category: '', subcategory: '', description: '', longHistory: '', image: '' });
+            setProductForm({ name: '', price: '', stockQuantity: 1, sku: '', category: '', subcategory: '', description: '', longHistory: '', image: '' });
             alert("Inventory updated successfully!");
         } catch (error) {
             console.error("Product Save Error:", error);
@@ -144,7 +144,7 @@ export default function AdminProducts({
         try { await deleteDoc(doc(db, "products", id)); } catch (e) { alert("Could not delete product."); }
     };
 
-    const startEditProduct = (p) => { setEditingProduct(p); setProductForm(p); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    const startEditProduct = (p) => { setEditingProduct(p); setProductForm({ ...p, stockQuantity: p.stockQuantity ?? p.stock ?? 0 }); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
     const addGalleryImage = async () => {
         if (!galleryImage) return;
@@ -302,8 +302,13 @@ export default function AdminProducts({
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Stock Qty</label>
-                                <input required placeholder="Qty" type="number" className="w-full p-4 bg-gray-50 border rounded-2xl font-black" value={productForm.stock} onChange={e => setProductForm({ ...productForm, stock: Number(e.target.value) })} />
+                                <input required placeholder="Qty" type="number" className="w-full p-4 bg-gray-50 border rounded-2xl font-black" value={productForm.stockQuantity} onChange={e => setProductForm({ ...productForm, stockQuantity: Number(e.target.value) })} />
                             </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Product SKU</label>
+                            <input placeholder="e.g. KNT-001" className="w-full p-4 bg-gray-50 border rounded-2xl font-bold" value={productForm.sku} onChange={e => setProductForm({ ...productForm, sku: e.target.value.toUpperCase() })} />
                         </div>
 
                         <div className="space-y-2">
@@ -358,7 +363,7 @@ export default function AdminProducts({
                                 {loading ? <Loader2 className="animate-spin" size={24} /> : <><CheckCircle size={24} /> {editingProduct ? 'Sync Updates' : 'Add to Shop'}</>}
                             </button>
                             {editingProduct && (
-                                <button type="button" onClick={() => { setEditingProduct(null); setProductForm({ name: '', price: '', stock: 1, category: '', subcategory: '', description: '', longHistory: '', image: '' }); }} className="px-10 py-5 bg-white border border-gray-200 text-gray-400 rounded-[25px] font-black hover:text-gray-900 transition-all">Cancel</button>
+                                <button type="button" onClick={() => { setEditingProduct(null); setProductForm({ name: '', price: '', stockQuantity: 1, sku: '', category: '', subcategory: '', description: '', longHistory: '', image: '' }); }} className="px-10 py-5 bg-white border border-gray-200 text-gray-400 rounded-[25px] font-black hover:text-gray-900 transition-all">Cancel</button>
                             )}
                         </div>
                     </form>
@@ -386,7 +391,12 @@ export default function AdminProducts({
                                             </div>
                                         </td>
                                         <td className="p-5">
-                                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${p.stock < 5 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'}`}>{p.stock} left</span>
+                                            <div className="flex flex-col gap-1">
+                                                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase w-fit ${p.stockQuantity <= 0 ? 'bg-black text-white' : p.stockQuantity < 5 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'}`}>
+                                                    {p.stockQuantity <= 0 ? 'Out of Stock' : `${p.stockQuantity} left`}
+                                                </span>
+                                                {p.sku && <span className="text-[10px] font-bold text-gray-400">SKU: {p.sku}</span>}
+                                            </div>
                                         </td>
                                         <td className="p-5 font-black text-gray-600">₵{p.price}</td>
                                         <td className="p-5 text-right flex justify-end gap-3">
