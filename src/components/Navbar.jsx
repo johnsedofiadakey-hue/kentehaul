@@ -113,7 +113,7 @@ export default function Navbar({
                         <div className="hidden lg:flex items-center space-x-1">
                             {[
                                 { name: 'Home', path: '/' },
-                                { name: 'Our Story', path: '/heritage' },
+                                { name: 'Kente History', path: '/heritage' },
                             ].map((link) => (
                                 <Link
                                     key={link.path}
@@ -246,7 +246,7 @@ export default function Navbar({
                             </div>
 
                             {[
-                                { name: 'History', path: '/institute' },
+                                { name: 'Kente Institute', path: '/institute' },
                                 { name: 'Help', path: '/contact' }
                             ].map((link) => (
                                 <Link
@@ -452,8 +452,8 @@ export default function Navbar({
                                 <div className="space-y-1">
                                     {[
                                         { name: 'Home', path: '/', desc: 'Start' },
-                                        { name: 'Our Story', path: '/heritage', desc: 'The Legacy' },
-                                        { name: 'Kente History', path: '/institute', desc: 'Symbols' },
+                                        { name: 'Kente History', path: '/heritage', desc: 'The Legacy' },
+                                        { name: 'Kente Institute', path: '/institute', desc: 'Symbols' },
                                         { name: 'Support', path: '/contact', desc: 'Help' }
                                     ].map((link) => (
                                         <Link
