@@ -442,7 +442,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                 <div className="mt-8 border-t border-gray-100 pt-8">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex flex-col">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Our Story Page</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Our Kente History Page</label>
                             <p className="text-[10px] text-gray-400">Full narrative with formatting support</p>
                         </div>
                         <SaveIndicator field="heritageTitle" />
@@ -451,7 +451,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                     <div className="space-y-4">
                         <input
                             className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-black text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                            placeholder="Hero Title (e.g. Our Royal Heritage)"
+                            placeholder="Hero Title (e.g. Our Kente History)"
                             value={siteContent.heritageTitle || ''}
                             onChange={e => updateField('heritageTitle', e.target.value)}
                             onBlur={e => saveField('heritageTitle', e.target.value, siteContent)}
@@ -470,7 +470,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                 <div className="mt-8 border-t border-gray-100 pt-8">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex flex-col">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Institute Page & History</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Kentehaul Institute Page</label>
                             <p className="text-[10px] text-gray-400">Educational and historical content</p>
                         </div>
                         <SaveIndicator field="instituteTitle" />
@@ -479,7 +479,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                     <div className="space-y-4">
                         <input
                             className="w-full p-4 bg-gray-50 border-none rounded-[20px] font-black text-sm outline-none focus:ring-2 focus:ring-blue-200"
-                            placeholder="Hero Title (e.g. Kente Institute)"
+                            placeholder="Hero Title (e.g. Kentehaul Institute)"
                             value={siteContent.instituteTitle || ''}
                             onChange={e => updateField('instituteTitle', e.target.value)}
                             onBlur={e => saveField('instituteTitle', e.target.value, siteContent)}
@@ -510,11 +510,42 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                             </div>
                             <textarea
                                 className="w-full p-6 bg-purple-50/50 border border-purple-100 rounded-[30px] h-48 font-bold text-sm outline-none focus:ring-2 focus:ring-purple-200 leading-relaxed"
-                                placeholder="This story appears across the Kente Institute as educational content..."
-                                value={siteContent.globalArtifactStory || ''}
-                                onChange={e => updateField('globalArtifactStory', e.target.value)}
+                                placeholder="The Living History story..."
+                                defaultValue={siteContent.globalArtifactStory}
                                 onBlur={e => saveField('globalArtifactStory', e.target.value, siteContent)}
                             />
+                        </div>
+
+                        {/* PARTNER WITH US TEXTS */}
+                        <div className="mt-12 pt-8 border-t border-gray-100">
+                             <div className="flex items-center justify-between mb-4">
+                                <div className="flex flex-col">
+                                    <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Partnership Invitation</label>
+                                    <p className="text-[10px] text-amber-500">Edit the CTA text that appears at the bottom</p>
+                                </div>
+                                <SaveIndicator field="partnerHeadline" />
+                            </div>
+                            <RichTextLegend />
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Headline</label>
+                                    <input
+                                        className="w-full p-4 bg-gray-50 border-none rounded-2xl font-black text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                                        placeholder="Partnership Headline..."
+                                        defaultValue={siteContent.partnerHeadline || "BUILDING TOGETHER A VISION FOR GHANA'S ROYAL CRAFT"}
+                                        onBlur={e => saveField('partnerHeadline', e.target.value, siteContent)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Body Text</label>
+                                    <textarea
+                                        className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-48 font-bold text-sm outline-none focus:ring-2 focus:ring-amber-200 leading-relaxed"
+                                        placeholder="We welcome collaborations..."
+                                        defaultValue={siteContent.partnerBody || "We welcome collaborations with institutions, cultural organizations, development partners, and individuals who share in this vision.\n\nTogether, we can build a sustainable future for Kente weaving, empower young people and communities and keep the craft alive."}
+                                        onBlur={e => saveField('partnerBody', e.target.value, siteContent)}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
