@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShoppingBag, X, Minus, Plus, Smartphone, User, MapPin, Mail, ArrowLeft, CheckCircle, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PaystackButton } from './UIComponents';
+import PhoneInput from './PhoneInput';
 
 export default function CartDrawer({
     isOpen,
@@ -289,12 +290,10 @@ export default function CartDrawer({
                                                     value={customerForm.riderName}
                                                     onChange={e => setCustomerForm({ ...customerForm, riderName: e.target.value })}
                                                 />
-                                                <input
-                                                    type="tel"
+                                                <PhoneInput
                                                     placeholder="Rider Phone *"
-                                                    className="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
                                                     value={customerForm.riderPhone}
-                                                    onChange={e => setCustomerForm({ ...customerForm, riderPhone: e.target.value })}
+                                                    onChange={val => setCustomerForm({ ...customerForm, riderPhone: val })}
                                                 />
                                                 <input
                                                     type="text"
@@ -330,16 +329,11 @@ export default function CartDrawer({
                                                 onChange={e => setCustomerForm({ ...customerForm, name: e.target.value })}
                                             />
                                         </div>
-                                        <div className="relative">
-                                            <Smartphone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                            <input
-                                                type="tel"
-                                                placeholder="Phone Number * (for delivery)"
-                                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
-                                                value={customerForm.phone}
-                                                onChange={e => setCustomerForm({ ...customerForm, phone: e.target.value })}
-                                            />
-                                        </div>
+                                        <PhoneInput
+                                            placeholder="Phone Number * (for delivery)"
+                                            value={customerForm.phone}
+                                            onChange={val => setCustomerForm({ ...customerForm, phone: val })}
+                                        />
                                         <div className="relative">
                                             <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                                             <input

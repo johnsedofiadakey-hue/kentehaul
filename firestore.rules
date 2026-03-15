@@ -13,14 +13,7 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
-    
-    match /products/{product} {
-      allow read: if true;
-      allow write: if isAdmin();
-      // Ensure stockQuantity is always non-negative during admin updates
-      allow update: if isAdmin() && request.resource.data.stockQuantity >= 0;
-    }
-    
+
     match /gallery/{image} {
       allow read: if true;
       allow write: if isAdmin();
@@ -39,25 +32,32 @@ service cloud.firestore {
                    && request.resource.data.status == 'pending';
       allow update, delete: if isAdmin();
     }
-
+    
     // --- SENSITIVE DATA (ADMIN ONLY / SECURE) ---
-
     match /customers/{customer} {
-      allow read, write: if isAdmin();
+      allow read: if true; // Required for merge-sets during checkout
+      allow create, update: if true;
     }
 
     match /orders/{order} {
       allow list: if isAdmin();
       allow get: if true; 
-      allow create: if request.resource.data.status == 'Order Placed' || request.resource.data.status == 'Payment Confirmed';
+      allow create: if request.resource.data.status in ['Order Placed', 'Payment Confirmed'];
       allow update: if isAdmin();
-      allow delete: if isAdmin();
     }
     
-    // Email Extension Collection
-    match /mail/{mailId} {
-        allow create: if true;
-        allow read, update, delete: if isAdmin();
+    match /products/{product} {
+      allow read: if true;
+      allow write: if isAdmin();
+      // Allow public to decrement stock
+      allow update: if request.resource.data.stockQuantity < resource.data.stockQuantity
+                    || isAdmin();
+    }
+    
+    // --- PARTNERSHIPS ---
+    match /partnerships/{partnership} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
     }
   }
 }

@@ -98,6 +98,16 @@ export default function Shop({
 
   const hasActiveFilters = activeCategory || activeSubcategory || searchQuery || sortBy !== 'default';
 
+  const suggestedProducts = useMemo(() => {
+    // If we have an active category, suggest products from OTHER categories
+    // If not, just suggest some random top products
+    const pool = activeCategory 
+      ? products.filter(p => p.category !== activeCategory && p.stockQuantity > 0)
+      : products.filter(p => p.stockQuantity > 0);
+    
+    return pool.sort(() => 0.5 - Math.random()).slice(0, 4);
+  }, [products, activeCategory]);
+
   return (
     <div className="bg-white min-h-screen">
       {/* Dynamic Header Banner */}
@@ -494,32 +504,31 @@ export default function Shop({
                 </motion.div>
               )}
             </div>
-          </div>
-
-          {/* SUGGESTED COLLECTIONS (Visible when filtering) */}
-          {activeCategory && (
+          </div>          {/* SUGGESTED COLLECTIONS (Discover More) */}
+          {suggestedProducts.length > 0 && (
             <div className="mt-40 pt-20 border-t border-gray-100">
               <div className="text-center mb-16">
                 <h3 className="text-[11px] font-black uppercase tracking-[6px] text-amber-500 mb-4">Discover More</h3>
                 <h2 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">Imperial Suggestions</h2>
               </div>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {categories.filter(c => c.id !== activeCategory).slice(0, 4).map(cat => (
-                  <div
-                    key={cat.id}
-                    onClick={() => updateCategory(cat.id)}
-                    className="group relative h-64 rounded-[32px] overflow-hidden cursor-pointer shadow-sm hover:shadow-2xl transition-all duration-700"
+              
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                {suggestedProducts.map(p => (
+                  <div 
+                    key={p.id} 
+                    className="group cursor-pointer"
+                    onClick={() => setSelectedProduct(p)}
                   >
-                    <img
-                      src={cat.image || siteContent.heroImage}
-                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-[2s] group-hover:scale-110"
-                      alt={cat.name}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent flex flex-col justify-end p-6">
-                      <p className="text-white font-black text-xl uppercase tracking-tighter leading-none mb-2">{cat.name}</p>
-                      <div className="h-1 w-0 bg-amber-500 rounded-full group-hover:w-full transition-all duration-700"></div>
+                    <div className="aspect-[4/5] rounded-[32px] overflow-hidden bg-gray-50 mb-6 relative">
+                      <img 
+                        src={p.image} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                        alt={p.name} 
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                     </div>
+                    <h4 className="font-black text-sm uppercase tracking-tight text-gray-900 mb-1">{p.name}</h4>
+                    <p className="text-amber-600 font-black text-xs">₵{p.price?.toLocaleString()}</p>
                   </div>
                 ))}
               </div>

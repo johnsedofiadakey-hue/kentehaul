@@ -14,6 +14,7 @@ import AdminProducts from './admin/AdminProducts';
 import AdminSettings from './admin/AdminSettings';
 import InvoiceCreator from './admin/InvoiceCreator';
 import AdminReviews from './admin/AdminReviews';
+import AdminPartnerships from './admin/AdminPartnerships';
 
 // Shared Global Components
 import InvoiceModal from './InvoiceModal'; // For viewing invoices
@@ -68,6 +69,7 @@ export default function AdminDashboard({
     { id: 'customers', icon: Users, label: 'Customers' },
     { id: 'products', icon: Edit, label: 'Our Products' },
     { id: 'logistics', icon: Truck, label: 'Delivery & Logistics' },
+    { id: 'partnerships', icon: Users, label: 'Partnerships' },
     { id: 'reviews', icon: MessageSquare, label: 'Shop Reviews' },
     { id: 'settings', icon: Settings, label: 'Settings' }
   ];
@@ -216,6 +218,10 @@ export default function AdminDashboard({
 
           {adminTab === 'reviews' && (
             <AdminReviews products={products} />
+          )}
+
+          {adminTab === 'partnerships' && (
+            <AdminPartnerships siteContent={siteContent} />
           )}
 
           {adminTab === 'logistics' && (

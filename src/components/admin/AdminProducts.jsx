@@ -20,7 +20,7 @@ export default function AdminProducts({
     const [editingProduct, setEditingProduct] = useState(null);
     const [productForm, setProductForm] = useState({
         name: '', price: '', stockQuantity: 1, sku: '', category: '', subcategory: '',
-        description: '', longHistory: '', image: ''
+        description: '', image: ''
     });
 
     // --- STATE: CATEGORY MANAGEMENT ---
@@ -130,7 +130,7 @@ export default function AdminProducts({
                 await addDoc(collection(db, "products"), sanitizedProduct);
             }
 
-            setProductForm({ name: '', price: '', stockQuantity: 1, sku: '', category: '', subcategory: '', description: '', longHistory: '', image: '' });
+            setProductForm({ name: '', price: '', stockQuantity: 1, sku: '', category: '', subcategory: '', description: '', image: '' });
             alert("Inventory updated successfully!");
         } catch (error) {
             console.error("Product Save Error:", error);
@@ -355,7 +355,7 @@ export default function AdminProducts({
                                 {loading ? <Loader2 className="animate-spin" size={24} /> : <><CheckCircle size={24} /> {editingProduct ? 'Sync Updates' : 'Add to Shop'}</>}
                             </button>
                             {editingProduct && (
-                                <button type="button" onClick={() => { setEditingProduct(null); setProductForm({ name: '', price: '', stockQuantity: 1, sku: '', category: '', subcategory: '', description: '', longHistory: '', image: '' }); }} className="px-10 py-5 bg-white border border-gray-200 text-gray-400 rounded-[25px] font-black hover:text-gray-900 transition-all">Cancel</button>
+                                <button type="button" onClick={() => { setEditingProduct(null); setProductForm({ name: '', price: '', stockQuantity: 1, sku: '', category: '', subcategory: '', description: '', image: '' }); }} className="px-10 py-5 bg-white border border-gray-200 text-gray-400 rounded-[25px] font-black hover:text-gray-900 transition-all">Cancel</button>
                             )}
                         </div>
                     </form>

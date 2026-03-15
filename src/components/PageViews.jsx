@@ -1,12 +1,25 @@
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Camera, MessageCircle, Star, Quote, Phone, Mail, MapPin, ShoppingBag, X, ChevronLeft, ChevronRight, ZoomIn, ArrowRight } from 'lucide-react';
+import { Camera, MessageCircle, Star, Quote, Phone, Mail, MapPin, ShoppingBag, X, ChevronLeft, ChevronRight, ZoomIn, ArrowRight, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
+import PhoneInput from './PhoneInput';
 
 const LazyImage = ({ src, alt, className }) => (
   <img src={src} alt={alt} className={className} loading="lazy" />
 );
+
+// Helper for paragraphing and centering text from Admin
+const FormattedText = ({ text, centered = false }) => {
+  if (!text) return null;
+  return (
+    <div className={`space-y-4 ${centered ? 'text-center' : 'text-left'}`}>
+      {text.split('\n').filter(p => p.trim() !== '').map((para, i) => (
+        <p key={i} className="leading-relaxed">{para}</p>
+      ))}
+    </div>
+  );
+};
 
 // --- HOME PAGE COMPONENT ---
 export const Home = ({ siteContent, gallery, feedbacks }) => {
@@ -251,12 +264,7 @@ export const Heritage = ({ siteContent }) => (
     <div className="max-w-3xl mx-auto py-16 px-6">
       <div className="prose prose-lg mx-auto text-gray-700 leading-loose first-letter:text-5xl first-letter:font-bold first-letter:mr-3 first-letter:float-left">
         {siteContent.heritageText ? (
-          <>
-            <span style={{ color: siteContent.secondaryColor }} className="float-left text-5xl font-bold mr-2 text-balance leading-[0.8]">
-              {siteContent.heritageText.charAt(0)}
-            </span>
-            {siteContent.heritageText.slice(1)}
-          </>
+          <FormattedText text={siteContent.heritageText} />
         ) : (
           <p className="text-gray-400 italic">Heritage story coming soon...</p>
         )}
@@ -289,14 +297,14 @@ export const Institute = ({ siteContent, products }) => (
     <div className="max-w-4xl mx-auto -mt-12 px-6 relative z-20">
       <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl">
         <Quote className="w-16 h-16 mb-4 mx-auto" style={{ color: `${siteContent.secondaryColor}80` }} />
-        <div className="text-lg md:text-xl text-gray-700 leading-loose text-center font-light space-y-6">
-          {siteContent.instituteText && <p>{siteContent.instituteText}</p>}
+        <div className="text-lg md:text-xl text-gray-700 font-light">
+          {siteContent.instituteText && <FormattedText text={siteContent.instituteText} centered={true} />}
           {siteContent.globalArtifactStory && (
-            <div className="pt-6 border-t border-gray-100 text-left">
-              <h4 className="text-xs font-black uppercase tracking-[3px] mb-4 text-amber-600">The Living History</h4>
-              <p className="text-sm md:text-base text-gray-600 leading-relaxed italic whitespace-pre-wrap">
-                {siteContent.globalArtifactStory}
-              </p>
+            <div className="pt-8 mt-8 border-t border-gray-100 text-left">
+              <h4 className="text-xs font-black uppercase tracking-[3px] mb-6 text-amber-600">The Living History</h4>
+              <div className="text-sm md:text-base text-gray-600 italic">
+                <FormattedText text={siteContent.globalArtifactStory} />
+              </div>
             </div>
           )}
         </div>
@@ -320,8 +328,93 @@ export const Institute = ({ siteContent, products }) => (
         ))}
       </div>
     </div>
+    {/* PARTNER WITH US SECTION */}
+    <div id="partner" className="bg-white py-24 px-6 md:py-32">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-16">
+          <span className="text-amber-500 font-black text-xs uppercase tracking-[5px] mb-4 block">Building Together</span>
+          <h2 className="text-4xl md:text-6xl font-black mb-8 uppercase tracking-tighter" style={{ color: siteContent.primaryColor }}>Partner With Us</h2>
+          <div className="text-gray-600 text-lg md:text-xl font-medium leading-relaxed max-w-2xl mx-auto">
+            <p>We welcome collaborations with institutions, cultural organizations, development partners, and individuals who share in this vision. Together, we can build a sustainable future for Kente weaving, empower young people and communities and keep the craft alive.</p>
+          </div>
+        </div>
+
+        <PartnerForm siteContent={siteContent} />
+      </div>
+    </div>
   </div>
 );
+
+const PartnerForm = ({ siteContent }) => {
+  const [form, setForm] = useState({ name: '', organization: '', email: '', phone: '', reason: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('../firebase');
+      await addDoc(collection(db, "partnerships"), {
+        ...form,
+        status: 'new',
+        createdAt: serverTimestamp()
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong. Please try again.");
+    }
+    setIsSubmitting(false);
+  };
+
+  if (submitted) {
+    return (
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center p-12 bg-green-50 rounded-[40px] border border-green-100">
+        <div className="w-20 h-20 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+          <CheckCircle size={40} />
+        </div>
+        <h3 className="text-2xl font-black text-green-900 mb-2 uppercase tracking-tight">Vision Received</h3>
+        <p className="text-green-700 font-bold">Thank you for reaching out. Our team will review your partnership proposal and get in touch shortly.</p>
+      </motion.div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-gray-50 p-8 md:p-12 rounded-[40px] border border-gray-100 shadow-sm space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name</label>
+          <input required type="text" placeholder="Your Name" className="w-full p-4 bg-white border border-gray-100 rounded-2xl font-bold shadow-sm outline-none focus:ring-2 focus:ring-amber-500/20" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Organization</label>
+          <input type="text" placeholder="Institution / Company Name" className="w-full p-4 bg-white border border-gray-100 rounded-2xl font-bold shadow-sm outline-none focus:ring-2 focus:ring-amber-500/20" value={form.organization} onChange={e => setForm({...form, organization: e.target.value})} />
+        </div>
+      </div>
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Work Email</label>
+          <input required type="email" placeholder="email@example.com" className="w-full p-4 bg-white border border-gray-100 rounded-2xl font-bold shadow-sm outline-none focus:ring-2 focus:ring-amber-500/20" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between ml-1">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Phone Number</label>
+          </div>
+          <PhoneInput value={form.phone} onChange={val => setForm({...form, phone: val})} primaryColor={siteContent.primaryColor} />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Why Partner With Us? / Vision</label>
+        <textarea required placeholder="Tell us about your proposed collaboration..." className="w-full p-5 bg-white border border-gray-100 rounded-3xl font-bold shadow-sm outline-none focus:ring-2 focus:ring-amber-500/20 h-40 resize-none" value={form.reason} onChange={e => setForm({...form, reason: e.target.value})} />
+      </div>
+      <button type="submit" disabled={isSubmitting} className="w-full py-6 text-white rounded-3xl font-black text-xs uppercase tracking-[5px] shadow-2xl transition hover:shadow-xl active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3" style={{ backgroundColor: siteContent.primaryColor }}>
+        {isSubmitting ? "Processing..." : <><ArrowRight size={18} /> Send Partnership Inquiry</>}
+      </button>
+    </form>
+  );
+};
 
 // --- CONTACT PAGE COMPONENT ---
 export const Contact = ({ siteContent }) => (
@@ -363,23 +456,62 @@ export const Contact = ({ siteContent }) => (
           </div>
         </div>
       </div>
-
       <div className="p-12">
-        <form className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <input type="text" placeholder="First Name" className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-gray-200" />
-            <input type="text" placeholder="Last Name" className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-gray-200" />
-          </div>
-          <input type="email" placeholder="Email Address" className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-gray-200" />
-          <textarea placeholder="How can we help?" className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-gray-200 h-32"></textarea>
-          <button
-            className="w-full text-white py-4 rounded-xl font-bold text-lg hover:opacity-90 transition shadow-lg"
-            style={{ backgroundColor: siteContent.secondaryColor }}
-          >
-            Send Message
-          </button>
-        </form>
+        <ContactForm primaryColor={siteContent.primaryColor} secondaryColor={siteContent.secondaryColor} />
       </div>
     </div>
   </div>
 );
+
+const ContactForm = ({ primaryColor, secondaryColor }) => {
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', phone: '', message: '' });
+
+  return (
+    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+      <div className="grid grid-cols-2 gap-4">
+        <input 
+          type="text" 
+          placeholder="First Name" 
+          className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-gray-200" 
+          value={formData.firstName}
+          onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+        />
+        <input 
+          type="text" 
+          placeholder="Last Name" 
+          className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-gray-200" 
+          value={formData.lastName}
+          onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+        />
+      </div>
+      <input 
+        type="email" 
+        placeholder="Email Address" 
+        className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-gray-200" 
+        value={formData.email}
+        onChange={e => setFormData({ ...formData, email: e.target.value })}
+      />
+      
+      <PhoneInput 
+        placeholder="Phone Number for Inquiry"
+        value={formData.phone}
+        onChange={val => setFormData({ ...formData, phone: val })}
+        primaryColor={primaryColor}
+      />
+
+      <textarea 
+        placeholder="How can we help?" 
+        className="w-full p-4 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-gray-200 h-32 resize-none"
+        value={formData.message}
+        onChange={e => setFormData({ ...formData, message: e.target.value })}
+      ></textarea>
+      
+      <button
+        className="w-full text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] hover:opacity-90 transition shadow-lg active:scale-95"
+        style={{ backgroundColor: secondaryColor }}
+      >
+        Send Message
+      </button>
+    </form>
+  );
+};
