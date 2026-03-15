@@ -148,10 +148,10 @@ export default function Shop({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto py-6 md:py-10 px-4 sm:px-6">
 
         {/* ACTION BAR: Filters, Sorting, Search */}
-        <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md py-4 mb-10 border-b border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="sticky top-[72px] md:top-20 z-40 bg-white/95 backdrop-blur-md py-3 px-2 mb-6 md:mb-10 border-b border-gray-100 flex flex-col md:flex-row gap-3 items-center justify-between">
 
           {/* Left: View Controls & Count */}
           <div className="flex items-center gap-6 order-2 md:order-1">

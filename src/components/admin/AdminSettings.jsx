@@ -492,9 +492,21 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                             onBlur={e => saveField('instituteText', e.target.value, siteContent)}
                         />
                         <div className="pt-2">
-                             <div className="flex items-center justify-between mb-2">
-                                <label className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Global Artifact Story / Educational Content</label>
-                                <SaveIndicator field="globalArtifactStory" />
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex flex-col">
+                                    <label className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Global Educational Content</label>
+                                    <p className="text-[10px] text-purple-400">Manage visibility and content of stories/artifacts</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-[10px] font-black uppercase text-gray-400">Site visibility</span>
+                                    <button 
+                                        onClick={() => saveField('showInstituteArtifacts', siteContent.showInstituteArtifacts === false ? true : false, siteContent)}
+                                        className={`w-12 h-6 rounded-full relative transition-colors ${siteContent.showInstituteArtifacts !== false ? 'bg-purple-600' : 'bg-gray-200'}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${siteContent.showInstituteArtifacts !== false ? 'left-7' : 'left-1'}`} />
+                                    </button>
+                                    <SaveIndicator field="showInstituteArtifacts" />
+                                </div>
                             </div>
                             <textarea
                                 className="w-full p-6 bg-purple-50/50 border border-purple-100 rounded-[30px] h-48 font-bold text-sm outline-none focus:ring-2 focus:ring-purple-200 leading-relaxed"

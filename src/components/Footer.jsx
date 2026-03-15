@@ -7,11 +7,11 @@ import { SOCIAL_LINKS } from '../data/constants'; // Importing from constants
 export default function Footer({ siteContent, onNavClick, onAdminClick }) {
   return (
     <footer className="text-white py-16 border-t border-white/10 mt-auto" style={{ backgroundColor: siteContent.primaryColor }}>
-      <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-4 gap-12 text-sm">
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-20 text-sm">
 
         {/* Brand Column */}
-        <div className="col-span-1 md:col-span-2">
-          <div className="flex items-center gap-2 mb-6">
+        <div className="col-span-2 md:col-span-1 border-b md:border-none pb-8 md:pb-0">
+          <Link to="/" className="flex items-center gap-2 mb-6 group">
             {siteContent.logo ? (
               <img src={siteContent.logo} alt="Logo" className="h-12 w-auto object-contain" />
             ) : (
@@ -23,7 +23,7 @@ export default function Footer({ siteContent, onNavClick, onAdminClick }) {
                 <span className="text-2xl font-bold text-white">KenteHaul</span>
               </>
             )}
-          </div>
+          </Link>
         </div>
 
         {/* Explore Column */}

@@ -28,7 +28,7 @@ const FormattedText = ({ text, centered = false }) => {
 
   return (
     <div className={`space-y-6 ${centered ? 'text-center' : 'text-left'}`}>
-      {text.split('\n').filter(p => p.trim() !== '').map((para, i) => (
+      {text.split(/\n\s*\n/).filter(p => p.trim() !== '').map((para, i) => (
         <p key={i} className="leading-relaxed whitespace-pre-wrap">{formatText(para)}</p>
       ))}
     </div>
@@ -62,10 +62,10 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
 
         <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
           <motion.div
-            initial={{ y: 30, opacity: 0 }}
+            initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="mb-4 sm:mb-8"
+            className="mb-2 sm:mb-8 -mt-12 sm:mt-0"
           >
             <span
               className="inline-block py-2 px-6 rounded-full text-white font-black text-[10px] sm:text-xs tracking-[5px] uppercase border border-white/20 backdrop-blur-xl shadow-2xl"
@@ -314,35 +314,39 @@ export const Institute = ({ siteContent, products }) => (
         <Quote className="w-16 h-16 mb-4 mx-auto" style={{ color: `${siteContent.secondaryColor}80` }} />
         <div className="text-lg md:text-xl text-gray-700 font-light">
           {siteContent.instituteText && <FormattedText text={siteContent.instituteText} centered={true} />}
-          {siteContent.globalArtifactStory && (
-            <div className="pt-8 mt-8 border-t border-gray-100 text-left">
-              <h4 className="text-xs font-black uppercase tracking-[3px] mb-6 text-amber-600">The Living History</h4>
-              <div className="text-sm md:text-base text-gray-600 italic">
-                <FormattedText text={siteContent.globalArtifactStory} />
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
 
-    <div className="max-w-6xl mx-auto py-20 px-6">
-      <h3 className="text-3xl font-bold text-center mb-12" style={{ color: siteContent.primaryColor }}>
-        {siteContent.instituteArtifactsTitle || "Educational Artifacts"}
-      </h3>
-      <div className="grid md:grid-cols-2 gap-8">
-        {products.filter(p => p.longHistory).map(p => (
-          <div key={p.id} className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 flex flex-col md:flex-row gap-6 hover:shadow-xl transition">
-            {p.image && <LazyImage src={p.image} className="w-full md:w-40 h-40 object-cover rounded-2xl" alt="thumb" />}
-            <div>
-              <h4 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>{p.name}</h4>
-              <div className="w-12 h-1 rounded-full mb-3" style={{ backgroundColor: siteContent.secondaryColor }}></div>
-              <p className="text-gray-600 leading-relaxed text-sm">{p.longHistory}</p>
+    {/* EDUCATIONAL ARTIFACTS - CONDITIONAL */}
+    {siteContent.showInstituteArtifacts !== false && (
+      <>
+        <div className="bg-gray-50 py-24 px-6 md:py-32">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <span className="text-purple-500 font-black text-[10px] uppercase tracking-[5px] mb-4 block">Cultural Legacy</span>
+              <h3 className="text-4xl font-black mb-6 uppercase tracking-tight">Kente Stories & Gallery</h3>
+              <div className="max-w-2xl mx-auto text-gray-500 font-medium">
+                <FormattedText text={siteContent.globalArtifactStory} centered />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {products.filter(p => p.longHistory).slice(0, 3).map(p => (
+                <div key={p.id} className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 flex flex-col gap-6 hover:shadow-xl transition group">
+                  {p.image && <LazyImage src={p.image} className="w-full h-64 object-cover rounded-2xl group-hover:scale-[1.02] transition-transform duration-500" alt="thumb" />}
+                  <div>
+                    <h4 className="font-bold text-xl mb-2" style={{ color: siteContent.primaryColor }}>{p.name}</h4>
+                    <div className="w-12 h-1 rounded-full mb-3" style={{ backgroundColor: siteContent.secondaryColor }}></div>
+                    <p className="text-gray-600 leading-relaxed text-sm line-clamp-4">{p.longHistory}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
-    </div>
+        </div>
+      </>
+    )}
     {/* PARTNER WITH US SECTION - REFINED */}
     <div id="partner" className="bg-white py-32 px-6 md:py-48 overflow-hidden relative">
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-amber-500/5 rounded-full filter blur-[120px] pointer-events-none"></div>
