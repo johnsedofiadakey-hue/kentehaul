@@ -246,7 +246,7 @@ export default function Navbar({
                             </div>
 
                             {[
-                                { name: 'Kentehaul Institute', path: '/institute' },
+                                { name: 'Kente Haul Institute', path: '/institute' },
                                 { name: 'Help', path: '/contact' }
                             ].map((link) => (
                                 <Link
@@ -453,7 +453,7 @@ export default function Navbar({
                                     {[
                                         { name: 'Home', path: '/', desc: 'Start' },
                                         { name: 'Kente History', path: '/heritage', desc: 'The Legacy' },
-                                        { name: 'Kentehaul Institute', path: '/institute', desc: 'Symbols' },
+                                        { name: 'Kente Haul Institute', path: '/institute', desc: 'Symbols' },
                                         { name: 'Support', path: '/contact', desc: 'Help' }
                                     ].map((link) => (
                                         <Link

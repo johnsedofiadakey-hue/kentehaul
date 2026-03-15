@@ -470,7 +470,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                 <div className="mt-8 border-t border-gray-100 pt-8">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex flex-col">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Kentehaul Institute Page</label>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Kente Haul Institute Page</label>
                             <p className="text-[10px] text-gray-400">Educational and historical content</p>
                         </div>
                         <SaveIndicator field="instituteTitle" />
