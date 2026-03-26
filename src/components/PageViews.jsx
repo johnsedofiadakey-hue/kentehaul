@@ -3,11 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Camera, MessageCircle, Star, Quote, Phone, Mail, MapPin, ShoppingBag, X, ChevronLeft, ChevronRight, ZoomIn, ArrowRight, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
+import { LazyImage } from './UIComponents';
 import PhoneInput from './PhoneInput';
-
-const LazyImage = ({ src, alt, className }) => (
-  <img src={src} alt={alt} className={className} loading="lazy" />
-);
 
 // Helper for paragraphing and rich text (bold/italics) from Admin
 const FormattedText = ({ text, centered = false }) => {
@@ -42,8 +39,10 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
   return (
     <div className="animate-fade-in">
       <Helmet>
-        <title>{siteContent.heroTitle} | KenteHaul</title>
-        <meta name="description" content={siteContent.heroSubtitle} />
+        <title>{siteContent.heroTitle || "KenteHaul"} | Authentic Ghanaian Kente Heritage</title>
+        <meta name="description" content={siteContent.heroSubtitle || "Discover the finest hand-woven Kente cloth from the heart of Ghana. Weaving royalty into every thread."} />
+        <meta property="og:title" content={`${siteContent.heroTitle || "KenteHaul"} | Royal Kente Cloth`} />
+        <meta property="og:description" content="Shop authentic, high-quality Ghanaian Kente cloth. We deliver heritage to your doorstep." />
       </Helmet>
       {/* HERO SECTION */}
       <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden" style={{ backgroundColor: siteContent.primaryColor }}>
@@ -269,8 +268,10 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
 export const Heritage = ({ siteContent }) => (
   <div className="animate-fade-in bg-white min-h-screen">
     <Helmet>
-      <title>Our Heritage | KenteHaul</title>
-      <meta name="description" content="Discover the rich history and tradition behind every thread of KenteHaul." />
+      <title>Our Heritage & History | KenteHaul Ghana</title>
+      <meta name="description" content="Learn about the centuries-old tradition of Kente weaving and the master artisans behind KenteHaul." />
+      <meta property="og:title" content="The Legend of Kente | KenteHaul Heritage" />
+      <meta property="og:description" content="Explore the meanings of colors and patterns in Ghanaian Kente cloth." />
     </Helmet>
     <div className="py-20 px-6 text-center text-white relative overflow-hidden" style={{ backgroundColor: siteContent.secondaryColor }}>
       <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
@@ -301,8 +302,9 @@ export const Heritage = ({ siteContent }) => (
 export const Institute = ({ siteContent, products }) => (
   <div className="animate-fade-in bg-gray-50 min-h-screen">
     <Helmet>
-      <title>Kentehaul Institute | KenteHaul</title>
-      <meta name="description" content="Educational resources and historical background on Ghanaian Kente tradition." />
+      <title>KenteHaul Institute | Empowerment through Craft</title>
+      <meta name="description" content="Empowering local weavers and preserving Kente culture through our educational initiatives and partnerships." />
+      <meta property="og:title" content="KenteHaul Institute | Preserving Royal Craft" />
     </Helmet>
     <div className="text-white py-24 px-6 text-center rounded-b-[4rem] shadow-2xl relative overflow-hidden" style={{ backgroundColor: siteContent.primaryColor }}>
       <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')]"></div>

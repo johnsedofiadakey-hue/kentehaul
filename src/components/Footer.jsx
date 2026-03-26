@@ -24,24 +24,36 @@ export default function Footer({ siteContent, onNavClick, onAdminClick }) {
               </>
             )}
           </Link>
+          <p className="text-xs text-white/40 leading-relaxed font-medium">
+            Moving heritage forward by connecting modern style with centuries of African excellence.
+          </p>
         </div>
 
         {/* Explore Column */}
         <div>
-          <h4 className="text-white font-bold text-lg mb-6">Explore</h4>
+          <h4 className="text-white font-black text-xs uppercase tracking-[3px] mb-6 opacity-40">Explore</h4>
           <ul className="space-y-3">
-            <li><Link to="/heritage" className="hover:opacity-80 transition block">Kente History</Link></li>
-            <li><Link to="/shop" className="hover:opacity-80 transition block">Shop Products</Link></li>
-            <li><Link to="/institute" className="hover:opacity-80 transition block">Kente Haul Institute</Link></li>
-            <li><a href="/institute#partner" className="hover:opacity-80 transition block">Partner With Us</a></li>
-            {/* Admin Link Moved Here */}
-            <li><button className="hover:opacity-100 cursor-pointer transition text-white/20 hover:text-white text-[10px] uppercase tracking-widest mt-4" onClick={onAdminClick}>Manager Access</button></li>
+            <li><Link to="/heritage" className="hover:opacity-80 transition block font-bold">Kente History</Link></li>
+            <li><Link to="/shop" className="hover:opacity-80 transition block font-bold">Shop Products</Link></li>
+            <li><Link to="/institute" className="hover:opacity-80 transition block font-bold">Kente Haul Institute</Link></li>
+            <li><a href="/institute#partner" className="hover:opacity-80 transition block font-bold">Partner With Us</a></li>
+          </ul>
+        </div>
+
+        {/* Legal Column */}
+        <div>
+          <h4 className="text-white font-black text-xs uppercase tracking-[3px] mb-6 opacity-40">Legal</h4>
+          <ul className="space-y-3">
+            <li><Link to="/privacy-policy" className="hover:opacity-80 transition block font-bold">Privacy Policy</Link></li>
+            <li><Link to="/terms-conditions" className="hover:opacity-80 transition block font-bold">Terms & Conditions</Link></li>
+            <li><Link to="/refund-policy" className="hover:opacity-80 transition block font-bold">Refund Policy</Link></li>
+            <li><button className="hover:opacity-100 cursor-pointer transition text-white/30 hover:text-white text-[10px] uppercase tracking-widest mt-4 block" onClick={onAdminClick}>Manager Access</button></li>
           </ul>
         </div>
 
         {/* Connect Column */}
         <div>
-          <h4 className="text-white font-bold text-lg mb-6">Connect</h4>
+          <h4 className="text-white font-black text-xs uppercase tracking-[3px] mb-6 opacity-40">Connect</h4>
           <div className="flex gap-4">
             {(siteContent.instagramLink || SOCIAL_LINKS.instagram) && (
               <a href={siteContent.instagramLink || SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-pink-500 hover:text-white transition cursor-pointer">

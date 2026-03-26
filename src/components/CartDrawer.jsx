@@ -31,7 +31,7 @@ export default function CartDrawer({
     const shippingFee = deliveryMethod === 'seller_rider' ? (selectedRegion?.fee || 0) : 0;
     const finalTotal = cartTotal + shippingFee;
 
-    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && 
+    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && customerForm.email.trim() &&
         (deliveryMethod === 'pickup' ? customerForm.pickupLocationId : customerForm.address.trim()) &&
         (deliveryMethod !== 'customer_rider' || (customerForm.riderName.trim() && customerForm.riderPhone.trim()));
     const cartCount = cart.reduce((a, b) => a + b.quantity, 0);

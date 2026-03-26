@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { Helmet } from 'react-helmet-async';
 import {
   collection,
   onSnapshot,
@@ -8,10 +9,12 @@ import {
   getDoc,
   writeBatch,
   increment,
-  serverTimestamp
+  serverTimestamp,
+  addDoc
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { db, auth } from './firebase';
+import { getToken, onMessage } from "firebase/messaging";
+import { db, auth, messaging } from './firebase';
 
 // --- IMPORTING DEFAULT DATA (Fallback) ---
 import {
@@ -39,6 +42,7 @@ import OrderTrackingModal from './components/OrderTrackingModal';
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 import AdminLoginModal from './components/AdminLoginModal';
 import TrackingPage from './components/TrackingPage';
+import LegalView from './components/LegalView';
 
 // Protected Route Component
 function AdminLoginRequired({ setIsAdminLoginOpen }) {
@@ -59,10 +63,10 @@ export default function App() {
   // ==========================================
   // 1. REAL-TIME DATA STATE (Syncs with Cloud)
   // ==========================================
-  // --- ANALYTICS & PIXEL INITIALIZATION ---
   useEffect(() => {
-    const gaId = 'G-XXXXXXXXXX'; 
-    if (gaId !== 'G-XXXXXXXXXX') {
+    // Dynamic Google Analytics
+    const gaId = siteContent.googleAnalyticsId; 
+    if (gaId && gaId !== 'G-XXXXXXXXXX') {
       const script = document.createElement('script');
       script.async = true; script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
       document.head.appendChild(script);
@@ -70,8 +74,10 @@ export default function App() {
       function gtag() { window.dataLayer.push(arguments); }
       gtag('js', new Date()); gtag('config', gaId);
     }
-    const pixelId = 'PIXEL_ID';
-    if (pixelId !== 'PIXEL_ID') {
+
+    // Dynamic Facebook Pixel
+    const pixelId = siteContent.facebookPixelId;
+    if (pixelId && pixelId !== 'PIXEL_ID') {
       !function(f,b,e,v,n,t,s)
       {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
       n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -82,7 +88,7 @@ export default function App() {
       'https://connect.facebook.net/en_US/fbevents.js');
       fbq('init', pixelId); fbq('track', 'PageView');
     }
-  }, []);
+  }, [siteContent.googleAnalyticsId, siteContent.facebookPixelId]);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -227,6 +233,47 @@ export default function App() {
   }, [isAdminAuthenticated]);
 
   // ==========================================
+  // 3c. ADMIN PUSH NOTIFICATIONS (FCM)
+  // ==========================================
+  useEffect(() => {
+    if (!isAdminAuthenticated || !messaging) return;
+
+    const setupNotifications = async () => {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          // Get FCM Token (User should replace VAPID_KEY with their actual key from Firebase Console)
+          const token = await getToken(messaging, { 
+            vapidKey: 'YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_CONSOLE'
+          });
+          
+          if (token) {
+            console.log("FCM Token registered:", token);
+            // Store token in settings/siteContent so the admin can receive alerts
+            await updateDoc(doc(db, "settings", "siteContent"), {
+              adminFcmToken: token,
+              lastTokenUpdate: serverTimestamp()
+            });
+          }
+        }
+      } catch (err) {
+        console.error("FCM Registration failed:", err);
+      }
+    };
+
+    setupNotifications();
+
+    // Listen for foreground messages
+    const unsubMessaging = onMessage(messaging, (payload) => {
+      console.log("Foreground message received:", payload);
+      // You could use a toast library here for better UX
+      alert(`🔔 New Order! ${payload.notification.title}: ${payload.notification.body}`);
+    });
+
+    return () => unsubMessaging();
+  }, [isAdminAuthenticated]);
+
+  // ==========================================
   // 4. PERSISTENCE & HELPERS
   // ==========================================
 
@@ -342,19 +389,57 @@ export default function App() {
         });
       }
 
-      // 4. Trigger Email (Wrapped in internal try to avoid blocking the whole order)
+      // 4. Trigger Professional Email Receipt
       if (customerForm.email) {
         try {
-          const mailRef = doc(db, "mail", `receipt-${orderId}`);
-          batch.set(mailRef, {
+          const emailHtml = `
+            <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+              <div style="background-color: ${siteContent.primaryColor || '#4c1d95'}; padding: 40px 20px; text-align: center; color: white; border-radius: 16px 16px 0 0;">
+                <h1 style="margin: 0; font-size: 28px; font-weight: 900;">Order Received!</h1>
+                <p style="margin: 10px 0 0; opacity: 0.9;">We've started weaving your story, ${customerForm.name}.</p>
+              </div>
+              <div style="padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; background-color: #fff;">
+                <p style="font-size: 16px; margin-bottom: 25px;">Hello <strong>${customerForm.name}</strong>,</p>
+                <p style="margin-bottom: 25px;">Thank you for choosing KenteHaul! Your order <strong>#${orderId}</strong> is now in our system and awaiting processing.</p>
+                
+                <div style="background-color: #f9fafb; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+                  <h3 style="margin: 0 0 15px; font-size: 14px; text-transform: uppercase; color: #6b7280; letter-spacing: 1px;">Order Summary</h3>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    ${cart.map(item => `
+                      <tr>
+                        <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                          <span style="font-weight: bold; display: block;">${item.name}</span>
+                          <span style="font-size: 12px; color: #6b7280;">Quantity: ${item.quantity}</span>
+                        </td>
+                        <td style="text-align: right; padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;">₵${(item.price * item.quantity).toLocaleString()}</td>
+                      </tr>
+                    `).join('')}
+                    <tr>
+                      <td style="padding-top: 15px; font-weight: bold;">Total Paid</td>
+                      <td style="padding-top: 15px; text-align: right; font-weight: 900; font-size: 18px; color: ${siteContent.secondaryColor || '#f97316'};">₵${totalAmount.toLocaleString()}</td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div style="text-align: center; margin-top: 35px;">
+                  <a href="${window.location.origin}/track/${orderId}" style="background-color: ${siteContent.primaryColor || '#4c1d95'}; color: white; padding: 15px 30px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Track Your Order</a>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #eee; margin: 35px 0;" />
+                <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">&copy; 2026 KenteHaul Ghana. All rights reserved.</p>
+              </div>
+            </div>
+          `;
+
+          await addDoc(collection(db, "mail"), {
             to: customerForm.email,
             message: {
-              subject: `Pending: Your KenteHaul Order #${orderId} 🎉`,
-              html: `<div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;"><h1 style="color: #4F46E5;">Thank You!</h1><p>Hi ${customerForm.name}, we've received your order request. <strong>Order ID: #${orderId}</strong></p><p>Track your weaving progress here: <a href="${window.location.origin}/track/${orderId}">${window.location.origin}/track/${orderId}</a></p></div>`
+              subject: `KenteHaul Order Confirmed #${orderId}`,
+              html: emailHtml
             }
           });
         } catch (emailErr) {
-          console.warn("Mail trigger setup failed (likely rules), but proceeding with order:", emailErr);
+          console.warn("Mail trigger failed:", emailErr);
         }
       }
 
@@ -439,6 +524,44 @@ export default function App() {
         });
       }
 
+      // 4. Trigger Professional Email Receipt
+      try {
+        const orderSummaryHtml = `
+          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+            <div style="background-color: ${siteContent.primaryColor || '#4c1d95'}; padding: 40px 20px; text-align: center; color: white; border-radius: 16px 16px 0 0;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: 900;">Payment Successful!</h1>
+              <p style="margin: 10px 0 0; opacity: 0.9;">Your KenteHaul order is now being prepared, ${customerForm.name}.</p>
+            </div>
+            <div style="padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; background-color: #fff;">
+              <p style="font-size: 16px; margin-bottom: 25px;">Hello <strong>${customerForm.name}</strong>,</p>
+              <p style="margin-bottom: 25px;">Great news! We've received your payment for order <strong>#${orderId}</strong>. Our master weavers are now getting ready to work on your items.</p>
+              
+              <div style="background-color: #f9fafb; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+                <h3 style="margin: 0 0 15px; font-size: 14px; text-transform: uppercase; color: #6b7280; letter-spacing: 1px;">What's Next?</h3>
+                <p style="margin: 0; font-size: 14px;">You can track the real-time status of your order by clicking the button below. We'll also notify you once it's ready for delivery.</p>
+              </div>
+
+              <div style="text-align: center; margin-top: 35px;">
+                <a href="${window.location.origin}/track/${orderId}" style="background-color: ${siteContent.primaryColor || '#4c1d95'}; color: white; padding: 15px 30px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Track Progress</a>
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #eee; margin: 35px 0;" />
+              <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">&copy; 2026 KenteHaul Ghana. All rights reserved.</p>
+            </div>
+          </div>
+        `;
+
+        await addDoc(collection(db, "mail"), {
+          to: customerForm.email,
+          message: {
+            subject: `KenteHaul Payment Confirmed - Order #${orderId}`,
+            html: orderSummaryHtml
+          }
+        });
+      } catch (emailErr) {
+        console.warn("Mail trigger for Paystack failed:", emailErr);
+      }
+
       // COMMIT
       await batch.commit();
 
@@ -470,6 +593,47 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-neutral-50 font-sans text-gray-800 flex flex-col overflow-x-hidden">
+      <Helmet>
+        <title>KenteHaul | Authentic Ghanaian Kente Cloth & Heritage</title>
+        <meta name="description" content="KenteHaul is Ghana's premier destination for authentic, hand-woven Kente cloth. Discover our royal heritage and modern styles." />
+        <link rel="canonical" href={window.location.origin + location.pathname} />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={window.location.origin + location.pathname} />
+        <meta property="og:title" content="KenteHaul | Authentic Ghanaian Kente Cloth & Heritage" />
+        <meta property="og:description" content="Discover the royalty of Ghanaian weaving. Hand-crafted Kente cloth for weddings, graduations, and cultural excellence." />
+        <meta property="og:image" content={siteContent.logo || `${window.location.origin}/logo.png`} />
+
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={window.location.origin + location.pathname} />
+        <meta property="twitter:title" content="KenteHaul | Authentic Ghanaian Kente Cloth & Heritage" />
+        <meta property="twitter:description" content="Discover the royalty of Ghanaian weaving. Hand-crafted Kente cloth for weddings, graduations, and cultural excellence." />
+        <meta property="twitter:image" content={siteContent.logo || `${window.location.origin}/logo.png`} />
+
+        {/* Structured Data: Organization */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "KenteHaul",
+            "url": window.location.origin,
+            "logo": siteContent.logo || `${window.location.origin}/logo.png`,
+            "sameAs": [
+              siteContent.instagramLink || "https://instagram.com/kentehaul",
+              "https://tiktok.com/@kentehaul"
+            ],
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "telephone": siteContent.contactPhone,
+              "contactType": "customer service",
+              "email": siteContent.contactEmail
+            }
+          })}
+        </script>
+      </Helmet>
+
       <ScrollToTop />
 
       {!isAdminPath && (
@@ -529,9 +693,12 @@ export default function App() {
             <Route path="/institute" element={<Institute siteContent={siteContent} products={products} />} />
             <Route path="/contact" element={<Contact siteContent={siteContent} />} />
             <Route path="/track/:orderId" element={<TrackingPage siteContent={siteContent} />} />
+            <Route path="/privacy-policy" element={<LegalView title="Privacy Policy" content={siteContent.privacyPolicy} siteContent={siteContent} type="privacy" />} />
+            <Route path="/terms-conditions" element={<LegalView title="Terms & Conditions" content={siteContent.termsConditions} siteContent={siteContent} type="terms" />} />
+            <Route path="/refund-policy" element={<LegalView title="Refund & Return Policy" content={siteContent.refundPolicy} siteContent={siteContent} type="refund" />} />
             <Route path="/admin" element={isAdminAuthenticated ? (
               <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="animate-spin text-4xl">⌛</div></div>}>
-                <AdminDashboard siteContent={siteContent} setSiteContent={setSiteContent} products={products} orders={orders} setOrders={setOrders} gallery={gallery} setGallery={setGallery} feedbacks={feedbacks} setFeedbacks={setFeedbacks} customers={customers} setIsAdminAuthenticated={setIsAdminAuthenticated} />
+                <AdminDashboard siteContent={siteContent} setSiteContent={setSiteContent} products={products} orders={orders} setOrders={setOrders} gallery={gallery} setGallery={setGallery} feedbacks={feedbacks} setFeedbacks={feedbacks} customers={customers} setIsAdminAuthenticated={setIsAdminAuthenticated} />
               </Suspense>
             ) : <AdminLoginRequired setIsAdminLoginOpen={setIsAdminLoginOpen} />} />
           </Routes>

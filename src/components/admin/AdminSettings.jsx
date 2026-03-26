@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { FileText, Palette, Sliders, CheckCircle, RefreshCw, Eye, Save, Plus, Trash2, Truck } from 'lucide-react';
+import { FileText, Palette, Sliders, CheckCircle, RefreshCw, Eye, Save, Plus, Trash2, Truck, Shield, Clock, Activity, Globe } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../../firebase';
 import { ImageUpload } from '../UIComponents';
@@ -542,6 +542,132 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 🚀 GO LIVE & ANALYTICS */}
+            <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
+                <h3 className="font-black text-sm mb-8 flex items-center gap-4 text-gray-900 uppercase tracking-widest">
+                    <Activity className="text-gray-400" size={20} /> Go-Live & Analytics
+                </h3>
+                
+                <div className="space-y-10">
+                    {/* Paystack Key */}
+                    <div className="border-b border-gray-50 pb-8">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">Paystack Public Key</label>
+                                <p className="text-[9px] text-amber-600 font-bold uppercase mt-1">Use "pk_live_..." for production</p>
+                            </div>
+                            <SaveIndicator field="paystackPublicKey" />
+                        </div>
+                        <input
+                            className="w-full p-4 bg-gray-50 border-none rounded-2xl font-black text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                            placeholder="pk_live_xxxxxxxxxxxxxxxxxxxxxxxx"
+                            defaultValue={siteContent.paystackPublicKey || ''}
+                            onBlur={e => saveField('paystackPublicKey', e.target.value, siteContent)}
+                        />
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-10">
+                        {/* Google Analytics */}
+                        <div>
+                            <div className="flex items-center justify-between mb-4">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Google Analytics ID</label>
+                                <SaveIndicator field="googleAnalyticsId" />
+                            </div>
+                            <div className="relative">
+                                <Globe size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
+                                <input
+                                    className="w-full p-4 pl-12 bg-gray-50 border-none rounded-2xl font-black text-sm outline-none focus:ring-2 focus:ring-blue-200"
+                                    placeholder="G-XXXXXXXXXX"
+                                    defaultValue={siteContent.googleAnalyticsId || ''}
+                                    onBlur={e => saveField('googleAnalyticsId', e.target.value, siteContent)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Facebook Pixel */}
+                        <div>
+                            <div className="flex items-center justify-between mb-4">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Facebook Pixel ID</label>
+                                <SaveIndicator field="facebookPixelId" />
+                            </div>
+                            <div className="relative">
+                                <Activity size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
+                                <input
+                                    className="w-full p-4 pl-12 bg-gray-50 border-none rounded-2xl font-black text-sm outline-none focus:ring-2 focus:ring-pink-200"
+                                    placeholder="PIXEL_ID"
+                                    defaultValue={siteContent.facebookPixelId || ''}
+                                    onBlur={e => saveField('facebookPixelId', e.target.value, siteContent)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
+                        <h4 className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-2 flex items-center gap-2">
+                            <CheckCircle size={14} /> Production Launch Checklist
+                        </h4>
+                        <ul className="text-[10px] text-amber-700 font-bold space-y-2 uppercase tracking-tight">
+                            <li className="flex items-center gap-2">• Replace Test Keys with Live Keys from Paystack Dashboard</li>
+                            <li className="flex items-center gap-2">• Verify Facebook Domain and Pixel are active</li>
+                            <li className="flex items-center gap-2">• Ensure your VAPID key is set in App.jsx for Push Notifications</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
+                <h3 className="font-black text-sm mb-8 flex items-center gap-4 text-gray-900 uppercase tracking-widest">
+                    <Shield className="text-gray-400" size={20} /> Website Legal Policies
+                </h3>
+                
+                <div className="space-y-12">
+                    {/* Privacy Policy */}
+                    <div className="border-b border-gray-50 pb-8">
+                        <div className="flex items-center justify-between mb-4">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Privacy Policy Content</label>
+                            <SaveIndicator field="privacyPolicy" />
+                        </div>
+                        <textarea
+                            className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-48 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-200 leading-relaxed"
+                            placeholder="Detail how you handle customer data..."
+                            value={siteContent.privacyPolicy || ''}
+                            onChange={e => updateField('privacyPolicy', e.target.value)}
+                            onBlur={e => saveField('privacyPolicy', e.target.value, siteContent)}
+                        />
+                    </div>
+
+                    {/* Terms & Conditions */}
+                    <div className="border-b border-gray-50 pb-8">
+                        <div className="flex items-center justify-between mb-4">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Terms & Conditions</label>
+                            <SaveIndicator field="termsConditions" />
+                        </div>
+                        <textarea
+                            className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-48 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-200 leading-relaxed"
+                            placeholder="Rules and guidelines for using the website..."
+                            value={siteContent.termsConditions || ''}
+                            onChange={e => updateField('termsConditions', e.target.value)}
+                            onBlur={e => saveField('termsConditions', e.target.value, siteContent)}
+                        />
+                    </div>
+
+                    {/* Refund Policy */}
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Refund & Return Policy</label>
+                            <SaveIndicator field="refundPolicy" />
+                        </div>
+                        <textarea
+                            className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-48 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-200 leading-relaxed"
+                            placeholder="Specify refund timelines and eligibility..."
+                            value={siteContent.refundPolicy || ''}
+                            onChange={e => updateField('refundPolicy', e.target.value)}
+                            onBlur={e => saveField('refundPolicy', e.target.value, siteContent)}
+                        />
                     </div>
                 </div>
             </div>

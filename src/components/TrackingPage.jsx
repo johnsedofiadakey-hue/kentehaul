@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useParams, Link } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -90,6 +91,10 @@ export default function TrackingPage({ siteContent }) {
 
     return (
         <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-4 md:px-6">
+            <Helmet>
+                <title>Track Order #{orderId} | KenteHaul</title>
+                <meta name="description" content={`Track the real-time status of your KenteHaul order royal archive #${orderId}.`} />
+            </Helmet>
             <div className="max-w-3xl mx-auto space-y-6">
                 
                 {/* Back link */}
