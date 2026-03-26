@@ -613,8 +613,8 @@ export default function App() {
         <meta property="twitter:image" content={siteContent.logo || `${window.location.origin}/logo.png`} />
 
         {/* Structured Data: Organization */}
-        <script type="application/ld+json">
-          {JSON.stringify({
+        <script type="application/ld+json">{`
+          ${JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Organization",
             "name": "KenteHaul",
@@ -631,7 +631,7 @@ export default function App() {
               "email": siteContent.contactEmail
             }
           })}
-        </script>
+        `}</script>
       </Helmet>
 
       <ScrollToTop />

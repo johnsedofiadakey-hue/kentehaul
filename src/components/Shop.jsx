@@ -118,8 +118,8 @@ export default function Shop({
         <meta property="og:description" content="Exclusive hand-woven Ghanaian Kente. Authentic, vibrant, and royal." />
         
         {/* Structured Data: Product Collection */}
-        <script type="application/ld+json">
-          {JSON.stringify({
+        <script type="application/ld+json">{`
+          ${JSON.stringify({
             "@context": "https://schema.org",
             "@type": "CollectionPage",
             "name": "KenteHaul Royal Collection",
@@ -142,7 +142,7 @@ export default function Shop({
               }))
             }
           })}
-        </script>
+        `}</script>
       </Helmet>
       {/* Dynamic Header Banner */}
       <div
