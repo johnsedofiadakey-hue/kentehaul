@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Scale, RefreshCw, ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SEO from './SEO';
 
 const FormattedText = ({ text }) => {
   if (!text) return null;
@@ -40,10 +41,11 @@ export default function LegalView({ title, content, siteContent, type }) {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-32 pb-24 px-6">
-      <Helmet>
-        <title>{title} | KenteHaul</title>
-        <meta name="description" content={`Read our ${title} to understand how KenteHaul operates.`} />
-      </Helmet>
+      <SEO 
+        title={title}
+        description={`Read our ${title} to understand how KenteHaul operates.`}
+        canonicalPath={type === 'privacy' ? '/privacy-policy' : type === 'terms' ? '/terms-conditions' : '/refund-policy'}
+      />
 
       <div className="max-w-4xl mx-auto">
         {/* Back Link */}

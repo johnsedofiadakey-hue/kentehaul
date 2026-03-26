@@ -7,6 +7,7 @@ import { db } from '../firebase';
 import { SHOP_CATEGORIES } from '../data/constants';
 import { LazyImage } from './UIComponents';
 import { motion, AnimatePresence } from 'framer-motion';
+import SEO from './SEO';
 
 export default function Shop({
   products,
@@ -111,39 +112,36 @@ export default function Shop({
 
   return (
     <div className="bg-white min-h-screen">
-      <Helmet>
-        <title>Shop Authentic Kente Cloth | KenteHaul Collection</title>
-        <meta name="description" content="Browse our exclusive collection of hand-woven Ghanaian Kente cloth. Authentic designs for every royal occasion." />
-        <meta property="og:title" content="Royal Kente Collection | Shop KenteHaul" />
-        <meta property="og:description" content="Exclusive hand-woven Ghanaian Kente. Authentic, vibrant, and royal." />
-        
-        {/* Structured Data: Product Collection */}
-        <script type="application/ld+json">{`
-          ${JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "CollectionPage",
-            "name": "KenteHaul Royal Collection",
-            "description": "Authentic hand-woven Ghanaian Kente cloth collection.",
-            "url": typeof window !== 'undefined' ? window.location.origin + "/shop" : "",
-            "mainEntity": {
-              "@type": "ItemList",
-              "itemListElement": products.slice(0, 10).map((p, i) => ({
-                "@type": "ListItem",
-                "position": i + 1,
-                "url": typeof window !== 'undefined' ? window.location.origin + "/shop" : "",
-                "name": p.name,
-                "image": p.image,
-                "offers": {
-                  "@type": "Offer",
-                  "price": p.price,
-                  "priceCurrency": "GHS",
-                  "availability": (p.stockQuantity > 0 || p.stock > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
-                }
-              }))
-            }
-          })}
-        `}</script>
-      </Helmet>
+      <SEO 
+        title="Shop Authentic Kente Cloth | KenteHaul Collection"
+        description="Browse our exclusive collection of hand-woven Ghanaian Kente cloth. Authentic designs for every royal occasion."
+        ogTitle="Royal Kente Collection | Shop KenteHaul"
+        ogDescription="Exclusive hand-woven Ghanaian Kente. Authentic, vibrant, and royal."
+        canonicalPath="/shop"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          "name": "KenteHaul Royal Collection",
+          "description": "Authentic hand-woven Ghanaian Kente cloth collection.",
+          "url": typeof window !== 'undefined' ? window.location.origin + "/shop" : "",
+          "mainEntity": {
+            "@type": "ItemList",
+            "itemListElement": products.slice(0, 10).map((p, i) => ({
+              "@type": "ListItem",
+              "position": i + 1,
+              "url": typeof window !== 'undefined' ? window.location.origin + "/shop" : "",
+              "name": p.name,
+              "image": p.image,
+              "offers": {
+                "@type": "Offer",
+                "price": p.price,
+                "priceCurrency": "GHS",
+                "availability": (p.stockQuantity > 0 || p.stock > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+              }
+            }))
+          }
+        }}
+      />
       {/* Dynamic Header Banner */}
       <div
         className="relative h-[30vh] md:h-[40vh] flex items-center justify-center overflow-hidden bg-gray-900"

@@ -43,6 +43,7 @@ const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 import AdminLoginModal from './components/AdminLoginModal';
 import TrackingPage from './components/TrackingPage';
 import LegalView from './components/LegalView';
+import SEO from './components/SEO';
 
 // Protected Route Component
 function AdminLoginRequired({ setIsAdminLoginOpen }) {
@@ -593,46 +594,30 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-neutral-50 font-sans text-gray-800 flex flex-col overflow-x-hidden">
-      <Helmet>
-        <title>KenteHaul | Authentic Ghanaian Kente Cloth & Heritage</title>
-        <meta name="description" content="KenteHaul is Ghana's premier destination for authentic, hand-woven Kente cloth. Discover our royal heritage and modern styles." />
-        <link rel="canonical" href={window.location.origin + location.pathname} />
-        
-        {/* Open Graph / Facebook */}
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={window.location.origin + location.pathname} />
-        <meta property="og:title" content="KenteHaul | Authentic Ghanaian Kente Cloth & Heritage" />
-        <meta property="og:description" content="Discover the royalty of Ghanaian weaving. Hand-crafted Kente cloth for weddings, graduations, and cultural excellence." />
-        <meta property="og:image" content={siteContent.logo || `${window.location.origin}/logo.png`} />
-
-        {/* Twitter */}
-        <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content={window.location.origin + location.pathname} />
-        <meta property="twitter:title" content="KenteHaul | Authentic Ghanaian Kente Cloth & Heritage" />
-        <meta property="twitter:description" content="Discover the royalty of Ghanaian weaving. Hand-crafted Kente cloth for weddings, graduations, and cultural excellence." />
-        <meta property="twitter:image" content={siteContent.logo || `${window.location.origin}/logo.png`} />
-
-        {/* Structured Data: Organization */}
-        <script type="application/ld+json">{`
-          ${JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            "name": "KenteHaul",
-            "url": window.location.origin,
-            "logo": siteContent.logo || `${window.location.origin}/logo.png`,
-            "sameAs": [
-              siteContent.instagramLink || "https://instagram.com/kentehaul",
-              "https://tiktok.com/@kentehaul"
-            ],
-            "contactPoint": {
-              "@type": "ContactPoint",
-              "telephone": siteContent.contactPhone,
-              "contactType": "customer service",
-              "email": siteContent.contactEmail
-            }
-          })}
-        `}</script>
-      </Helmet>
+      <SEO 
+        title={siteContent.heroTitle || "Authentic Ghanaian Kente"}
+        description={siteContent.heroSubtitle || "Discover the finest hand-woven Kente cloth from the heart of Ghana."}
+        ogImage={siteContent.logo || "/favicon.svg"}
+        ogTitle={`${siteContent.heroTitle || "KenteHaul"} | Royal Kente Cloth`}
+        ogDescription="Shop authentic Ghanaian Kente, Smocks, Sashes and more. We deliver heritage to your doorstep."
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "KenteHaul",
+          "url": window.location.origin,
+          "logo": siteContent.logo || `${window.location.origin}/favicon.svg`,
+          "sameAs": [
+            siteContent.instagramLink || "https://instagram.com/kentehaul",
+            "https://tiktok.com/@kentehaul"
+          ],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": siteContent.contactPhone,
+            "contactType": "customer service",
+            "email": siteContent.contactEmail
+          }
+        }}
+      />
 
       <ScrollToTop />
 

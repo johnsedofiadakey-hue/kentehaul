@@ -5,6 +5,7 @@ import { Camera, MessageCircle, Star, Quote, Phone, Mail, MapPin, ShoppingBag, X
 import { useState } from 'react';
 import { LazyImage } from './UIComponents';
 import PhoneInput from './PhoneInput';
+import SEO from './SEO';
 
 // Helper for paragraphing and rich text (bold/italics) from Admin
 const FormattedText = ({ text, centered = false }) => {
@@ -206,12 +207,13 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
 
   return (
     <div className="animate-fade-in">
-      <Helmet>
-        <title>{siteContent.heroTitle || "KenteHaul"} | Authentic Ghanaian Kente Heritage</title>
-        <meta name="description" content={siteContent.heroSubtitle || "Discover the finest hand-woven Kente cloth from the heart of Ghana. Weaving royalty into every thread."} />
-        <meta property="og:title" content={`${siteContent.heroTitle || "KenteHaul"} | Royal Kente Cloth`} />
-        <meta property="og:description" content="Shop authentic, high-quality Ghanaian Kente cloth. We deliver heritage to your doorstep." />
-      </Helmet>
+      <SEO 
+        title={siteContent.heroTitle || "Home"}
+        description={siteContent.heroSubtitle || "Discover the finest hand-woven Kente cloth from the heart of Ghana."}
+        ogTitle={`${siteContent.heroTitle || "KenteHaul"} | Royal Kente Cloth`}
+        ogDescription="Shop authentic, high-quality Ghanaian Kente cloth. We deliver heritage to your doorstep."
+        canonicalPath="/"
+      />
       {/* HERO SECTION */}
       <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden" style={{ backgroundColor: siteContent.primaryColor }}>
         {siteContent.heroImage ? (
@@ -435,12 +437,13 @@ export const Home = ({ siteContent, gallery, feedbacks }) => {
 // --- HERITAGE PAGE COMPONENT ---
 export const Heritage = ({ siteContent }) => (
   <div className="animate-fade-in bg-white min-h-screen">
-    <Helmet>
-      <title>Our Heritage & History | KenteHaul Ghana</title>
-      <meta name="description" content="Learn about the centuries-old tradition of Kente weaving and the master artisans behind KenteHaul." />
-      <meta property="og:title" content="The Legend of Kente | KenteHaul Heritage" />
-      <meta property="og:description" content="Explore the meanings of colors and patterns in Ghanaian Kente cloth." />
-    </Helmet>
+    <SEO 
+      title="Our Heritage & History"
+      description="Learn about the centuries-old tradition of Kente weaving and the master artisans behind KenteHaul."
+      ogTitle="The Legend of Kente | KenteHaul Heritage"
+      ogDescription="Explore the meanings of colors and patterns in Ghanaian Kente cloth."
+      canonicalPath="/heritage"
+    />
     <div className="py-20 px-6 text-center text-white relative overflow-hidden" style={{ backgroundColor: siteContent.secondaryColor }}>
       <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
       <h1 className="text-5xl font-serif font-bold relative z-10">{siteContent.heritageTitle}</h1>
@@ -469,11 +472,12 @@ export const Heritage = ({ siteContent }) => (
 // --- INSTITUTE PAGE COMPONENT ---
 export const Institute = ({ siteContent, products }) => (
   <div className="animate-fade-in bg-gray-50 min-h-screen">
-    <Helmet>
-      <title>KenteHaul Institute | Empowerment through Craft</title>
-      <meta name="description" content="Empowering local weavers and preserving Kente culture through our educational initiatives and partnerships." />
-      <meta property="og:title" content="KenteHaul Institute | Preserving Royal Craft" />
-    </Helmet>
+    <SEO 
+      title="KenteHaul Institute | Empowerment through Craft"
+      description="Empowering local weavers and preserving Kente culture through our educational initiatives and partnerships."
+      ogTitle="KenteHaul Institute | Preserving Royal Craft"
+      canonicalPath="/institute"
+    />
     <div className="text-white py-24 px-6 text-center rounded-b-[4rem] shadow-2xl relative overflow-hidden" style={{ backgroundColor: siteContent.primaryColor }}>
       <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')]"></div>
       <h1 className="text-5xl md:text-6xl font-serif font-bold mb-6 relative z-10">{siteContent.instituteTitle}</h1>
@@ -534,10 +538,11 @@ export const Institute = ({ siteContent, products }) => (
 // --- CONTACT PAGE COMPONENT ---
 export const Contact = ({ siteContent }) => (
   <div className="max-w-7xl mx-auto py-20 px-6 animate-fade-in">
-    <Helmet>
-      <title>Contact Us | KenteHaul</title>
-      <meta name="description" content="Reach out to KenteHaul for custom orders and inquiries." />
-    </Helmet>
+    <SEO 
+      title="Contact Us"
+      description="Reach out to KenteHaul for custom orders and inquiries."
+      canonicalPath="/contact"
+    />
     <div className="text-center mb-16">
       <h1 className="text-4xl font-bold mb-4" style={{ color: siteContent.primaryColor }}>Get in Touch</h1>
       <p className="text-gray-500">We'd love to hear from you. Visit us or send a message.</p>
