@@ -5,7 +5,7 @@ import { Search, ShoppingBag, Smartphone, Eye, ChevronDown, X, SlidersHorizontal
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SHOP_CATEGORIES } from '../data/constants';
-import { LazyImage } from '../UIComponents';
+import { LazyImage } from './UIComponents';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Shop({
