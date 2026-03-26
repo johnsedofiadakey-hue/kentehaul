@@ -18,11 +18,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Export Firebase services
+// Export Firebase services safely
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const auth = getAuth(app);
-export const analytics = getAnalytics(app);
-export const messaging = getMessaging(app);
+
+// Analytics and Messaging can fail in some environments
+export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+let messagingInstance = null;
+try {
+  if (typeof window !== 'undefined') {
+    messagingInstance = getMessaging(app);
+  }
+} catch (e) {
+  console.warn("Firebase Messaging not supported in this browser:", e);
+}
+export const messaging = messagingInstance;
 
 // Configure Persistence (Session Only)
 // setPersistence(auth, browserSessionPersistence)

@@ -22,14 +22,14 @@ const SEO = ({ title, description, ogImage, ogTitle, ogDescription, canonicalPat
       <meta property="og:url" content={fullUrl} />
       <meta property="og:title" content={ogTitle || siteTitle} />
       <meta property="og:description" content={ogDescription || description} />
-      {ogImage && <meta property="og:image" content={ogImage} />}
+      <meta property="og:image" content={ogImage || `${origin}/favicon.svg`} />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:url" content={fullUrl} />
       <meta name="twitter:title" content={ogTitle || siteTitle} />
       <meta name="twitter:description" content={ogDescription || description} />
-      {ogImage && <meta name="twitter:image" content={ogImage} />}
+      <meta name="twitter:image" content={ogImage || `${origin}/favicon.svg`} />
 
       {/* Favicon & Icons */}
       <link rel="icon" type="image/svg+xml" href={`${origin}/favicon.svg`} />
@@ -38,7 +38,7 @@ const SEO = ({ title, description, ogImage, ogTitle, ogDescription, canonicalPat
       {/* Structured Data (JSON-LD) */}
       {jsonLd && (
         <script type="application/ld+json">
-          {` ${JSON.stringify(jsonLd)} `}
+          {JSON.stringify(jsonLd)}
         </script>
       )}
     </Helmet>
