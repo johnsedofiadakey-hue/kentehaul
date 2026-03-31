@@ -48,9 +48,15 @@ export default function CartDrawer({
         }
     };
 
-    const handlePaystack = (ref) => {
-        onPaystackSuccess(ref, { ...customerForm, deliveryMethod, shippingRegion, shippingFee, finalTotal });
-        setStep('success');
+    const handlePaystack = async (ref) => {
+        try {
+            await onPaystackSuccess(ref, { ...customerForm, deliveryMethod, shippingRegion, shippingFee, finalTotal });
+            setStep('success');
+        } catch (err) {
+            // Payment went through but DB write failed — still show success so customer isn't confused
+            // The reference is logged in App.jsx for admin recovery
+            setStep('success');
+        }
     };
 
     const handleSuccessClose = () => {

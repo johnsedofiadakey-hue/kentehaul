@@ -476,6 +476,9 @@ export default function App() {
   const handlePaystackSuccess = async (reference, customerForm) => {
     setIsProcessing(true);
     console.log("Paystack Success - Syncing to Database:", { reference, customerForm });
+
+    // Safety net: always clear processing after 15s so the spinner can never be permanently stuck
+    const safetyTimer = setTimeout(() => setIsProcessing(false), 15000);
     
     try {
       const orderId = reference.reference;
@@ -569,13 +572,13 @@ export default function App() {
       await batch.commit();
 
       setCart([]);
-      setIsCartOpen(false);
-      // CartDrawer handles the success screen — no alert needed
+      // Do NOT close the cart here — CartDrawer's success screen handles closing
       console.log(`✅ Order #${orderId} confirmed and saved to Firestore.`);
     } catch (error) {
       console.error("Atomic Payment Write Failed (handlePaystackSuccess):", error);
       alert("Payment was successful, but database sync failed. Error: " + error.message + ". Keep your reference: " + reference.reference);
     } finally {
+      clearTimeout(safetyTimer);
       setIsProcessing(false);
     }
   };
