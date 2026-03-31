@@ -62,11 +62,26 @@ export default function App() {
   const location = useLocation();
 
   // ==========================================
-  // 1. REAL-TIME DATA STATE (Syncs with Cloud)
+  // 1. ALL STATE DECLARATIONS FIRST
+  // (Must come before any useEffect that references these variables)
+  // ==========================================
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [siteContent, setSiteContent] = useState(() => {
+    const cached = localStorage.getItem('kente_theme');
+    return cached ? JSON.parse(cached) : INITIAL_CONTENT;
+  });
+  const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [gallery, setGallery] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
+
+  // ==========================================
+  // 2. ANALYTICS / TRACKING (depends on siteContent)
   // ==========================================
   useEffect(() => {
-    // Dynamic Google Analytics
-    const gaId = siteContent.googleAnalyticsId; 
+    const gaId = siteContent.googleAnalyticsId;
     if (gaId && gaId !== 'G-XXXXXXXXXX') {
       const script = document.createElement('script');
       script.async = true; script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
@@ -76,7 +91,6 @@ export default function App() {
       gtag('js', new Date()); gtag('config', gaId);
     }
 
-    // Dynamic Facebook Pixel
     const pixelId = siteContent.facebookPixelId;
     if (pixelId && pixelId !== 'PIXEL_ID') {
       !function(f,b,e,v,n,t,s)
@@ -91,18 +105,6 @@ export default function App() {
     }
   }, [siteContent.googleAnalyticsId, siteContent.facebookPixelId]);
 
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [siteContent, setSiteContent] = useState(() => {
-    // Try to load cached theme from localStorage first
-    const cached = localStorage.getItem('kente_theme');
-    return cached ? JSON.parse(cached) : INITIAL_CONTENT;
-  });
-  const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [gallery, setGallery] = useState([]);
-  const [feedbacks, setFeedbacks] = useState([]);
 
   // ==========================================
   // 2. UI & NAVIGATION STATE
