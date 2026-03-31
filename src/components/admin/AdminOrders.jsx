@@ -41,7 +41,7 @@ export default function AdminOrders({
     };
 
     const revenue = orders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
-    const paidRevenue = orders.filter(o => ['Payment Confirmed', 'Delivered', 'Rider Assigned', 'Rider On The Way'].includes(o.status)).reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+    const paidRevenue = orders.filter(o => ['Payment Confirmed', 'Preparing Order', 'Quality Check', 'Delivered', 'Rider Assigned', 'Out for Delivery'].includes(o.status)).reduce((acc, o) => acc + (Number(o.total) || 0), 0);
     const pendingCount = orders.filter(o => o.status === 'Order Placed').length;
     const todayOrders = orders.filter(o => o.date === new Date().toLocaleDateString()).length;
 
@@ -66,9 +66,9 @@ export default function AdminOrders({
         'Order Placed': 'bg-yellow-50 text-yellow-700 border-yellow-200',
         'Payment Confirmed': 'bg-blue-50 text-blue-700 border-blue-200',
         'Preparing Order': 'bg-amber-50 text-amber-700 border-amber-200',
-        'Order Ready': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        'Quality Check': 'bg-indigo-50 text-indigo-700 border-indigo-200',
         'Rider Assigned': 'bg-purple-50 text-purple-700 border-purple-200',
-        'Rider On The Way': 'bg-orange-50 text-orange-700 border-orange-200',
+        'Out for Delivery': 'bg-orange-50 text-orange-700 border-orange-200',
         'Delivered': 'bg-green-50 text-green-700 border-green-200',
         'Cancelled': 'bg-red-50 text-red-700 border-red-200',
     };

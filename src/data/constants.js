@@ -98,9 +98,9 @@ export const ORDER_STATUSES = [
   'Order Placed',
   'Payment Confirmed',
   'Preparing Order',
-  'Ready for Pickup',
+  'Quality Check',
   'Rider Assigned',
-  'Rider On The Way',
+  'Out for Delivery',
   'Delivered',
   'Cancelled'
 ];
