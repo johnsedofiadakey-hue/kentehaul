@@ -342,7 +342,7 @@ export default function App() {
     console.log("Starting WhatsApp Checkout:", { customerForm, cart });
     
     try {
-      const orderId = `WA-${Date.now()}`;
+      const orderId = customerForm.orderId || `WA-${Date.now()}`;
       const batch = writeBatch(db);
 
       // 0. COMPUTE TOTALS (Trust the UI's finalTotal as the Primary Source of Truth)

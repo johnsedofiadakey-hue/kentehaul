@@ -44,9 +44,15 @@ export default function CartDrawer({
 
     const handleWhatsApp = () => {
         if (isFormValid) {
+            const trackingId = `WA-${Date.now()}`;
             // Freeze data for success screen before App clears the cart
-            setCompletedOrder({ items: [...cart], total: finalTotal, email: customerForm.email });
-            onWhatsAppCheckout({ ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal });
+            setCompletedOrder({ 
+                items: [...cart], 
+                total: finalTotal, 
+                email: customerForm.email,
+                orderId: trackingId 
+            });
+            onWhatsAppCheckout({ ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal, orderId: trackingId });
             setStep('success'); // Show success screen for WhatsApp too
         }
     };
@@ -54,7 +60,12 @@ export default function CartDrawer({
     const handlePaystack = async (ref) => {
         try {
             // Freeze data for success screen before App clears the cart
-            setCompletedOrder({ items: [...cart], total: finalTotal, email: customerForm.email });
+            setCompletedOrder({ 
+                items: [...cart], 
+                total: finalTotal, 
+                email: customerForm.email,
+                orderId: ref.reference
+            });
             await onPaystackSuccess(ref, { ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal });
             setStep('success');
         } catch (err) {
@@ -452,6 +463,10 @@ export default function CartDrawer({
                                 )}
 
                                 <div className="w-full bg-gray-50 rounded-2xl p-4 mb-6 text-left space-y-2">
+                                    <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+                                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tracking ID</div>
+                                        <div className="text-xs font-black text-gray-900 font-mono select-all">#{completedOrder?.orderId}</div>
+                                    </div>
                                     {(completedOrder?.items || []).map(item => (
                                         <div key={item.id} className="flex justify-between text-sm">
                                             <span className="text-gray-600 font-bold">{item.name} <span className="text-gray-400">×{item.quantity}</span></span>
@@ -464,13 +479,20 @@ export default function CartDrawer({
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={handleSuccessClose}
-                                    className="w-full py-4 rounded-[24px] font-black text-white text-sm uppercase tracking-[2px] active:scale-95 transition-all"
-                                    style={{ background: `linear-gradient(135deg, ${siteContent.primaryColor}, ${siteContent.secondaryColor})` }}
-                                >
-                                    Continue Shopping
-                                </button>
+                                <div className="w-full flex flex-col gap-3">
+                                    <a
+                                        href={`/track/${completedOrder?.orderId}`}
+                                        className="w-full py-4 rounded-[24px] font-black bg-gray-900 text-white text-sm uppercase tracking-[2px] active:scale-95 transition-all text-center"
+                                    >
+                                        Track My Kente
+                                    </a>
+                                    <button
+                                        onClick={handleSuccessClose}
+                                        className="w-full py-4 rounded-[32px] font-bold text-gray-400 text-[10px] uppercase tracking-[3px] active:scale-95 transition-all border border-transparent hover:text-gray-900"
+                                    >
+                                        Close Receipt
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </motion.div>
