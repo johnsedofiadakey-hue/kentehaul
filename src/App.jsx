@@ -345,9 +345,13 @@ export default function App() {
       const orderId = `WA-${Date.now()}`;
       const batch = writeBatch(db);
 
-      // Ensure all numbers are clean
-      const totalAmount = Number(customerForm.finalTotal || cartTotal) || 0;
+      // Compute total DIRECTLY from the cart items passed in — never rely on closure/stale state
+      const cartItems = customerForm.items || [];
+      const itemsTotal = cartItems.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity || 1)), 0);
       const shippingAmount = Number(customerForm.shippingFee) || 0;
+      const totalAmount = itemsTotal + shippingAmount;
+
+      console.log('📝 WhatsApp Order totals:', { itemsTotal, shippingAmount, totalAmount, itemCount: cartItems.length });
 
       // 1. Record/Update Customer Profile (CRM)
       const phoneInput = String(customerForm.phone || '');
@@ -369,7 +373,7 @@ export default function App() {
       batch.set(orderRef, {
         date: new Date().toLocaleDateString(),
         createdAt: serverTimestamp(),
-        items: cart,
+        items: cartItems,
         total: totalAmount,
         shippingRegion: customerForm.shippingRegion || 'Accra',
         shippingFee: shippingAmount,
@@ -484,8 +488,13 @@ export default function App() {
       const orderId = reference.reference;
       const batch = writeBatch(db);
 
-      const totalAmount = Number(customerForm.finalTotal || cartTotal) || 0;
+      // 0. COMPUTE TOTALS (Never rely on closure/stale state)
+      const cartItems = customerForm.items || [];
+      const itemsTotal = cartItems.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity || 1)), 0);
       const shippingAmount = Number(customerForm.shippingFee) || 0;
+      const totalAmount = itemsTotal + shippingAmount;
+
+      console.log('💰 Paystack Order totals:', { itemsTotal, shippingAmount, totalAmount, itemCount: cartItems.length });
 
       // 1. CRM
       const phoneInput = String(customerForm.phone || '');
@@ -507,7 +516,7 @@ export default function App() {
       batch.set(orderRef, {
         date: new Date().toLocaleDateString(),
         createdAt: serverTimestamp(),
-        items: cart,
+        items: cartItems,
         total: totalAmount,
         shippingRegion: customerForm.shippingRegion || 'Accra',
         shippingFee: shippingAmount,

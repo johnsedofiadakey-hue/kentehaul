@@ -43,14 +43,14 @@ export default function CartDrawer({
 
     const handleWhatsApp = () => {
         if (isFormValid) {
-            onWhatsAppCheckout({ ...customerForm, deliveryMethod, shippingRegion, shippingFee, finalTotal });
+            onWhatsAppCheckout({ ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal });
             setStep('cart');
         }
     };
 
     const handlePaystack = async (ref) => {
         try {
-            await onPaystackSuccess(ref, { ...customerForm, deliveryMethod, shippingRegion, shippingFee, finalTotal });
+            await onPaystackSuccess(ref, { ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal });
             setStep('success');
         } catch (err) {
             // Payment went through but DB write failed — still show success so customer isn't confused
