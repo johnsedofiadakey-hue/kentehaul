@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import OrderSuccessModal from './components/OrderSuccessModal';
 import {
   collection,
@@ -56,7 +56,7 @@ function AdminLoginRequired({ setIsAdminLoginOpen }) {
 
   return null;
 }
-function KenteHaulLayout() {
+export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -155,6 +155,11 @@ function KenteHaulLayout() {
   // Order Success Tracking
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successOrderData, setSuccessOrderData] = useState({ id: '', total: 0 });
+
+  // Order Tracking State
+  const [trackingInput, setTrackingInput] = useState("");
+  const [trackingResult, setTrackingResult] = useState(null);
+  const [isTrackingLoading, setIsTrackingLoading] = useState(false);
 
   // --- ACTIVITY LOGGING HELPER ---
   const logActivity = async (type, data) => {
@@ -932,14 +937,6 @@ function KenteHaulLayout() {
         setIsTrackingOpen={setIsTrackingOpen}
       />
     </div>
-  );
-}
-
-export default function App() {
-  return (
-    <Router>
-      <KenteHaulLayout />
-    </Router>
   );
 }
 
