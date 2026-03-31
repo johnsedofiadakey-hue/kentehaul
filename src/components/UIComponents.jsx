@@ -152,8 +152,9 @@ export const TikTokIcon = ({ size = 24, color = "currentColor", className = "" }
 export const PaystackButton = ({ amount, email, publicKey, onSuccess, onClose, primaryColor, secondaryColor }) => {
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // Generate a unique, traceable reference for every transaction
-  const reference = `KH-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+  // useRef ensures the reference is stable and initialized before the hook config — avoids TDZ errors in minified builds
+  const referenceRef = React.useRef(`KH-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`);
+  const reference = referenceRef.current;
 
   const config = {
     reference,
@@ -161,12 +162,6 @@ export const PaystackButton = ({ amount, email, publicKey, onSuccess, onClose, p
     amount: Math.round(amount * 100), // Paystack uses pesewas (1 GHS = 100 pesewas)
     publicKey: publicKey || 'pk_test_26140a2b5a94175d96518',
     currency: 'GHS',
-    channels: ['card', 'mobile_money', 'bank'], // Accept all Ghanaian payment methods
-    metadata: {
-      custom_fields: [
-        { display_name: 'Order Reference', variable_name: 'order_ref', value: reference }
-      ]
-    }
   };
 
   const initializePayment = usePaystackPayment(config);
