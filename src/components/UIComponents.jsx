@@ -1,5 +1,4 @@
 import React from 'react';
-import { usePaystackPayment } from 'react-paystack';
 import { Upload, CreditCard, Loader2, X } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -149,36 +148,55 @@ export const TikTokIcon = ({ size = 24, color = "currentColor", className = "" }
 );
 
 // --- PAYSTACK BUTTON COMPONENT ---
+// Uses Paystack's official inline.js directly (bypasses react-paystack bundler issues)
 export const PaystackButton = ({ amount, email, publicKey, onSuccess, onClose, primaryColor, secondaryColor }) => {
   const [isLoading, setIsLoading] = React.useState(false);
-
-  // useRef ensures the reference is stable and initialized before the hook config — avoids TDZ errors in minified builds
-  const referenceRef = React.useRef(`KH-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`);
-  const reference = referenceRef.current;
-
-  const config = {
-    reference,
-    email: email || 'guest@kentehaul.com',
-    amount: Math.round(amount * 100), // Paystack uses pesewas (1 GHS = 100 pesewas)
-    publicKey: publicKey || 'pk_test_26140a2b5a94175d96518',
-    currency: 'GHS',
-  };
-
-  const initializePayment = usePaystackPayment(config);
 
   const handleClick = () => {
     if (isLoading) return;
     setIsLoading(true);
-    initializePayment(
-      (ref) => {
+
+    const reference = `KH-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+    const key = publicKey || 'pk_test_26140a2b5a94175d96518';
+
+    // Load Paystack inline script from CDN if not already present
+    const loadPaystackScript = () => new Promise((resolve) => {
+      if (window.PaystackPop) { resolve(); return; }
+      const script = document.createElement('script');
+      script.src = 'https://js.paystack.co/v1/inline.js';
+      script.async = true;
+      script.onload = resolve;
+      script.onerror = () => {
         setIsLoading(false);
-        onSuccess(ref);
-      },
-      () => {
+        alert('Could not load payment. Check your internet connection.');
+      };
+      document.head.appendChild(script);
+    });
+
+    loadPaystackScript().then(() => {
+      try {
+        const handler = window.PaystackPop.setup({
+          key,
+          email: email || 'guest@kentehaul.com',
+          amount: Math.round(amount * 100), // pesewas
+          currency: 'GHS',
+          ref: reference,
+          callback: (response) => {
+            setIsLoading(false);
+            onSuccess({ ...response, reference: response.reference || reference });
+          },
+          onClose: () => {
+            setIsLoading(false);
+            if (onClose) onClose();
+          },
+        });
+        handler.openIframe();
+      } catch (err) {
+        console.error('Paystack setup error:', err);
         setIsLoading(false);
-        if (onClose) onClose();
+        alert('Payment could not be initialized. Please try again.');
       }
-    );
+    });
   };
 
   return (
