@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ShoppingBag, Smartphone, Eye, ChevronDown, X, SlidersHorizontal, ArrowRight, Grid3X3, List, Filter, LayoutGrid } from 'lucide-react';
+import { Search, ShoppingBag, Smartphone, Eye, ChevronDown, X, SlidersHorizontal, ArrowRight, Grid3X3, List, Filter, LayoutGrid, Heart } from 'lucide-react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SHOP_CATEGORIES } from '../data/constants';
@@ -17,7 +17,9 @@ export default function Shop({
   addToCart,
   handleSingleBuy,
   setSelectedProduct,
-  siteContent
+  siteContent,
+  wishlist = [],
+  toggleWishlist
 }) {
   // Dynamic categories from Firestore
   const [categories, setCategories] = useState(SHOP_CATEGORIES);
@@ -462,10 +464,22 @@ export default function Shop({
                         )}
 
                         {p.category && (
-                          <span className="bg-white/95 backdrop-blur-md text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-1 md:px-4 md:py-2 rounded-full shadow-xl text-gray-900">
+                          <span className="bg-white/95 backdrop-blur-md text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-1 md:px-4 md:py-2 rounded-full shadow-xl text-gray-900 pointer-events-none">
                             {categories.find(c => c.id === p.category)?.name}
                           </span>
                         )}
+
+                        {/* Heart Wishlist Toggle */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleWishlist(p); }}
+                          className="absolute -bottom-12 right-0 md:-bottom-16 p-2.5 md:p-3.5 bg-white shadow-xl rounded-2xl hover:scale-110 active:scale-95 transition-all pointer-events-auto z-40 group/heart"
+                        >
+                          <Heart
+                            size={18}
+                            fill={(p.id && wishlist.some(item => item.id === p.id)) ? '#ef4444' : 'none'}
+                            className={`transition-colors duration-300 ${(p.id && wishlist.some(item => item.id === p.id)) ? 'text-red-500' : 'text-gray-400 group-hover/heart:text-red-400'}`}
+                          />
+                        </button>
                       </div>
                     </div>
 

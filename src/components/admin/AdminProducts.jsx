@@ -119,7 +119,7 @@ export default function AdminProducts({
             const sanitizedProduct = {
                 ...productForm,
                 price: Number(productForm.price),
-                stock: Number(productForm.stock),
+                stockQuantity: Number(productForm.stockQuantity),
                 date: Date.now()
             };
 
@@ -248,8 +248,13 @@ export default function AdminProducts({
                     <h3 className="font-black text-lg mb-6 flex items-center gap-3 text-gray-800 uppercase tracking-widest text-sm"><Camera size={20} className="text-blue-500" /> Brand Gallery</h3>
                     <div className="space-y-6">
                         <ImageUpload image={galleryImage} onUpload={setGalleryImage} label="Select Professional Photo" primaryColor={siteContent.primaryColor} />
-                        <button onClick={addGalleryImage} disabled={!galleryImage || loading} className="w-full bg-gray-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-black active:scale-95 transition-all">
-                            {loading ? <Loader2 className="animate-spin mx-auto" size={20} /> : "Publish to Gallery"}
+                        <button 
+                            type="button"
+                            onClick={addGalleryImage} 
+                            disabled={!galleryImage || loading} 
+                            className="w-full bg-gray-900 text-white py-5 rounded-3xl font-black uppercase tracking-widest text-xs shadow-2xl hover:bg-black active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                            {loading ? <Loader2 className="animate-spin" size={20} /> : <><Camera size={18} /> Publish to Gallery</>}
                         </button>
                         <div className="grid grid-cols-3 gap-3">
                             {gallery.slice(0, 9).map(g => (

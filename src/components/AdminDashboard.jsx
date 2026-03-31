@@ -15,6 +15,9 @@ import AdminSettings from './admin/AdminSettings';
 import InvoiceCreator from './admin/InvoiceCreator';
 import AdminReviews from './admin/AdminReviews';
 import AdminPartnerships from './admin/AdminPartnerships';
+import AdminWishlists from './admin/AdminWishlists';
+import AdminAnalytics from './admin/AdminAnalytics';
+import { Heart, BarChart3 } from 'lucide-react';
 
 // Shared Global Components
 import InvoiceModal from './InvoiceModal'; // For viewing invoices
@@ -71,7 +74,9 @@ export default function AdminDashboard({
     { id: 'logistics', icon: Truck, label: 'Delivery & Logistics' },
     { id: 'partnerships', icon: Users, label: 'Partnerships' },
     { id: 'reviews', icon: MessageSquare, label: 'Shop Reviews' },
-    { id: 'settings', icon: Settings, label: 'Settings' }
+    { id: 'settings', icon: Settings, label: 'Settings' },
+    { id: 'analytics', icon: BarChart3, label: 'Market Insights' },
+    { id: 'wishlists', icon: Heart, label: 'Customer Interests' }
   ];
 
   const switchTab = (tabId) => {
@@ -237,6 +242,14 @@ export default function AdminDashboard({
               siteContent={siteContent}
               setSiteContent={setSiteContent}
             />
+          )}
+
+          {adminTab === 'wishlists' && (
+            <AdminWishlists products={products} />
+          )}
+
+          {adminTab === 'analytics' && (
+            <AdminAnalytics products={products} orders={orders} />
           )}
 
         </div>

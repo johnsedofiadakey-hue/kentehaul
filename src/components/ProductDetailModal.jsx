@@ -11,12 +11,13 @@ export default function ProductDetailModal({
     onSingleBuy,
     siteContent,
     allProducts,
-    onOpenProduct
+    onOpenProduct,
+    wishlist = [],
+    toggleWishlist
 }) {
     const [quantity, setQuantity] = useState(1);
     const [addedToCart, setAddedToCart] = useState(false);
     const [activeTab, setActiveTab] = useState('description');
-    const [wished, setWished] = useState(false);
 
     // Reviews state
     const [reviews, setReviews] = useState([]);
@@ -182,13 +183,13 @@ export default function ProductDetailModal({
                                 {/* Wishlist + Share floating buttons */}
                                 <div className="absolute bottom-4 right-4 flex flex-col gap-2">
                                     <button
-                                        onClick={() => setWished(!wished)}
+                                        onClick={() => toggleWishlist(product)}
                                         className="p-2.5 bg-white/90 backdrop-blur rounded-full shadow-lg hover:scale-110 active:scale-95 transition-all"
                                     >
                                         <Heart
                                             size={18}
-                                            fill={wished ? '#ef4444' : 'none'}
-                                            className={wished ? 'text-red-500' : 'text-gray-600'}
+                                            fill={(product?.id && wishlist.some(p => p.id === product.id)) ? '#ef4444' : 'none'}
+                                            className={(product?.id && wishlist.some(p => p.id === product.id)) ? 'text-red-500' : 'text-gray-600'}
                                         />
                                     </button>
                                     <button

@@ -2,62 +2,65 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // --- AUTH HELPERS ---
+    // --- HELPERS ---
     function isAdmin() {
       return request.auth != null && request.auth.token.email == 'admin@kentehaul.com';
     }
 
-    // --- PUBLIC READ, ADMIN WRITE ---
-    
-    match /settings/{document} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    match /gallery/{image} {
+    // --- PUBLIC CONTENT (READ ONLY) ---
+    match /settings/{document=**} {
       allow read: if true;
       allow write: if isAdmin();
     }
     
-    match /feedbacks/{feedback} {
+    match /products/{productId} {
       allow read: if true;
       allow write: if isAdmin();
     }
-
-    // --- REVIEWS (PUBLIC CREATE, PUBLIC READ, ADMIN MANAGE) ---
-    match /reviews/{reviewId} {
+    
+    match /gallery/{imageId} {
       allow read: if true;
-      allow create: if request.resource.data.rating >= 1 
-                   && request.resource.data.rating <= 5
-                   && request.resource.data.status == 'pending';
+      allow write: if isAdmin();
+    }
+    
+    match /feedbacks/{feedbackId} {
+      allow read: if true;
+      allow create: if true; // Customers can post reviews
+      allow delete: if isAdmin();
+    }
+
+    // --- SENSITIVE DATA (PROTECTED) ---
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (request.query.limit == 0); // Allow tracking via search by ID if implemented
+      allow get: if true; // Allow tracking by specific ID
+      allow create: if true; // Allow checkout
       allow update, delete: if isAdmin();
     }
     
-    // --- SENSITIVE DATA (ADMIN ONLY / SECURE) ---
-    match /customers/{customer} {
-      allow read: if true; // Required for merge-sets during checkout
-      allow create, update: if true;
-    }
-
-    match /orders/{order} {
-      allow list: if isAdmin();
-      allow get: if true; 
-      allow create: if request.resource.data.status in ['Order Placed', 'Payment Confirmed'];
-      allow update: if isAdmin();
+    match /customers/{phone} {
+      allow read, update: if isAdmin();
+      allow create: if true; // Allow checkout to register customer
     }
     
-    match /products/{product} {
-      allow read: if true;
-      allow write: if isAdmin();
-      // Allow public to decrement stock
-      allow update: if request.resource.data.stockQuantity < resource.data.stockQuantity
-                    || isAdmin();
+    match /wishlists/{clientId} {
+      allow read: if isAdmin();
+      allow write: if true; // Public can sync their own wishlist
     }
     
-    // --- PARTNERSHIPS ---
-    match /partnerships/{partnership} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
+    match /activity_log/{logId} {
+      allow read: if isAdmin();
+      allow create: if true; // Public can log events
+    }
+    
+    match /mail/{mailId} {
+      allow read: if false; // Security: No one reads sent mail triggers
+      allow create: if true; // Anyone can trigger an order receipt
+      allow update, delete: if false;
+    }
+    
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if isAdmin();
     }
   }
 }

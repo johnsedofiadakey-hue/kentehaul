@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { getToken, onMessage } from "firebase/messaging";
-import { db, auth, messaging } from './firebase';
+import { db, auth, messaging, analytics, logEvent } from './firebase';
 
 // --- IMPORTING DEFAULT DATA (Fallback) ---
 import {
@@ -41,6 +41,7 @@ import ProductDetailModal from './components/ProductDetailModal';
 import OrderTrackingModal from './components/OrderTrackingModal';
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 import AdminLoginModal from './components/AdminLoginModal';
+import WishlistDrawer from './components/WishlistDrawer';
 import TrackingPage from './components/TrackingPage';
 import LegalView from './components/LegalView';
 import SEO from './components/SEO';
@@ -76,6 +77,19 @@ export default function App() {
   const [customers, setCustomers] = useState([]);
   const [gallery, setGallery] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
+  const [wishlist, setWishlist] = useState(() => {
+    const cached = localStorage.getItem('kente_wishlist');
+    return cached ? JSON.parse(cached) : [];
+  });
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [clientId] = useState(() => {
+    let id = localStorage.getItem('kente_clientId');
+    if (!id) {
+      id = `client-${Math.random().toString(36).substr(2, 9)}-${Date.now()}`;
+      localStorage.setItem('kente_clientId', id);
+    }
+    return id;
+  });
 
   // ==========================================
   // 2. ANALYTICS / TRACKING (depends on siteContent)
@@ -128,6 +142,58 @@ export default function App() {
   // Order Tracking State
   const [trackingInput, setTrackingInput] = useState('');
   const [trackingResult, setTrackingResult] = useState(null);
+
+  // --- ACTIVITY LOGGING HELPER ---
+  const logActivity = async (type, data) => {
+    try {
+      await addDoc(collection(db, "activity_log"), {
+        type,
+        clientId,
+        ...data,
+        timestamp: serverTimestamp()
+      });
+    } catch (e) {
+      // Fail silently for user, but track for BI
+      console.warn("BI Activity Sync failed:", e);
+    }
+  };
+
+  // Track Product Views
+  useEffect(() => {
+    if (selectedProduct) {
+      logActivity('view_item', { 
+        productId: selectedProduct.id, 
+        productName: selectedProduct.name,
+        category: selectedProduct.category || 'Uncategorized'
+      });
+    }
+  }, [selectedProduct]);
+
+  // Sync Wishlist to LocalStorage and Firestore
+  useEffect(() => {
+    localStorage.setItem('kente_wishlist', JSON.stringify(wishlist));
+
+    const syncWishlist = async () => {
+      try {
+        await setDoc(doc(db, "wishlists", clientId), {
+          items: wishlist.map(p => ({ id: p.id, name: p.name, price: p.price, image: p.image })),
+          itemIds: wishlist.map(p => p.id),
+          updatedAt: serverTimestamp(),
+          clientInfo: {
+            lastVisit: new Date().toLocaleDateString(),
+            platform: navigator.platform
+          }
+        }, { merge: true });
+      } catch (e) {
+        console.warn("Wishlist sync failed:", e);
+      }
+    };
+
+    if (wishlist.length > 0 || localStorage.getItem('kente_wishlist_synced')) {
+      syncWishlist();
+      localStorage.setItem('kente_wishlist_synced', 'true');
+    }
+  }, [wishlist, clientId]);
 
   // ==========================================
   // 3. FIREBASE REAL-TIME LISTENERS
@@ -246,17 +312,19 @@ export default function App() {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
           // Get FCM Token (User should replace VAPID_KEY with their actual key from Firebase Console)
-          const token = await getToken(messaging, { 
-            vapidKey: 'YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_CONSOLE'
-          });
+          const vapidKey = siteContent.vapidKey || 'YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_CONSOLE';
           
-          if (token) {
-            console.log("FCM Token registered:", token);
-            // Store token in settings/siteContent so the admin can receive alerts
-            await updateDoc(doc(db, "settings", "siteContent"), {
-              adminFcmToken: token,
-              lastTokenUpdate: serverTimestamp()
-            });
+          if (vapidKey !== 'YOUR_PUBLIC_VAPID_KEY_FROM_FIREBASE_CONSOLE') {
+            const token = await getToken(messaging, { vapidKey });
+            
+            if (token) {
+              console.log("FCM Token registered:", token);
+              // Store token in settings/siteContent so the admin can receive alerts
+              await updateDoc(doc(db, "settings", "siteContent"), {
+                adminFcmToken: token,
+                lastTokenUpdate: serverTimestamp()
+              });
+            }
           }
         }
       } catch (err) {
@@ -308,6 +376,15 @@ export default function App() {
       if ((product.stockQuantity ?? product.stock ?? 0) > 0) {
         setCart([...cart, { ...product, quantity: 1 }]);
         setIsCartOpen(true);
+        
+        // Google Analytics: Add to Cart
+        if (analytics) {
+          logEvent(analytics, 'add_to_cart', {
+            items: [{ item_id: product.id, item_name: product.name, price: product.price, quantity: 1 }],
+            value: product.price,
+            currency: 'GHS'
+          });
+        }
       } else {
         alert("This item is currently out of stock.");
       }
@@ -472,6 +549,16 @@ export default function App() {
       // COMMIT ALL OR NOTHING
       await batch.commit();
 
+      // Google Analytics: Purchase
+      if (analytics) {
+        logEvent(analytics, 'purchase', {
+          transaction_id: orderId,
+          value: totalAmount,
+          currency: 'GHS',
+          items: cartItems.map(item => ({ item_id: item.id, item_name: item.name, price: item.price, quantity: item.quantity }))
+        });
+      }
+
       // Construct Professional WhatsApp Message
       let message = `*KENTEHAUL ORDER:* ${orderId}\n\n`;
       cart.forEach(item => { message += `• ${item.name} x${item.quantity} - ₵${item.price * item.quantity}\n`; });
@@ -494,6 +581,25 @@ export default function App() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const toggleWishlist = (product) => {
+    setWishlist(prev => {
+      if (!product || !product.id) return prev;
+      const exists = prev.some(p => p.id === product.id);
+      
+      // Log Heart Activity
+      logActivity(exists ? 'unheart_item' : 'heart_item', {
+        productId: product.id,
+        productName: product.name
+      });
+
+      if (exists) {
+        return prev.filter(p => p.id !== product.id);
+      } else {
+        return [...prev, product];
+      }
+    });
   };
 
   const handlePaystackSuccess = async (reference, customerForm) => {
@@ -618,6 +724,16 @@ export default function App() {
       // COMMIT
       await batch.commit();
 
+      // Google Analytics: Purchase
+      if (analytics) {
+        logEvent(analytics, 'purchase', {
+          transaction_id: orderId,
+          value: totalAmount,
+          currency: 'GHS',
+          items: cartItems.map(item => ({ item_id: item.id, item_name: item.name, price: item.price, quantity: item.quantity }))
+        });
+      }
+
       setCart([]);
       // Do NOT close the cart here — CartDrawer's success screen handles closing
       console.log(`✅ Order #${orderId} confirmed and saved to Firestore.`);
@@ -678,7 +794,9 @@ export default function App() {
         <Navbar
           siteContent={siteContent}
           cart={cart}
+          wishlistCount={wishlist.length}
           setIsCartOpen={setIsCartOpen}
+          setIsWishlistOpen={setIsWishlistOpen}
           setIsTrackingOpen={setIsTrackingOpen}
         />
       )}
@@ -696,6 +814,14 @@ export default function App() {
         onWhatsAppCheckout={onWhatsAppCheckout}
       />
 
+      <WishlistDrawer
+        isOpen={isWishlistOpen}
+        onClose={() => setIsWishlistOpen(false)}
+        wishlist={wishlist}
+        toggleWishlist={toggleWishlist}
+        addToCart={addToCart}
+      />
+
       <ProductDetailModal
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
@@ -704,6 +830,8 @@ export default function App() {
         siteContent={siteContent}
         allProducts={products}
         onOpenProduct={setSelectedProduct}
+        wishlist={wishlist}
+        toggleWishlist={toggleWishlist}
       />
 
       <OrderTrackingModal
@@ -727,7 +855,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home siteContent={siteContent} gallery={gallery} feedbacks={feedbacks} />} />
             <Route path="/heritage" element={<Heritage siteContent={siteContent} />} />
-            <Route path="/shop" element={<Shop products={products} currentCategory={currentCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} handleSingleBuy={handleSingleBuy} setSelectedProduct={setSelectedProduct} siteContent={siteContent} />} />
+            <Route path="/shop" element={<Shop products={products} currentCategory={currentCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} handleSingleBuy={handleSingleBuy} setSelectedProduct={setSelectedProduct} siteContent={siteContent} wishlist={wishlist} toggleWishlist={toggleWishlist} />} />
             <Route path="/institute" element={<Institute siteContent={siteContent} products={products} />} />
             <Route path="/contact" element={<Contact siteContent={siteContent} />} />
             <Route path="/track/:orderId" element={<TrackingPage siteContent={siteContent} />} />

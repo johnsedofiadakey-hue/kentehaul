@@ -9,7 +9,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 export default function Navbar({
     siteContent,
     cart,
+    wishlistCount,
     setIsCartOpen,
+    setIsWishlistOpen,
     setIsTrackingOpen
 }) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -302,6 +304,27 @@ export default function Navbar({
                                 <span className="text-[9px] font-black text-gray-400 uppercase mt-1 tracking-widest group-hover:text-amber-600 transition-colors">Track</span>
                             </button>
 
+                            {/* WISHLIST BUTTON */}
+                            <button
+                                onClick={() => setIsWishlistOpen(true)}
+                                className="relative flex flex-col items-center group pt-0.5"
+                            >
+                                <div className="p-3 bg-gray-50 rounded-2xl group-hover:shadow-[0_15px_30px_rgba(0,0,0,0.15)] group-hover:-translate-y-1 transition-all relative group-hover:bg-white">
+                                    <Heart size={22} className={`group-hover:scale-110 transition-all ${wishlistCount > 0 ? 'text-red-500 fill-red-500' : 'text-gray-500 group-hover:text-red-500'}`} />
+                                    {wishlistCount > 0 && (
+                                        <motion.span
+                                            key={wishlistCount}
+                                            initial={{ scale: 0.5, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center p-1 shadow-lg ring-4 ring-white"
+                                        >
+                                            {wishlistCount}
+                                        </motion.span>
+                                    )}
+                                </div>
+                                <span className="text-[9px] font-black text-gray-400 uppercase mt-1 tracking-widest group-hover:text-red-600 transition-colors">Saved</span>
+                            </button>
+
                             {/* CART BUTTON */}
                             <button
                                 onClick={() => setIsCartOpen(true)}
@@ -443,6 +466,25 @@ export default function Navbar({
                                         <div className="flex items-center gap-3">
                                             <Truck size={20} />
                                             <span className="font-black text-xs uppercase tracking-widest">Track order</span>
+                                        </div>
+                                        <ArrowRight size={18} className="opacity-20" />
+                                    </button>
+
+                                    {/* MOBILE WISHLIST */}
+                                    <button
+                                        onClick={() => { setIsWishlistOpen(true); closeMenus(); }}
+                                        className="w-full flex items-center justify-between p-5 bg-red-50 text-red-600 rounded-[24px] active:scale-95 transition"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="relative flex items-center justify-center">
+                                                <Heart size={20} className={wishlistCount > 0 ? 'fill-red-600' : ''} />
+                                                {wishlistCount > 0 && (
+                                                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-red-50 shadow-sm leading-none">
+                                                        {wishlistCount}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className="font-black text-xs uppercase tracking-widest">Saved Heritage</span>
                                         </div>
                                         <ArrowRight size={18} className="opacity-20" />
                                     </button>

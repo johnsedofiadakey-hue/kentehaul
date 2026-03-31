@@ -25,6 +25,7 @@ export const auth = getAuth(app);
 
 // Analytics and Messaging can fail in some environments
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+export { logEvent } from "firebase/analytics";
 
 let messagingInstance = null;
 try {

@@ -587,6 +587,24 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                                 />
                             </div>
                         </div>
+                        
+                        {/* VAPID Key for FCM */}
+                        <div>
+                            <div className="flex items-center justify-between mb-4">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Web Push VAPID Key (FCM)</label>
+                                <SaveIndicator field="vapidKey" />
+                            </div>
+                            <div className="relative">
+                                <Shield size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
+                                <input
+                                    className="w-full p-4 pl-12 bg-gray-50 border-none rounded-2xl font-black text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                                    placeholder="Paste your VAPID key here..."
+                                    defaultValue={siteContent.vapidKey || ''}
+                                    onBlur={e => saveField('vapidKey', e.target.value, siteContent)}
+                                />
+                            </div>
+                            <p className="text-[10px] text-amber-600 font-bold mt-2 uppercase">Required for order alerts on your device.</p>
+                        </div>
 
                         {/* Facebook Pixel */}
                         <div>

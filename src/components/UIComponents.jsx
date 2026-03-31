@@ -42,16 +42,24 @@ export const ImageUpload = ({ image, onUpload, label = "Upload Image", height = 
     const file = e.target.files[0];
     if (!file) return;
 
+    // Basic file validation
+    if (!file.type.startsWith('image/')) {
+      alert("Please upload an image file.");
+      return;
+    }
+
     try {
       setUploading(true);
-      setProgress(10); // Start progress
+      setProgress(10); // Start progress for compression
 
-      // 1. Compress Image
+      // 1. Compress Image (aim for < 500KB)
       const options = {
         maxSizeMB: 0.5,
         maxWidthOrHeight: 1200,
-        useWebWorker: true
+        useWebWorker: true,
+        initialQuality: 0.8
       };
+      
       const compressedFile = await imageCompression(file, options);
       setProgress(30);
 
@@ -60,19 +68,22 @@ export const ImageUpload = ({ image, onUpload, label = "Upload Image", height = 
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExtension}`;
       const storageRef = ref(storage, `cms_images/${fileName}`);
 
+      // Start the upload task
       const uploadTask = uploadBytesResumable(storageRef, compressedFile);
 
       uploadTask.on('state_changed',
         (snapshot) => {
+          // Map progress from 30% to 100% based on upload
           const p = 30 + (snapshot.bytesTransferred / snapshot.totalBytes) * 70;
           setProgress(p);
         },
         (error) => {
           console.error("Upload failed:", error);
-          alert("Image upload failed. Please try again.");
+          alert("Image upload failed: " + error.message);
           setUploading(false);
         },
         async () => {
+          // Finalize
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           onUpload(downloadURL);
           setUploading(false);
@@ -82,7 +93,7 @@ export const ImageUpload = ({ image, onUpload, label = "Upload Image", height = 
 
     } catch (error) {
       console.error("Compression/Upload failed:", error);
-      alert("Image processing failed.");
+      alert("Image processing failed. Please try a different image.");
       setUploading(false);
     }
   };
@@ -90,38 +101,47 @@ export const ImageUpload = ({ image, onUpload, label = "Upload Image", height = 
   return (
     <div className="relative group">
       <label
-        className={`flex flex-col items-center justify-center w-full ${height} border-2 border-dashed rounded-2xl cursor-pointer hover:bg-gray-50 bg-white overflow-hidden relative transition-colors`}
-        style={{ borderColor: primaryColor ? `${primaryColor}40` : '#ccc' }}
+        className={`flex flex-col items-center justify-center w-full ${height} border-2 border-dashed rounded-2xl cursor-pointer hover:bg-gray-50 bg-white overflow-hidden relative transition-all duration-300`}
+        style={{ 
+          borderColor: primaryColor ? `${primaryColor}40` : '#ccc',
+          backgroundColor: uploading ? '#f8fafc' : 'white'
+        }}
       >
         <input type="file" className="hidden" onChange={handleFileChange} accept="image/*" disabled={uploading} />
 
         {uploading ? (
-          <div className="flex flex-col items-center justify-center p-4">
-            <Loader2 className="w-8 h-8 animate-spin mb-2" style={{ color: primaryColor }} />
-            <div className="w-32 bg-gray-100 rounded-full h-1 overflow-hidden">
+          <div className="flex flex-col items-center justify-center p-4 w-full h-full bg-white/80 backdrop-blur-[2px] z-10">
+            <Loader2 className="w-10 h-10 animate-spin mb-3" style={{ color: primaryColor }} />
+            <div className="w-48 bg-gray-100 rounded-full h-1.5 overflow-hidden shadow-inner">
               <div
-                className="h-full transition-all duration-300"
+                className="h-full transition-all duration-300 ease-out"
                 style={{ backgroundColor: primaryColor, width: `${progress}%` }}
               />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest mt-2" style={{ color: primaryColor }}>
-              {progress < 30 ? "Compressing..." : `Uploading ${Math.round(progress)}%`}
+            <span className="text-[10px] font-black uppercase tracking-[2px] mt-3" style={{ color: primaryColor }}>
+              {progress < 30 ? "Optimizing..." : `Uploading ${Math.round(progress)}%`}
             </span>
           </div>
         ) : image ? (
-          <img src={image} alt="Preview" className="h-full w-full object-contain" />
+          <div className="w-full h-full flex items-center justify-center p-2">
+            <img src={image} alt="Preview" className="max-h-full max-w-full object-contain rounded-lg" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 flex items-center justify-center">
+              <Upload className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" size={24} />
+            </div>
+          </div>
         ) : (
-          <div className="flex flex-col items-center text-gray-400">
+          <div className="flex flex-col items-center text-gray-400 group-hover:scale-110 transition-transform duration-300">
             <Upload className="w-8 h-8 mb-2" style={{ color: primaryColor }} />
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: primaryColor }}>{label}</span>
+            <span className="text-[10px] font-black uppercase tracking-[2px]" style={{ color: primaryColor }}>{label}</span>
           </div>
         )}
       </label>
       
       {image && !uploading && (
         <button
-          onClick={(e) => { e.preventDefault(); onUpload(''); }}
-          className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onUpload(''); }}
+          className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-20"
         >
           <X size={14} />
         </button>
