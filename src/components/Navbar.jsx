@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, ShoppingBag, ChevronDown, Truck, ArrowRight, Star, Sparkles, Phone, MapPin, Search } from 'lucide-react';
+import { Menu, X, ShoppingBag, ChevronDown, Truck, ArrowRight, Star, Sparkles, Phone, MapPin, Search, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
