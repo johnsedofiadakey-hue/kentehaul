@@ -3,6 +3,7 @@ import { X, ShoppingBag, Smartphone, BookOpen, Star, ChevronLeft, ChevronRight, 
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import SEO from './SEO';
 
 export default function ProductDetailModal({
     product,
@@ -136,13 +137,38 @@ export default function ProductDetailModal({
                         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
                     />
 
+                    {/* SEO for Social Sharing */}
+                    <SEO 
+                        title={product.name}
+                        description={product.description?.slice(0, 160)}
+                        ogImage={product.image}
+                        ogTitle={`${product.name} - ₵${product.price?.toLocaleString()} | KenteHaul`}
+                        ogDescription={product.description || `Hand-woven authentic ${product.category} from Ghana.`}
+                        canonicalPath={`/shop?product=${product.id}`}
+                        jsonLd={{
+                            "@context": "https://schema.org",
+                            "@type": "Product",
+                            "name": product.name,
+                            "image": product.image,
+                            "description": product.description,
+                            "sku": product.id,
+                            "offers": {
+                                "@type": "Offer",
+                                "price": product.price,
+                                "priceCurrency": "GHS",
+                                "availability": (product.stockQuantity > 0 || product.stock > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                                "url": typeof window !== 'undefined' ? window.location.href : ""
+                            }
+                        }}
+                    />
+
                     {/* Modal — bottom sheet on mobile, centered on desktop */}
                     <motion.div
                         initial={{ y: 100, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: 100, opacity: 0 }}
                         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                        className="relative w-full max-w-4xl h-[92vh] md:h-[85vh] bg-white rounded-t-[40px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+                        className="relative w-full max-w-4xl h-[92vh] md:h-[85vh] bg-white rounded-t-[40px] md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close Button */}
@@ -153,8 +179,7 @@ export default function ProductDetailModal({
                             <X size={20} />
                         </button>
 
-                        {/* === LEFT: IMAGE === */}
-                        <div className="w-full md:w-[45%] bg-gray-50 relative flex-shrink-0">
+                        <div className="w-full md:w-1/2 bg-gray-50 relative flex-shrink-0">
                             {/* Drag handle on mobile */}
                             <div className="md:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-gray-300 rounded-full z-20" />
 
@@ -202,8 +227,7 @@ export default function ProductDetailModal({
                             </div>
                         </div>
 
-                        {/* === RIGHT: PRODUCT DETAILS === */}
-                        <div className="flex-1 flex flex-col overflow-hidden">
+                        <div className="flex-1 md:w-1/2 flex flex-col overflow-hidden">
                             <div className="flex-1 overflow-y-auto p-4 md:p-8">
 
                                 {/* Category breadcrumb */}
@@ -392,7 +416,7 @@ export default function ProductDetailModal({
                         </div>
 
                         {/* === STICKY FOOTER: QUANTITY + BUY BUTTONS === */}
-                        <div className="border-t border-gray-100 p-4 md:p-6 bg-white safe-bottom">
+                        <div className="md:absolute md:bottom-0 md:right-0 md:w-1/2 border-t border-gray-100 p-4 md:p-6 bg-white/90 backdrop-blur-md safe-bottom z-30">
                             { (product.stockQuantity ?? product.stock) > 0 ? (
                                 <>
                                     {/* Quantity selector */}
@@ -419,26 +443,26 @@ export default function ProductDetailModal({
                                     </div>
 
                                     {/* Buy buttons */}
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-2">
                                         <motion.button
                                             onClick={handleAddToCart}
                                             whileTap={{ scale: 0.95 }}
-                                            className="shimmer-premium flex-1 py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-white flex items-center justify-center gap-3 text-sm md:text-base transition-all shadow-[0_15px_30px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] transform hover:-translate-y-1"
+                                            className="shimmer-premium flex-[2] py-4 md:py-6 rounded-2xl md:rounded-3xl font-black text-white flex items-center justify-center gap-3 text-sm transition-all shadow-[0_15px_30px_rgba(0,0,0,0.1)] active:scale-95 transform hover:-translate-y-1"
                                             style={{ backgroundColor: addedToCart ? '#16a34a' : siteContent.primaryColor }}
                                         >
                                             {addedToCart ? (
                                                 <><Check size={20} className="animate-bounce" /> Added!</>
                                             ) : (
-                                                <><ShoppingBag size={20} className="group-hover:scale-110 transition-transform" /> Add to Cart</>
+                                                <><ShoppingBag size={20} /> Add to Cart</>
                                             )}
                                         </motion.button>
                                         <motion.button
                                             onClick={() => onSingleBuy(product)}
-                                            whileTap={{ scale: 0.97 }}
-                                            className="px-5 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"
+                                            whileTap={{ scale: 0.95 }}
+                                            className="flex-1 bg-green-500 text-white rounded-2xl md:rounded-3xl font-black text-[10px] md:text-sm flex flex-col items-center justify-center gap-1 hover:bg-green-600 transition-all shadow-lg active:scale-95"
                                         >
                                             <Smartphone size={18} />
-                                            <span className="hidden sm:inline">WhatsApp</span>
+                                            <span>WhatsApp</span>
                                         </motion.button>
                                     </div>
                                 </>

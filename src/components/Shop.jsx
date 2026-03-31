@@ -249,14 +249,36 @@ export default function Shop({
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
 
             {/* MOBILE FILTERS TOGGLE - Floating or Sticky */}
-            <div className="lg:hidden sticky top-20 z-30 mb-4">
+            {/* MOBILE CATEGORY SCROLL */}
+            <div className="lg:hidden -mx-4 px-4 mb-6 overflow-x-auto scrollbar-hide flex gap-2 pb-2">
+              <button
+                onClick={() => updateCategory(null)}
+                className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${!activeCategory ? 'bg-gray-900 text-white shadow-lg' : 'bg-gray-100 text-gray-500'}`}
+              >
+                All Archives
+              </button>
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => updateCategory(cat.id)}
+                  className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === cat.id ? 'bg-gray-900 text-white shadow-lg' : 'bg-gray-100 text-gray-500'}`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="lg:hidden sticky top-20 z-30 mb-8">
               <div className="bg-white/80 backdrop-blur-md px-4 py-3 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
-                <span className="text-sm font-semibold">Discovery Filter</span>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Discovery</span>
+                  <span className="text-sm font-black text-gray-900 uppercase tracking-tighter">Filters & View</span>
+                </div>
                 <button
                   onClick={() => setIsMobileFiltersOpen(true)}
-                  className="px-4 py-1.5 bg-black text-white text-xs font-bold rounded-full uppercase tracking-tighter"
+                  className="px-6 py-2.5 bg-gray-900 text-white text-[10px] font-black rounded-xl uppercase tracking-widest shadow-md active:scale-95 transition-all"
                 >
-                  Adjust
+                  Refine
                 </button>
               </div>
             </div>

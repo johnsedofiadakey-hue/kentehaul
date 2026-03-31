@@ -1,5 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import OrderSuccessModal from './components/OrderSuccessModal';
 import {
   collection,
   onSnapshot,
@@ -23,9 +25,6 @@ import {
   INITIAL_GALLERY,
   generateOrderId
 } from './data/constants';
-
-// --- IMPORTING COMPONENTS ---
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 // --- IMPORTING COMPONENTS (LAZY LOADED) ---
 import Navbar from './components/Navbar';
@@ -57,8 +56,7 @@ function AdminLoginRequired({ setIsAdminLoginOpen }) {
 
   return null;
 }
-
-export default function App() {
+function KenteHaulLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -69,8 +67,13 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [siteContent, setSiteContent] = useState(() => {
-    const cached = localStorage.getItem('kente_theme');
-    return cached ? JSON.parse(cached) : INITIAL_CONTENT;
+    try {
+      const cached = localStorage.getItem('kente_theme');
+      return cached ? JSON.parse(cached) : INITIAL_CONTENT;
+    } catch (e) {
+      console.warn("Theme restoration failed:", e);
+      return INITIAL_CONTENT;
+    }
   });
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -78,8 +81,13 @@ export default function App() {
   const [gallery, setGallery] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
   const [wishlist, setWishlist] = useState(() => {
-    const cached = localStorage.getItem('kente_wishlist');
-    return cached ? JSON.parse(cached) : [];
+    try {
+      const cached = localStorage.getItem('kente_wishlist');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      console.warn("Wishlist restoration failed:", e);
+      return [];
+    }
   });
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [clientId] = useState(() => {
@@ -124,8 +132,13 @@ export default function App() {
   // 2. UI & NAVIGATION STATE
   // ==========================================
   const [cart, setCart] = useState(() => {
-    const saved = localStorage.getItem('kente_cart');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('kente_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.warn("Cart restoration failed:", e);
+      return [];
+    }
   });
 
   const [currentCategory, setCurrentCategory] = useState(null);
@@ -139,9 +152,9 @@ export default function App() {
   // Admin Authentication State
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
-  // Order Tracking State
-  const [trackingInput, setTrackingInput] = useState('');
-  const [trackingResult, setTrackingResult] = useState(null);
+  // Order Success Tracking
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successOrderData, setSuccessOrderData] = useState({ id: '', total: 0 });
 
   // --- ACTIVITY LOGGING HELPER ---
   const logActivity = async (type, data) => {
@@ -157,6 +170,26 @@ export default function App() {
       console.warn("BI Activity Sync failed:", e);
     }
   };
+
+  // Track Site Visits (Session-based)
+  useEffect(() => {
+    const sessionKey = 'kente_visit_tracked';
+    if (!sessionStorage.getItem(sessionKey)) {
+      const ua = navigator.userAgent;
+      let device = 'Desktop';
+      if (/Android/i.test(ua)) device = 'Android';
+      else if (/iPhone|iPad|iPod/i.test(ua)) device = 'iOS';
+
+      logActivity('site_visit', {
+        device,
+        userAgent: ua,
+        referrer: document.referrer || 'Direct',
+        resolution: `${window.innerWidth}x${window.innerHeight}`,
+        language: navigator.language
+      });
+      sessionStorage.setItem(sessionKey, 'true');
+    }
+  }, []);
 
   // Track Product Views
   useEffect(() => {
@@ -419,7 +452,7 @@ export default function App() {
     console.log("Starting WhatsApp Checkout:", { customerForm, cart });
     
     try {
-      const orderId = customerForm.orderId || `WA-${Date.now()}`;
+      const orderId = customerForm.orderId || `KH-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`;
       const batch = writeBatch(db);
 
       // 0. COMPUTE TOTALS (Trust the UI's finalTotal as the Primary Source of Truth)
@@ -570,10 +603,14 @@ export default function App() {
       setCart([]);
       setIsCartOpen(false);
       
+      // Trigger Success Modal
+      setSuccessOrderData({ id: orderId, total: totalAmount });
+      setIsSuccessModalOpen(true);
+      
       const whatsappPhone = (siteContent.contactPhone || '').replace(/[^0-9]/g, '');
       setTimeout(() => {
         window.open(`https://wa.me/${whatsappPhone}?text=${encodeURIComponent(message)}`, '_blank');
-      }, 500);
+      }, 1500);
 
     } catch (error) {
       console.error("Atomic Checkout Failed (onWhatsAppCheckout):", error);
@@ -735,7 +772,12 @@ export default function App() {
       }
 
       setCart([]);
-      // Do NOT close the cart here — CartDrawer's success screen handles closing
+      setIsCartOpen(false);
+      
+      // Trigger Success Modal
+      setSuccessOrderData({ id: orderId, total: totalAmount });
+      setIsSuccessModalOpen(true);
+      
       console.log(`✅ Order #${orderId} confirmed and saved to Firestore.`);
     } catch (error) {
       console.error("Atomic Payment Write Failed (handlePaystackSuccess):", error);
@@ -764,11 +806,11 @@ export default function App() {
   return (
     <div className="min-h-screen bg-neutral-50 font-sans text-gray-800 flex flex-col overflow-x-hidden">
       <SEO 
-        title={siteContent.heroTitle || "Authentic Ghanaian Kente"}
-        description={siteContent.heroSubtitle || "Discover the finest hand-woven Kente cloth from the heart of Ghana."}
-        ogImage={siteContent.logo || "/favicon.svg"}
-        ogTitle={`${siteContent.heroTitle || "KenteHaul"} | Royal Kente Cloth`}
-        ogDescription="Shop authentic Ghanaian Kente, Smocks, Sashes and more. We deliver heritage to your doorstep."
+        title="KenteHaul | Authentic Royal Ghanaian Kente Cloth"
+        description="The world's premier destination for authentic, hand-woven Ghanaian Kente. Discover the legacy of royalty, heritage, and imperial craftsmanship."
+        ogTitle="KenteHaul - Royal Heritage Collections"
+        ogDescription="Discover the finest hand-woven Ghanaian Kente. Authentic designs delivered worldwide from the heart of Ghana."
+        ogImage={siteContent.heroImage || siteContent.logo || "/favicon.svg"}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "Organization",
@@ -880,6 +922,25 @@ export default function App() {
           }}
         />
       )}
+      {/* SUCCESS MODAL LAYER */}
+      <OrderSuccessModal 
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        orderId={successOrderData?.id || ''}
+        totalAmount={successOrderData?.total || 0}
+        siteContent={siteContent}
+        setIsTrackingOpen={setIsTrackingOpen}
+      />
     </div>
   );
 }
+
+export default function App() {
+  return (
+    <Router>
+      <KenteHaulLayout />
+    </Router>
+  );
+}
+
+
