@@ -345,13 +345,32 @@ export default function App() {
       const orderId = `WA-${Date.now()}`;
       const batch = writeBatch(db);
 
-      // Compute total DIRECTLY from the cart items passed in — never rely on closure/stale state
-      const cartItems = customerForm.items || [];
-      const itemsTotal = cartItems.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity || 1)), 0);
+      // 0. COMPUTE TOTALS (Trust the UI's finalTotal as the Primary Source of Truth)
+      const passedItems = customerForm.items || [];
+      const cartItems = passedItems.length > 0 ? passedItems : cart;
+      
+      // Calculate from items as a sanity check/fallback, but trust the UI's provided total if it's a valid number
+      const uiFinalTotal = Number(customerForm.finalTotal);
+      const itemsTotal = cartItems.reduce((sum, item) => {
+        // Robust numeric extraction: removes everything except numbers and decimals
+        const priceStr = String(item.price || '0').replace(/[^0-9.]/g, '');
+        const p = parseFloat(priceStr) || 0;
+        const q = Number(item.quantity) || 1;
+        return sum + (p * q);
+      }, 0);
+      
       const shippingAmount = Number(customerForm.shippingFee) || 0;
-      const totalAmount = itemsTotal + shippingAmount;
+      
+      // The final decision: Use UI's total if valid, otherwise fallback to calculated
+      const totalAmount = (uiFinalTotal > 0) ? uiFinalTotal : (itemsTotal + shippingAmount);
 
-      console.log('📝 WhatsApp Order totals:', { itemsTotal, shippingAmount, totalAmount, itemCount: cartItems.length });
+      console.log('📝 WhatsApp Checkout Diagnostics:', { 
+        uiFinalTotal,
+        calculatedItemsTotal: itemsTotal, 
+        shippingAmount, 
+        finalTotalUsed: totalAmount,
+        itemCount: cartItems.length 
+      });
 
       // 1. Record/Update Customer Profile (CRM)
       const phoneInput = String(customerForm.phone || '');
@@ -387,8 +406,8 @@ export default function App() {
         }
       });
 
-      // 3. Deduction of Stock (Atomic)
-      for (const item of cart) {
+      // 3. Deduction of Stock (Atomic) — use cartItems for consistency
+      for (const item of cartItems) {
         if (!item.id) continue;
         const prodRef = doc(db, "products", item.id);
         batch.update(prodRef, {
@@ -488,13 +507,32 @@ export default function App() {
       const orderId = reference.reference;
       const batch = writeBatch(db);
 
-      // 0. COMPUTE TOTALS (Never rely on closure/stale state)
-      const cartItems = customerForm.items || [];
-      const itemsTotal = cartItems.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity || 1)), 0);
-      const shippingAmount = Number(customerForm.shippingFee) || 0;
-      const totalAmount = itemsTotal + shippingAmount;
+      // 0. COMPUTE TOTALS (Trust the UI's finalTotal as the Primary Source of Truth)
+      const passedItems = customerForm.items || [];
+      const cartItems = passedItems.length > 0 ? passedItems : cart;
 
-      console.log('💰 Paystack Order totals:', { itemsTotal, shippingAmount, totalAmount, itemCount: cartItems.length });
+      // Calculate from items as a sanity check/fallback, but trust the UI's provided total if it's a valid number
+      const uiFinalTotal = Number(customerForm.finalTotal);
+      const itemsTotal = cartItems.reduce((sum, item) => {
+        // Robust numeric extraction: removes everything except numbers and decimals
+        const priceStr = String(item.price || '0').replace(/[^0-9.]/g, '');
+        const p = parseFloat(priceStr) || 0;
+        const q = Number(item.quantity) || 1;
+        return sum + (p * q);
+      }, 0);
+
+      const shippingAmount = Number(customerForm.shippingFee) || 0;
+      
+      // The final decision: Use UI's total if valid, otherwise fallback to calculated
+      const totalAmount = (uiFinalTotal > 0) ? uiFinalTotal : (itemsTotal + shippingAmount);
+
+      console.log('💰 Paystack Checkout Diagnostics:', { 
+        uiFinalTotal,
+        calculatedItemsTotal: itemsTotal, 
+        shippingAmount, 
+        finalTotalUsed: totalAmount,
+        itemCount: cartItems.length 
+      });
 
       // 1. CRM
       const phoneInput = String(customerForm.phone || '');
@@ -530,8 +568,8 @@ export default function App() {
         }
       });
 
-      // 3. Stock
-      for (const item of cart) {
+      // 3. Stock — use cartItems for consistency
+      for (const item of cartItems) {
         if (!item.id) continue;
         const prodRef = doc(db, "products", item.id);
         batch.update(prodRef, { 
