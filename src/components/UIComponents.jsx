@@ -149,16 +149,61 @@ export const TikTokIcon = ({ size = 24, color = "currentColor", className = "" }
 );
 
 // --- PAYSTACK BUTTON COMPONENT ---
-export const PaystackButton = ({ amount, email, publicKey, onSuccess, onClose }) => {
-  const config = { reference: (new Date()).getTime().toString(), email, amount: amount * 100, publicKey };
+export const PaystackButton = ({ amount, email, publicKey, onSuccess, onClose, primaryColor, secondaryColor }) => {
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  // Generate a unique, traceable reference for every transaction
+  const reference = `KH-${Date.now()}-${Math.floor(Math.random() * 9000 + 1000)}`;
+
+  const config = {
+    reference,
+    email: email || 'guest@kentehaul.com',
+    amount: Math.round(amount * 100), // Paystack uses pesewas (1 GHS = 100 pesewas)
+    publicKey: publicKey || 'pk_test_26140a2b5a94175d96518',
+    currency: 'GHS',
+    channels: ['card', 'mobile_money', 'bank'], // Accept all Ghanaian payment methods
+    metadata: {
+      custom_fields: [
+        { display_name: 'Order Reference', variable_name: 'order_ref', value: reference }
+      ]
+    }
+  };
+
   const initializePayment = usePaystackPayment(config);
+
+  const handleClick = () => {
+    if (isLoading) return;
+    setIsLoading(true);
+    initializePayment(
+      (ref) => {
+        setIsLoading(false);
+        onSuccess(ref);
+      },
+      () => {
+        setIsLoading(false);
+        if (onClose) onClose();
+      }
+    );
+  };
 
   return (
     <button
-      onClick={() => initializePayment(onSuccess, onClose)}
-      className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
+      onClick={handleClick}
+      disabled={isLoading}
+      className="w-full py-5 rounded-[24px] font-black text-white text-sm uppercase tracking-[2px] flex items-center justify-center gap-3 active:scale-95 transition-all shadow-[0_15px_30px_rgba(0,0,0,0.15)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+      style={{ background: `linear-gradient(135deg, ${primaryColor || '#4c1d95'}, ${secondaryColor || '#f97316'})` }}
     >
-      <CreditCard size={20} /> Pay with MoMo / Card
+      {isLoading ? (
+        <>
+          <Loader2 size={20} className="animate-spin" />
+          Processing...
+        </>
+      ) : (
+        <>
+          <CreditCard size={20} />
+          Pay with Card / MoMo
+        </>
+      )}
     </button>
   );
 };

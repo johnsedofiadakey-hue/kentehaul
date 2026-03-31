@@ -568,7 +568,8 @@ export default function App() {
 
       setCart([]);
       setIsCartOpen(false);
-      alert(`Success! Payment received and Order #${orderId} is being prepared.`);
+      // CartDrawer handles the success screen — no alert needed
+      console.log(`✅ Order #${orderId} confirmed and saved to Firestore.`);
     } catch (error) {
       console.error("Atomic Payment Write Failed (handlePaystackSuccess):", error);
       alert("Payment was successful, but database sync failed. Error: " + error.message + ". Keep your reference: " + reference.reference);

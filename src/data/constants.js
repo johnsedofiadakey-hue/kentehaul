@@ -68,10 +68,12 @@ export const INITIAL_CONTENT = {
     { region: 'International', fee: 250 }
   ],
 
-  // Payment Config (Replace with your Public Key)
-  paystackPublicKey: "pk_live_xxxxxxxxxxxxxxxxxxxxxxxx", // REPLACE WITH YOUR PAYSTACK LIVE KEY
-  googleAnalyticsId: "G-XXXXXXXXXX", // REPLACE WITH YOUR GOOGLE ANALYTICS ID (e.g. G-12345678)
-  facebookPixelId: "PIXEL_ID", // REPLACE WITH YOUR FACEBOOK PIXEL ID
+  // Payment Config
+  paystackPublicKey: "pk_test_26140a2b5a94175d96518",
+  paystackEnabled: true,
+  whatsappEnabled: true,
+  googleAnalyticsId: "G-XXXXXXXXXX",
+  facebookPixelId: "PIXEL_ID",
   adminFcmToken: "",
   lastTokenUpdate: null,
 

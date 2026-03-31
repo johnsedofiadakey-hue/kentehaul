@@ -50,6 +50,11 @@ export default function CartDrawer({
 
     const handlePaystack = (ref) => {
         onPaystackSuccess(ref, { ...customerForm, deliveryMethod, shippingRegion, shippingFee, finalTotal });
+        setStep('success');
+    };
+
+    const handleSuccessClose = () => {
+        handleClose();
         setStep('cart');
     };
 
@@ -95,7 +100,7 @@ export default function CartDrawer({
                                 <h2 className="text-xl font-black flex items-center gap-2" style={{ color: siteContent.primaryColor }}>
                                     {step === 'cart' && <><ShoppingBag size={20} /> Your Bag {cartCount > 0 && <span className="text-sm font-bold text-gray-400">({cartCount} items)</span>}</>}
                                     {step === 'details' && '📦 Delivery Details'}
-                                    {step === 'success' && '✅ Order Placed!'}
+                                    {step === 'success' && '✅ Order Confirmed!'}
                                 </h2>
                                 {step === 'cart' && cart.length > 0 && (
                                     <div className="flex gap-2 mt-1">
@@ -397,6 +402,8 @@ export default function CartDrawer({
                                                 publicKey={siteContent.paystackPublicKey}
                                                 onSuccess={handlePaystack}
                                                 onClose={() => { }}
+                                                primaryColor={siteContent.primaryColor}
+                                                secondaryColor={siteContent.secondaryColor}
                                             />
                                         </div>
                                     )}
@@ -415,6 +422,42 @@ export default function CartDrawer({
                                     )}
                                 </div>
                             </>
+                        )}
+
+                        {/* STEP 3: SUCCESS SCREEN */}
+                        {step === 'success' && (
+                            <div className="flex-grow flex flex-col items-center justify-center p-8 text-center">
+                                <div
+                                    className="w-24 h-24 rounded-full flex items-center justify-center mb-6 shadow-xl"
+                                    style={{ background: `linear-gradient(135deg, ${siteContent.primaryColor}, ${siteContent.secondaryColor})` }}
+                                >
+                                    <CheckCircle size={48} color="white" />
+                                </div>
+                                <h2 className="text-2xl font-black text-gray-900 mb-2">Payment Confirmed!</h2>
+                                <p className="text-gray-500 text-sm mb-1">Your order is now being prepared.</p>
+                                <p className="text-gray-400 text-xs mb-8">A confirmation email is on its way to <strong>{customerForm.email}</strong></p>
+
+                                <div className="w-full bg-gray-50 rounded-2xl p-4 mb-6 text-left space-y-2">
+                                    {cart.length > 0 && cart.map(item => (
+                                        <div key={item.id} className="flex justify-between text-sm">
+                                            <span className="text-gray-600">{item.name} <span className="text-gray-400">×{item.quantity}</span></span>
+                                            <span className="font-bold">₵{(item.price * item.quantity).toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                    <div className="border-t pt-2 mt-2 flex justify-between font-black">
+                                        <span>Total Paid</span>
+                                        <span style={{ color: siteContent.secondaryColor }}>₵{finalTotal.toLocaleString()}</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={handleSuccessClose}
+                                    className="w-full py-4 rounded-[24px] font-black text-white text-sm uppercase tracking-[2px] active:scale-95 transition-all"
+                                    style={{ background: `linear-gradient(135deg, ${siteContent.primaryColor}, ${siteContent.secondaryColor})` }}
+                                >
+                                    Continue Shopping
+                                </button>
+                            </div>
                         )}
                     </motion.div>
                 </>
