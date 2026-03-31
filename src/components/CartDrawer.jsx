@@ -18,6 +18,7 @@ export default function CartDrawer({
 }) {
     const [step, setStep] = useState('cart'); // 'cart' | 'details' | 'success'
     const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', riderName: '', riderPhone: '', riderCompany: '', pickupLocationId: '' });
+    const [completedOrder, setCompletedOrder] = useState(null); // Freezes data for success screen
     const [deliveryMethod, setDeliveryMethod] = useState('seller_rider'); // 'customer_rider' | 'seller_rider' | 'pickup'
     const [shippingRegion, setShippingRegion] = useState('Accra');
     const shippingRegions = siteContent.deliveryRegions || [
@@ -31,7 +32,7 @@ export default function CartDrawer({
     const shippingFee = deliveryMethod === 'seller_rider' ? (selectedRegion?.fee || 0) : 0;
     const finalTotal = cartTotal + shippingFee;
 
-    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && customerForm.email.trim() &&
+    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && 
         (deliveryMethod === 'pickup' ? customerForm.pickupLocationId : customerForm.address.trim()) &&
         (deliveryMethod !== 'customer_rider' || (customerForm.riderName.trim() && customerForm.riderPhone.trim()));
     const cartCount = cart.reduce((a, b) => a + b.quantity, 0);
@@ -43,24 +44,27 @@ export default function CartDrawer({
 
     const handleWhatsApp = () => {
         if (isFormValid) {
+            // Freeze data for success screen before App clears the cart
+            setCompletedOrder({ items: [...cart], total: finalTotal, email: customerForm.email });
             onWhatsAppCheckout({ ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal });
-            setStep('cart');
+            setStep('success'); // Show success screen for WhatsApp too
         }
     };
 
     const handlePaystack = async (ref) => {
         try {
+            // Freeze data for success screen before App clears the cart
+            setCompletedOrder({ items: [...cart], total: finalTotal, email: customerForm.email });
             await onPaystackSuccess(ref, { ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal });
             setStep('success');
         } catch (err) {
-            // Payment went through but DB write failed — still show success so customer isn't confused
-            // The reference is logged in App.jsx for admin recovery
             setStep('success');
         }
     };
 
     const handleSuccessClose = () => {
         handleClose();
+        setCompletedOrder(null);
         setStep('cart');
     };
 
@@ -439,20 +443,24 @@ export default function CartDrawer({
                                 >
                                     <CheckCircle size={48} color="white" />
                                 </div>
-                                <h2 className="text-2xl font-black text-gray-900 mb-2">Payment Confirmed!</h2>
-                                <p className="text-gray-500 text-sm mb-1">Your order is now being prepared.</p>
-                                <p className="text-gray-400 text-xs mb-8">A confirmation email is on its way to <strong>{customerForm.email}</strong></p>
+                                <h2 className="text-2xl font-black text-gray-900 mb-2">Order Confirmed!</h2>
+                                <p className="text-gray-500 text-sm mb-1">Your heritage piece is being prepared.</p>
+                                {completedOrder?.email ? (
+                                    <p className="text-gray-400 text-xs mb-8">A confirmation email is on its way to <strong>{completedOrder.email}</strong></p>
+                                ) : (
+                                    <p className="text-gray-400 text-xs mb-8">Thank you for choosing KenteHaul for your royal fabrics.</p>
+                                )}
 
                                 <div className="w-full bg-gray-50 rounded-2xl p-4 mb-6 text-left space-y-2">
-                                    {cart.length > 0 && cart.map(item => (
+                                    {(completedOrder?.items || []).map(item => (
                                         <div key={item.id} className="flex justify-between text-sm">
-                                            <span className="text-gray-600">{item.name} <span className="text-gray-400">×{item.quantity}</span></span>
-                                            <span className="font-bold">₵{(item.price * item.quantity).toLocaleString()}</span>
+                                            <span className="text-gray-600 font-bold">{item.name} <span className="text-gray-400">×{item.quantity}</span></span>
+                                            <span className="font-bold text-gray-900">₵{(Number(item.price) * Number(item.quantity)).toLocaleString()}</span>
                                         </div>
                                     ))}
                                     <div className="border-t pt-2 mt-2 flex justify-between font-black">
-                                        <span>Total Paid</span>
-                                        <span style={{ color: siteContent.secondaryColor }}>₵{finalTotal.toLocaleString()}</span>
+                                        <span className="text-gray-500 uppercase text-[10px] tracking-widest">Total Paid</span>
+                                        <span style={{ color: siteContent.secondaryColor }} className="text-lg">₵{(completedOrder?.total || 0).toLocaleString()}</span>
                                     </div>
                                 </div>
 
