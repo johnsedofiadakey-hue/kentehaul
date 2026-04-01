@@ -129,7 +129,7 @@ export default function CartDrawer({
                                     <motion.div 
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 8 }} // Lowered from 12s to 8s
+                                        transition={{ delay: 5 }} // Lowered from 8s to 5s
                                         className="bg-amber-50 p-6 rounded-[32px] border border-amber-100 shadow-sm flex flex-col items-center max-w-xs"
                                     >
                                         <div className="flex items-center gap-2 mb-3">

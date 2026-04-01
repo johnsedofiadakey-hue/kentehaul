@@ -508,54 +508,10 @@ export default function App() {
     }, 20000);
     
     try {
-      const orderId = customerForm.orderId || `KH-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`;
-      const batch = writeBatch(db);
-
-      // 0. COMPUTE TOTALS (Trust the UI's finalTotal as the Primary Source of Truth)
-      const passedItems = customerForm.items || [];
-      const cartItems = passedItems.length > 0 ? passedItems : cart;
-      
-      // Calculate from items as a sanity check/fallback, but trust the UI's provided total if it's a valid number
-      const uiFinalTotal = Number(customerForm.finalTotal);
-      const itemsTotal = cartItems.reduce((sum, item) => {
-        // Robust numeric extraction: removes everything except numbers and decimals
-        const priceStr = String(item.price || '0').replace(/[^0-9.]/g, '');
-        const p = parseFloat(priceStr) || 0;
-        const q = Number(item.quantity) || 1;
-        return sum + (p * q);
-      }, 0);
-      
-      const shippingAmount = Number(customerForm.shippingFee) || 0;
-      
-      // The final decision: Use UI's total if valid, otherwise fallback to calculated
-      const totalAmount = (uiFinalTotal > 0) ? uiFinalTotal : (itemsTotal + shippingAmount);
-
-      console.log('📝 WhatsApp Checkout Diagnostics:', { 
-        uiFinalTotal,
-        calculatedItemsTotal: itemsTotal, 
-        shippingAmount, 
-        finalTotalUsed: totalAmount,
-        itemCount: cartItems.length 
-      });
-
-      // 1. Record/Update Customer Profile (CRM)
-      const phoneInput = String(customerForm.phone || '');
-      const cleanPhone = phoneInput.replace(/[^0-9]/g, '') || `cust-${Date.now()}`;
-      const custRef = doc(db, "customers", cleanPhone);
-      
-      batch.set(custRef, {
-        name: customerForm.name,
-        email: customerForm.email || '',
-        phone: customerForm.phone,
-        address: customerForm.address || '',
-        totalSpent: increment(totalAmount),
-        lastOrder: serverTimestamp(),
-        orderCount: increment(1)
-      }, { merge: true });
-
-      // 2. Save Official Order
+      // 1. Critical Write: Main Order (AWAIT THIS)
+      console.time('PrimaryOrderSave');
       const orderRef = doc(db, "orders", orderId);
-      batch.set(orderRef, {
+      await setDoc(orderRef, {
         date: new Date().toLocaleDateString(),
         createdAt: serverTimestamp(),
         items: cartItems,
@@ -565,81 +521,52 @@ export default function App() {
         deliveryMethod: customerForm.deliveryMethod || 'seller_rider',
         status: 'Order Placed',
         method: 'WhatsApp Order',
-        customer: {
-            ...customerForm,
-            finalTotal: totalAmount,
-            shippingFee: shippingAmount
-        }
+        customer: { ...customerForm, finalTotal: totalAmount, shippingFee: shippingAmount }
       });
+      console.timeEnd('PrimaryOrderSave');
 
-      // 3. Deduction of Stock (Atomic) — use cartItems for consistency
+      // 2. Secondary Writes: Stock & CRM (NON-BLOCKING BACKGROUND BATCH)
+      const backgroundBatch = writeBatch(db);
+      
+      // Update Customer Profile
+      const phoneInput = String(customerForm.phone || '');
+      const cleanPhone = phoneInput.replace(/[^0-9]/g, '') || `cust-${Date.now()}`;
+      const custRef = doc(db, "customers", cleanPhone);
+      backgroundBatch.set(custRef, {
+        name: customerForm.name,
+        email: customerForm.email || '',
+        phone: customerForm.phone,
+        totalSpent: increment(totalAmount),
+        lastOrder: serverTimestamp(),
+        orderCount: increment(1)
+      }, { merge: true });
+
+      // Update Stock
       for (const item of cartItems) {
         if (!item.id) continue;
         const prodRef = doc(db, "products", item.id);
-        batch.update(prodRef, {
-          stockQuantity: increment(-Number(item.quantity || 1))
-        });
+        backgroundBatch.update(prodRef, { stockQuantity: increment(-Number(item.quantity || 1)) });
       }
 
-      // 4. Trigger Professional Email Receipt
+      // Fire and forget: We don't await the background batch commit
+      backgroundBatch.commit().catch(e => console.warn("[BACKGROUND] CRM/Stock sync failed:", e));
+
+      // 3. Side Effects: Mail (NON-BLOCKING)
       if (customerForm.email) {
-        const emailHtml = `
-          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
-            <div style="background-color: ${siteContent.primaryColor || '#4c1d95'}; padding: 40px 20px; text-align: center; color: white; border-radius: 16px 16px 0 0;">
-              <h1 style="margin: 0; font-size: 28px; font-weight: 900;">Order Received!</h1>
-              <p style="margin: 10px 0 0; opacity: 0.9;">We've started weaving your story, ${customerForm.name}.</p>
+          const emailHtml = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2>Order Confirmed!</h2>
+              <p>Your royal order <strong>#${orderId}</strong> has been secured.</p>
             </div>
-            <div style="padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; background-color: #fff;">
-              <p style="font-size: 16px; margin-bottom: 25px;">Hello <strong>${customerForm.name}</strong>,</p>
-              <p style="margin-bottom: 25px;">Thank you for choosing KenteHaul! Your order <strong>#${orderId}</strong> is now in our system and awaiting processing.</p>
-              
-              <div style="background-color: #f9fafb; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
-                <h3 style="margin: 0 0 15px; font-size: 14px; text-transform: uppercase; color: #6b7280; letter-spacing: 1px;">Order Summary</h3>
-                <table style="width: 100%; border-collapse: collapse;">
-                  ${cart.map(item => `
-                    <tr>
-                      <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
-                        <span style="font-weight: bold; display: block;">${item.name}</span>
-                        <span style="font-size: 12px; color: #6b7280;">Quantity: ${item.quantity}</span>
-                      </td>
-                      <td style="text-align: right; padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;">₵${(item.price * item.quantity).toLocaleString()}</td>
-                    </tr>
-                  `).join('')}
-                  <tr>
-                    <td style="padding-top: 15px; font-weight: bold;">Total Paid</td>
-                    <td style="padding-top: 15px; text-align: right; font-weight: 900; font-size: 18px; color: ${siteContent.secondaryColor || '#f97316'};">₵${totalAmount.toLocaleString()}</td>
-                  </tr>
-                </table>
-              </div>
-
-              <div style="text-align: center; margin-top: 35px;">
-                <a href="${window.location.origin}/track/${orderId}" style="background-color: ${siteContent.primaryColor || '#4c1d95'}; color: white; padding: 15px 30px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Track Your Order</a>
-              </div>
-              
-              <hr style="border: none; border-top: 1px solid #eee; margin: 35px 0;" />
-              <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">&copy; 2026 KenteHaul Ghana. All rights reserved.</p>
-            </div>
-          </div>
-        `;
-
-        // NON-BLOCKING MAIL TRIGGER
-        addDoc(collection(db, "mail"), {
-          to: customerForm.email,
-          message: {
-            subject: `KenteHaul Order Confirmed #${orderId}`,
-            html: emailHtml
-          }
-        }).catch(e => console.warn("Background Mail trigger failed:", e));
+          `;
+          addDoc(collection(db, "mail"), {
+            to: customerForm.email,
+            message: { subject: `Order Confirmed #${orderId}`, html: emailHtml }
+          }).catch(e => console.warn("Email trigger failed:", e));
       }
 
-      // COMMIT ALL OR NOTHING
-      console.time('OrderCommit'); // Trace performance
-      console.info("[CHECKOUT] Committing atomic batch to Firestore...");
-      await batch.commit();
-      console.timeEnd('OrderCommit');
-      console.info("[CHECKOUT] Batch committed successfully.");
-      
-      // RELEASE UI EAGERLY: Don't wait for analytics/message formatting to show success
+      // RELEASE UI IMMEDIATELY
+      console.info("[CHECKOUT] Order secured. Releasing UI...");
       setIsProcessing(false);
       clearTimeout(safetyTimer);
 
@@ -726,23 +653,10 @@ export default function App() {
       const shippingAmount = Number(customerForm.shippingFee) || 0;
       const totalAmount = (uiFinalTotal > 0) ? uiFinalTotal : (itemsTotal + shippingAmount);
 
-      // 1. CRM
-      const phoneInput = String(customerForm.phone || '');
-      const cleanPhone = phoneInput.replace(/[^0-9]/g, '') || `cust-${Date.now()}`;
-      const custRef = doc(db, "customers", cleanPhone);
-      batch.set(custRef, {
-        name: customerForm.name,
-        email: customerForm.email || '',
-        phone: customerForm.phone,
-        address: customerForm.address || '',
-        totalSpent: increment(totalAmount),
-        lastOrder: serverTimestamp(),
-        orderCount: increment(1)
-      }, { merge: true });
-
-      // 2. PAID Order
+      // 1. Critical Write: Main PAID Order (AWAIT THIS)
+      console.time('PaystackOrderSave');
       const orderRef = doc(db, "orders", orderId);
-      batch.set(orderRef, {
+      await setDoc(orderRef, {
         date: new Date().toLocaleDateString(),
         createdAt: serverTimestamp(),
         items: cartItems,
@@ -754,33 +668,46 @@ export default function App() {
         method: 'Paystack Card/Momo',
         customer: { ...customerForm, finalTotal: totalAmount, shippingFee: shippingAmount }
       });
+      console.timeEnd('PaystackOrderSave');
 
-      // 3. Stock
+      // 2. Secondary Writes: Stock & CRM (NON-BLOCKING)
+      const backgroundBatch = writeBatch(db);
+      
+      const phoneInput = String(customerForm.phone || '');
+      const cleanPhone = phoneInput.replace(/[^0-9]/g, '') || `cust-${Date.now()}`;
+      const custRef = doc(db, "customers", cleanPhone);
+      backgroundBatch.set(custRef, {
+        name: customerForm.name,
+        email: customerForm.email || '',
+        phone: customerForm.phone,
+        totalSpent: increment(totalAmount),
+        lastOrder: serverTimestamp(),
+        orderCount: increment(1)
+      }, { merge: true });
+
       for (const item of cartItems) {
         if (!item.id) continue;
         const prodRef = doc(db, "products", item.id);
-        batch.update(prodRef, { stockQuantity: increment(-Number(item.quantity || 1)) });
+        backgroundBatch.update(prodRef, { stockQuantity: increment(-Number(item.quantity || 1)) });
       }
+      backgroundBatch.commit().catch(e => console.warn("[BACKGROUND] CRM/Stock failed:", e));
 
-      // 4. NON-BLOCKING Email
+      // 3. Side Effects: Mail (NON-BLOCKING)
       if (customerForm.email) {
         const orderSummaryHtml = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2>Payment Confirmed!</h2>
-            <p>Order #${orderId} is being processed.</p>
+            <h2>Payment Successful!</h2>
+            <p>Your order <strong>#${orderId}</strong> is now being prepared.</p>
           </div>
-        `; // Simplified for brevity in this replacement, but you can restore complexity later
+        `;
         addDoc(collection(db, "mail"), {
           to: customerForm.email,
-          message: { subject: `KenteHaul Payment Confirmed - #${orderId}`, html: orderSummaryHtml }
+          message: { subject: `Payment Confirmed - #${orderId}`, html: orderSummaryHtml }
         }).catch(e => console.warn("Mail failed:", e));
       }
 
-      // COMMIT
-      console.time('PaystackCommit');
-      await batch.commit();
-      console.timeEnd('PaystackCommit');
-      
+      // RELEASE UI IMMEDIATELY
+      console.info("[PAYSTACK] Payment secured. Releasing UI...");
       setIsProcessing(false);
       clearTimeout(safetyTimer);
 
