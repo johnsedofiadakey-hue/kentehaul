@@ -86,11 +86,26 @@ export default function ProductDetailModal({
     };
 
     const handleShare = async () => {
-        const text = `Check out ${product.name} on KenteHaul! ₵${product.price}`;
+        const shareUrl = `${window.location.origin}/shop?product=${product.id}`;
+        const shareText = `Check out ${product.name} on KenteHaul! ₵${product.price?.toLocaleString()}`;
+        
         if (navigator.share) {
-            try { await navigator.share({ title: product.name, text }); } catch (e) { }
+            try { 
+                await navigator.share({ 
+                    title: product.name, 
+                    text: shareText,
+                    url: shareUrl
+                }); 
+            } catch (e) { 
+                console.warn("Sharing failed:", e);
+            }
         } else {
-            navigator.clipboard.writeText(window.location.href);
+            try {
+                await navigator.clipboard.writeText(`${shareText}\n\nView here: ${shareUrl}`);
+                alert("Link and description copied to clipboard!");
+            } catch (err) {
+                console.error("Clipboard copy failed:", err);
+            }
         }
     };
 

@@ -31,30 +31,37 @@ service cloud.firestore {
 
     // --- SENSITIVE DATA (PROTECTED) ---
     match /orders/{orderId} {
-      allow read: if isAdmin() || (request.query.limit == 0); // Allow tracking via search by ID if implemented
+      allow read: if isAdmin() || (request.query.limit == 0); 
       allow get: if true; // Allow tracking by specific ID
       allow create: if true; // Allow checkout
       allow update, delete: if isAdmin();
     }
     
     match /customers/{phone} {
-      allow read, update: if isAdmin();
-      allow create: if true; // Allow checkout to register customer
+      allow read: if isAdmin(); // Protect CRM data
+      allow create, update: if true; // Public can register/update their own profile during checkout
+      allow delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stockQuantity']) || isAdmin();
+      allow create, delete: if isAdmin();
     }
     
     match /wishlists/{clientId} {
       allow read: if isAdmin();
-      allow write: if true; // Public can sync their own wishlist
+      allow write: if true; 
     }
     
     match /activity_log/{logId} {
       allow read: if isAdmin();
-      allow create: if true; // Public can log events
+      allow create: if true; 
     }
     
     match /mail/{mailId} {
-      allow read: if false; // Security: No one reads sent mail triggers
-      allow create: if true; // Anyone can trigger an order receipt
+      allow read: if false; 
+      allow create: if true; 
       allow update, delete: if false;
     }
     
