@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { FileText, Palette, Sliders, CheckCircle, RefreshCw, Eye, Save, Plus, Trash2, Truck, Shield, Clock, Activity, Globe } from 'lucide-react';
+import { FileText, Palette, Sliders, CheckCircle, RefreshCw, Eye, Save, Plus, Trash2, Truck, Shield, Clock, Activity, Globe, Mail } from 'lucide-react';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from '../../firebase';
 import { ImageUpload } from '../UIComponents';
