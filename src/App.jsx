@@ -1,7 +1,8 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Routes, Route, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import OrderSuccessModal from './components/OrderSuccessModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import {
   collection,
   onSnapshot,
@@ -209,19 +210,24 @@ export default function App() {
 
   // Deep Linking: Auto-open product modal if ID is in URL
   const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkProcessed = useRef(false);
+
   useEffect(() => {
     const productId = searchParams.get('product');
-    if (productId && products.length > 0) {
+    if (!productId) return;
+
+    if (products.length > 0 && !deepLinkProcessed.current) {
       const product = products.find(p => p.id === productId);
       if (product) {
+        deepLinkProcessed.current = true;
         setSelectedProduct(product);
-        // Clear param to avoid re-opening on every refresh/state change
+        // Clean URL to prevent re-triggering
         const newParams = new URLSearchParams(searchParams);
         newParams.delete('product');
         setSearchParams(newParams, { replace: true });
       }
     }
-  }, [products, searchParams]);
+  }, [products, searchParams, setSearchParams]);
 
   // Sync Wishlist to LocalStorage and Firestore
   useEffect(() => {
@@ -799,9 +805,11 @@ export default function App() {
       setCart([]);
       setIsCartOpen(false);
       
-      // Trigger Success Modal
-      setSuccessOrderData({ id: orderId, total: totalAmount });
-      setIsSuccessModalOpen(true);
+      // Delay success modal slightly to prevent race conditions during unmount/mount
+      setTimeout(() => {
+        setSuccessOrderData({ id: orderId, total: totalAmount });
+        setIsSuccessModalOpen(true);
+      }, 300);
       
       console.log(`✅ Order #${orderId} confirmed and saved to Firestore.`);
     } catch (error) {
@@ -919,24 +927,26 @@ export default function App() {
       />
 
       <main className="flex-grow">
-        <Suspense fallback={<div className="h-screen flex items-center justify-center"><div className="animate-pulse text-xl font-light">Loading Kente Heritage...</div></div>}>
-          <Routes>
-            <Route path="/" element={<Home siteContent={siteContent} gallery={gallery} feedbacks={feedbacks} />} />
-            <Route path="/heritage" element={<Heritage siteContent={siteContent} />} />
-            <Route path="/shop" element={<Shop products={products} currentCategory={currentCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} handleSingleBuy={handleSingleBuy} setSelectedProduct={setSelectedProduct} siteContent={siteContent} wishlist={wishlist} toggleWishlist={toggleWishlist} />} />
-            <Route path="/institute" element={<Institute siteContent={siteContent} products={products} />} />
-            <Route path="/contact" element={<Contact siteContent={siteContent} />} />
-            <Route path="/track/:orderId" element={<TrackingPage siteContent={siteContent} />} />
-            <Route path="/privacy-policy" element={<LegalView title="Privacy Policy" content={siteContent.privacyPolicy} siteContent={siteContent} type="privacy" />} />
-            <Route path="/terms-conditions" element={<LegalView title="Terms & Conditions" content={siteContent.termsConditions} siteContent={siteContent} type="terms" />} />
-            <Route path="/refund-policy" element={<LegalView title="Refund & Return Policy" content={siteContent.refundPolicy} siteContent={siteContent} type="refund" />} />
-            <Route path="/admin" element={isAdminAuthenticated ? (
-              <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="animate-spin text-4xl">⌛</div></div>}>
-                <AdminDashboard siteContent={siteContent} setSiteContent={setSiteContent} products={products} orders={orders} setOrders={setOrders} gallery={gallery} setGallery={setGallery} feedbacks={feedbacks} setFeedbacks={setFeedbacks} customers={customers} setIsAdminAuthenticated={setIsAdminAuthenticated} />
-              </Suspense>
-            ) : <AdminLoginRequired setIsAdminLoginOpen={setIsAdminLoginOpen} />} />
-          </Routes>
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<div className="h-screen flex items-center justify-center"><div className="animate-pulse text-xl font-light">Loading Kente Heritage...</div></div>}>
+            <Routes>
+              <Route path="/" element={<Home siteContent={siteContent} gallery={gallery} feedbacks={feedbacks} />} />
+              <Route path="/heritage" element={<Heritage siteContent={siteContent} />} />
+              <Route path="/shop" element={<Shop products={products} currentCategory={currentCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} handleSingleBuy={handleSingleBuy} setSelectedProduct={setSelectedProduct} siteContent={siteContent} wishlist={wishlist} toggleWishlist={toggleWishlist} />} />
+              <Route path="/institute" element={<Institute siteContent={siteContent} products={products} />} />
+              <Route path="/contact" element={<Contact siteContent={siteContent} />} />
+              <Route path="/track/:orderId" element={<TrackingPage siteContent={siteContent} />} />
+              <Route path="/privacy-policy" element={<LegalView title="Privacy Policy" content={siteContent.privacyPolicy} siteContent={siteContent} type="privacy" />} />
+              <Route path="/terms-conditions" element={<LegalView title="Terms & Conditions" content={siteContent.termsConditions} siteContent={siteContent} type="terms" />} />
+              <Route path="/refund-policy" element={<LegalView title="Refund & Return Policy" content={siteContent.refundPolicy} siteContent={siteContent} type="refund" />} />
+              <Route path="/admin" element={isAdminAuthenticated ? (
+                <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="animate-spin text-4xl">⌛</div></div>}>
+                  <AdminDashboard siteContent={siteContent} setSiteContent={setSiteContent} products={products} orders={orders} setOrders={setOrders} gallery={gallery} setGallery={setGallery} feedbacks={feedbacks} setFeedbacks={setFeedbacks} customers={customers} setIsAdminAuthenticated={setIsAdminAuthenticated} />
+                </Suspense>
+              ) : <AdminLoginRequired setIsAdminLoginOpen={setIsAdminLoginOpen} />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </main>
 
       {!isAdminPath && (

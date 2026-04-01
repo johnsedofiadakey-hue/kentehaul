@@ -162,7 +162,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                                         type="text"
                                         className="flex-1 p-4 bg-white border border-gray-200 rounded-[20px] font-bold text-sm outline-none focus:border-blue-300"
                                         placeholder="Region Name (e.g., Accra)"
-                                        value={region.region}
+                                        value={region?.region || ''}
                                         onChange={e => handleUpdateRegion(index, 'region', e.target.value)}
                                         onBlur={handleRegionBlur}
                                     />
@@ -248,11 +248,11 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                             <input
                                 type="color"
                                 className="h-16 w-16 rounded-2xl cursor-pointer border-none bg-transparent"
-                                value={siteContent.primaryColor}
+                                value={siteContent?.primaryColor || '#4c1d95'}
                                 onChange={e => handleColorChange('primaryColor', e.target.value)}
                             />
                             <div>
-                                <p className="font-black text-gray-400 font-mono tracking-widest">{siteContent.primaryColor}</p>
+                                <p className="font-black text-gray-400 font-mono tracking-widest">{siteContent?.primaryColor || '#4c1d95'}</p>
                                 <p className="text-[10px] text-gray-400 mt-1">Navbar, buttons, headings</p>
                             </div>
                         </div>
@@ -268,11 +268,11 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                             <input
                                 type="color"
                                 className="h-16 w-16 rounded-2xl cursor-pointer border-none bg-transparent"
-                                value={siteContent.secondaryColor}
+                                value={siteContent?.secondaryColor || '#f97316'}
                                 onChange={e => handleColorChange('secondaryColor', e.target.value)}
                             />
                             <div>
-                                <p className="font-black text-gray-400 font-mono tracking-widest">{siteContent.secondaryColor}</p>
+                                <p className="font-black text-gray-400 font-mono tracking-widest">{siteContent?.secondaryColor || '#f97316'}</p>
                                 <p className="text-[10px] text-gray-400 mt-1">Prices, badges, accents</p>
                             </div>
                         </div>

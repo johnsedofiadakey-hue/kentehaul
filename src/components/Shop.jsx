@@ -102,8 +102,9 @@ export default function Shop({
 
   const handleShare = async (e, p) => {
     e.stopPropagation();
+    if (!p || !p.id) return;
     const url = `${window.location.origin}/shop?product=${p.id}`;
-    const text = `Check out ${p.name} on KenteHaul! ₵${p.price?.toLocaleString()}`;
+    const text = `Check out ${p.name || 'this piece'} on KenteHaul! ₵${(p.price || 0).toLocaleString()}`;
     if (navigator.share) {
       try { await navigator.share({ title: p.name, text, url }); }
       catch (err) { console.warn("Share failed", err); }
@@ -509,13 +510,13 @@ export default function Shop({
                         {/* Heart + Share buttons */}
                         <div className="absolute -bottom-12 right-0 md:-bottom-16 flex flex-col gap-2 z-40 pointer-events-auto">
                           <button
-                            onClick={(e) => { e.stopPropagation(); toggleWishlist(p); }}
+                            onClick={(e) => { e.stopPropagation(); toggleWishlist && toggleWishlist(p); }}
                             className="p-2.5 md:p-3.5 bg-white shadow-xl rounded-2xl hover:scale-110 active:scale-95 transition-all group/heart"
                           >
                             <Heart
                               size={18}
-                              fill={(p.id && wishlist.some(item => item.id === p.id)) ? '#ef4444' : 'none'}
-                              className={`transition-colors duration-300 ${(p.id && wishlist.some(item => item.id === p.id)) ? 'text-red-500' : 'text-gray-400 group-hover/heart:text-red-400'}`}
+                              fill={(p.id && (wishlist || []).some(item => item.id === p.id)) ? '#ef4444' : 'none'}
+                              className={`transition-colors duration-300 ${(p.id && (wishlist || []).some(item => item.id === p.id)) ? 'text-red-500' : 'text-gray-400 group-hover/heart:text-red-400'}`}
                             />
                           </button>
                           <button

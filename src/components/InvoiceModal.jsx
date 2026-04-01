@@ -57,26 +57,34 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
     try {
       const element = componentRef.current;
       
-      // Use html2canvas to capture the element. 
-      // We use onclone to ensure the captured version is full-size (unscaled)
+      // Settle delay: ensures React has finished any final layout shifts
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Use a lower scale on mobile to prevent memory-related blank canvases
+      const captureScale = typeof window !== 'undefined' && window.innerWidth < 768 ? 1.5 : 2.5;
+
       const canvas = await html2canvas(element, {
-        scale: 3, // High scale for crisp PDF quality
+        scale: captureScale, 
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
         onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.querySelector('.invoice-container');
+          // Robust selector for the specific cloned invoice
+          const clonedElement = clonedDoc.body.querySelector('.invoice-container');
           if (clonedElement) {
+            // Remove transitions and transformations during capture
+            clonedElement.style.transition = 'none';
             clonedElement.style.transform = 'none';
             clonedElement.style.margin = '0';
             clonedElement.style.width = '210mm';
             clonedElement.style.height = '297mm';
+            clonedElement.style.position = 'relative';
           }
         }
       });
       
       setShareStatus('uploading');
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgData = canvas.toDataURL('image/jpeg', 0.9); // Slight compression to reduce size
       const pdf = new jsPDF('p', 'mm', 'a4');
       pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
       const blob = pdf.output('blob');
@@ -87,7 +95,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
       return downloadURL;
     } catch (err) {
       console.error("PDF Error:", err);
-      throw new Error("Failed to generate PDF.");
+      throw new Error("Invoice generation failed. Please try again from a desktop if the problem persists.");
     }
   };
 
