@@ -27,6 +27,26 @@ import {
 import { db } from '../../firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const StatCard = ({ title, value, icon: Icon, color, trend }) => (
+    <div className="bg-white p-8 rounded-[40px] shadow-sm border border-gray-50 flex flex-col justify-between hover:shadow-md transition-all font-sans">
+        <div className="flex items-center justify-between mb-4">
+            <div className={`p-4 rounded-2xl ${color}`}>
+                <Icon size={24} className="text-white" />
+            </div>
+            {trend && (
+                <div className="flex items-center gap-1 text-green-500 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
+                    <TrendingUp size={12} />
+                    <span className="text-[10px] font-black">{trend}%</span>
+                </div>
+            )}
+        </div>
+        <div>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-2">{title}</p>
+            <p className="text-3xl font-black text-gray-900 tracking-tighter">{Number(value || 0).toLocaleString()}</p>
+        </div>
+    </div>
+);
+
 export default function AdminAnalytics({ products, orders }) {
     const [wishlists, setWishlists] = useState([]);
     const [activity, setActivity] = useState([]);
@@ -43,28 +63,38 @@ export default function AdminAnalytics({ products, orders }) {
         recentActivity: []
     });
     const [loading, setLoading] = useState(true);
-    const [leaderboardTab, setLeaderboardTab] = useState('hearted'); // 'hearted' or 'viewed'
-    const [activeTab, setActiveTab] = useState('Hottest'); // 'Hottest' | 'Rising' | 'Potential'
+    const [leaderboardTab, setLeaderboardTab] = useState('hearted'); 
+    const [activeTab, setActiveTab] = useState('Hottest');
 
     useEffect(() => {
-        // Listen to activity log
-        const unsubActivity = onSnapshot(collection(db, "activity_log"), (snap) => {
-            const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setActivity(list);
-            calculateBI(wishlists, list);
-        });
+        let unsubActivity;
+        let unsubWishlists;
 
-        // Listen to wishlists
-        const unsubWishlists = onSnapshot(collection(db, "wishlists"), (snap) => {
-            const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setWishlists(list);
-            calculateBI(list, activity);
-            setLoading(false);
-        });
+        const setupListeners = () => {
+            unsubActivity = onSnapshot(collection(db, "activity_log"), (snap) => {
+                const activityList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setActivity(activityList);
+                setWishlists(prevW => {
+                    calculateBI(prevW, activityList);
+                    return prevW;
+                });
+            });
 
+            unsubWishlists = onSnapshot(collection(db, "wishlists"), (snap) => {
+                const wishlistList = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setWishlists(wishlistList);
+                setActivity(prevA => {
+                    calculateBI(wishlistList, prevA);
+                    return prevA;
+                });
+                setLoading(false);
+            });
+        };
+
+        setupListeners();
         return () => {
-            unsubActivity();
-            unsubWishlists();
+            if (unsubActivity) unsubActivity();
+            if (unsubWishlists) unsubWishlists();
         };
     }, [products, orders]);
 
@@ -180,29 +210,10 @@ export default function AdminAnalytics({ products, orders }) {
         }));
     };
 
-    const StatCard = ({ title, value, icon: Icon, color, trend }) => (
-        <div className="bg-white p-8 rounded-[40px] shadow-sm border border-gray-50 flex flex-col justify-between hover:shadow-md transition-all">
-            <div className="flex items-center justify-between mb-4">
-                <div className={`p-4 rounded-2xl ${color}`}>
-                    <Icon size={24} className="text-white" />
-                </div>
-                {trend && (
-                    <div className="flex items-center gap-1 text-green-500 font-black text-xs bg-green-50 px-3 py-1 rounded-full">
-                        <ArrowUpRight size={14} /> {trend}%
-                    </div>
-                )}
-            </div>
-            <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[4px] mb-1">{title}</p>
-                <p className="text-3xl font-black text-gray-900">{value}</p>
-            </div>
-        </div>
-    );
-
     if (loading) return (
-        <div className="h-96 flex flex-col items-center justify-center gap-4">
-            <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest animate-pulse">Aggregating Heritage Data...</p>
+        <div className="flex flex-col h-[60vh] items-center justify-center space-y-4 animate-pulse">
+            <div className="w-16 h-16 border-4 border-gray-100 border-t-amber-500 rounded-full animate-spin"></div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-[4px]">Aggregating Heritage Data...</p>
         </div>
     );
 

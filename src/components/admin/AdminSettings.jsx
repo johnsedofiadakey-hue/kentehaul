@@ -1027,6 +1027,58 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                     </div>
                 </div>
 
+                <div className="mt-8 border-t border-gray-100 pt-8 space-y-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <Mail className="text-blue-500" size={20} />
+                        <h3 className="font-black text-sm text-gray-900 uppercase tracking-widest">Invoice & Communication Templates</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-6 bg-blue-50/30 p-8 rounded-[40px] border border-blue-100">
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Invoice Email Subject</label>
+                                <SaveIndicator field="invoiceEmailSubject" />
+                            </div>
+                            <input
+                                className="w-full p-4 bg-white border border-gray-100 rounded-[20px] font-bold text-sm outline-none shadow-sm"
+                                placeholder="e.g. Your Invoice for Order #[orderId]"
+                                value={siteContent.invoiceEmailSubject || ''}
+                                onChange={e => updateField('invoiceEmailSubject', e.target.value)}
+                                onBlur={e => saveField('invoiceEmailSubject', e.target.value, siteContent)}
+                            />
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Invoice Email Body (HTML Supported)</label>
+                                <SaveIndicator field="invoiceEmailBody" />
+                            </div>
+                            <textarea
+                                className="w-full p-6 bg-white border border-gray-100 rounded-[30px] font-medium text-sm outline-none shadow-sm h-32 resize-none"
+                                placeholder="Hello [customerName], please find your invoice for #[orderId] attached. Total: ₵[total]."
+                                value={siteContent.invoiceEmailBody || ''}
+                                onChange={e => updateField('invoiceEmailBody', e.target.value)}
+                                onBlur={e => saveField('invoiceEmailBody', e.target.value, siteContent)}
+                            />
+                        </div>
+
+                        <div className="space-y-4 pt-4 border-t border-blue-100">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Invoice WhatsApp Message</label>
+                                <SaveIndicator field="invoiceWhatsAppMsg" />
+                            </div>
+                            <textarea
+                                className="w-full p-6 bg-white border border-gray-100 rounded-[30px] font-black text-sm outline-none shadow-sm h-32 resize-none text-green-700"
+                                placeholder="Hello [customerName], here is your invoice for Order #[orderId]: [invoiceUrl]"
+                                value={siteContent.invoiceWhatsAppMsg || ''}
+                                onChange={e => updateField('invoiceWhatsAppMsg', e.target.value)}
+                                onBlur={e => saveField('invoiceWhatsAppMsg', e.target.value, siteContent)}
+                            />
+                            <p className="text-[10px] text-gray-400 font-bold">Use [customerName], [orderId], [total], and [invoiceUrl] as placeholders.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="mt-8 border-t border-gray-100 pt-8 space-y-4">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Social Media Links</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1051,7 +1103,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                     </div>
                 </div>
 
-                <div className="mt-8 border-t border-gray-100 pt-8">
+                <div className="mt-8 border-t border-gray-100 pt-8 space-y-4">
                     <div className="flex items-center justify-between mb-2">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Footer Copyright Text</label>
                         <SaveIndicator field="footerText" />
@@ -1065,6 +1117,6 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                     />
                 </div>
             </div>
-        </div >
+        </div>
     );
 }

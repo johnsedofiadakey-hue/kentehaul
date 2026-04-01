@@ -207,6 +207,22 @@ export default function App() {
     }
   }, [selectedProduct]);
 
+  // Deep Linking: Auto-open product modal if ID is in URL
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const productId = searchParams.get('product');
+    if (productId && products.length > 0) {
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        setSelectedProduct(product);
+        // Clear param to avoid re-opening on every refresh/state change
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('product');
+        setSearchParams(newParams, { replace: true });
+      }
+    }
+  }, [products, searchParams]);
+
   // Sync Wishlist to LocalStorage and Firestore
   useEffect(() => {
     localStorage.setItem('kente_wishlist', JSON.stringify(wishlist));
@@ -456,6 +472,9 @@ export default function App() {
     setIsProcessing(true);
     console.log("Starting WhatsApp Checkout:", { customerForm, cart });
     
+    // Safety net: always clear processing after 20s
+    const safetyTimer = setTimeout(() => setIsProcessing(false), 20000);
+    
     try {
       const orderId = customerForm.orderId || `KH-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`;
       const batch = writeBatch(db);
@@ -621,6 +640,7 @@ export default function App() {
       console.error("Atomic Checkout Failed (onWhatsAppCheckout):", error);
       alert(`Checkout failed: ${error.message || "System Busy"}. Please try again.`);
     } finally {
+      clearTimeout(safetyTimer);
       setIsProcessing(false);
     }
   };
@@ -912,7 +932,7 @@ export default function App() {
             <Route path="/refund-policy" element={<LegalView title="Refund & Return Policy" content={siteContent.refundPolicy} siteContent={siteContent} type="refund" />} />
             <Route path="/admin" element={isAdminAuthenticated ? (
               <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="animate-spin text-4xl">⌛</div></div>}>
-                <AdminDashboard siteContent={siteContent} setSiteContent={setSiteContent} products={products} orders={orders} setOrders={setOrders} gallery={gallery} setGallery={setGallery} feedbacks={feedbacks} setFeedbacks={feedbacks} customers={customers} setIsAdminAuthenticated={setIsAdminAuthenticated} />
+                <AdminDashboard siteContent={siteContent} setSiteContent={setSiteContent} products={products} orders={orders} setOrders={setOrders} gallery={gallery} setGallery={setGallery} feedbacks={feedbacks} setFeedbacks={setFeedbacks} customers={customers} setIsAdminAuthenticated={setIsAdminAuthenticated} />
               </Suspense>
             ) : <AdminLoginRequired setIsAdminLoginOpen={setIsAdminLoginOpen} />} />
           </Routes>

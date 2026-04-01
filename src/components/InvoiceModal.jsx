@@ -56,19 +56,27 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
     setShareStatus('generating');
     try {
       const element = componentRef.current;
-      // We need to temporarily force the scale to 1 for html2canvas to work correctly with the A4 container
-      // but since it's already 210mm wide, we just capture it.
+      
+      // Use html2canvas to capture the element. 
+      // We use onclone to ensure the captured version is full-size (unscaled)
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 3, // High scale for crisp PDF quality
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        width: 794, // 210mm at 96 DPI
-        height: 1123 // 297mm at 96 DPI
+        onclone: (clonedDoc) => {
+          const clonedElement = clonedDoc.querySelector('.invoice-container');
+          if (clonedElement) {
+            clonedElement.style.transform = 'none';
+            clonedElement.style.margin = '0';
+            clonedElement.style.width = '210mm';
+            clonedElement.style.height = '297mm';
+          }
+        }
       });
       
       setShareStatus('uploading');
-      const imgData = canvas.toDataURL('image/jpeg', 0.9);
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF('p', 'mm', 'a4');
       pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
       const blob = pdf.output('blob');

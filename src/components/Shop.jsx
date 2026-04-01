@@ -100,6 +100,21 @@ export default function Shop({
     setSortBy('default');
   };
 
+  const handleShare = async (e, p) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/shop?product=${p.id}`;
+    const text = `Check out ${p.name} on KenteHaul! ₵${p.price?.toLocaleString()}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: p.name, text, url }); }
+      catch (err) { console.warn("Share failed", err); }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${text}\n\n${url}`);
+        alert("Link copied to clipboard!");
+      } catch (err) { console.error("Copy failed", err); }
+    }
+  };
+
   const hasActiveFilters = activeCategory || activeSubcategory || searchQuery || sortBy !== 'default';
 
   const suggestedProducts = useMemo(() => {
@@ -491,17 +506,25 @@ export default function Shop({
                           </span>
                         )}
 
-                        {/* Heart Wishlist Toggle */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleWishlist(p); }}
-                          className="absolute -bottom-12 right-0 md:-bottom-16 p-2.5 md:p-3.5 bg-white shadow-xl rounded-2xl hover:scale-110 active:scale-95 transition-all pointer-events-auto z-40 group/heart"
-                        >
-                          <Heart
-                            size={18}
-                            fill={(p.id && wishlist.some(item => item.id === p.id)) ? '#ef4444' : 'none'}
-                            className={`transition-colors duration-300 ${(p.id && wishlist.some(item => item.id === p.id)) ? 'text-red-500' : 'text-gray-400 group-hover/heart:text-red-400'}`}
-                          />
-                        </button>
+                        {/* Heart + Share buttons */}
+                        <div className="absolute -bottom-12 right-0 md:-bottom-16 flex flex-col gap-2 z-40 pointer-events-auto">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleWishlist(p); }}
+                            className="p-2.5 md:p-3.5 bg-white shadow-xl rounded-2xl hover:scale-110 active:scale-95 transition-all group/heart"
+                          >
+                            <Heart
+                              size={18}
+                              fill={(p.id && wishlist.some(item => item.id === p.id)) ? '#ef4444' : 'none'}
+                              className={`transition-colors duration-300 ${(p.id && wishlist.some(item => item.id === p.id)) ? 'text-red-500' : 'text-gray-400 group-hover/heart:text-red-400'}`}
+                            />
+                          </button>
+                          <button
+                            onClick={(e) => handleShare(e, p)}
+                            className="p-2.5 md:p-3.5 bg-white shadow-xl rounded-2xl hover:scale-110 active:scale-95 transition-all text-gray-400 hover:text-blue-500"
+                          >
+                            <Share2 size={18} />
+                          </button>
+                        </div>
                       </div>
                     </div>
 

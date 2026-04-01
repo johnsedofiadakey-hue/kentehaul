@@ -22,6 +22,19 @@ import { Heart, BarChart3 } from 'lucide-react';
 // Shared Global Components
 import InvoiceModal from './InvoiceModal'; // For viewing invoices
 
+// --- NAVIGATION CONFIG ---
+const sideMenu = [
+  { id: 'orders', icon: Package, label: 'Order Management' },
+  { id: 'customers', icon: Users, label: 'Customers' },
+  { id: 'products', icon: Edit, label: 'Our Products' },
+  { id: 'logistics', icon: Truck, label: 'Delivery & Logistics' },
+  { id: 'partnerships', icon: Users, label: 'Partnerships' },
+  { id: 'reviews', icon: MessageSquare, label: 'Shop Reviews' },
+  { id: 'settings', icon: Settings, label: 'Settings' },
+  { id: 'analytics', icon: BarChart3, label: 'Market Insights' },
+  { id: 'wishlists', icon: Heart, label: 'Customer Interests' }
+];
+
 export default function AdminDashboard({
   siteContent,
   setSiteContent,
@@ -65,19 +78,6 @@ export default function AdminDashboard({
   const onViewOrder = (order) => {
     setViewInvoiceOrder(order);
   };
-
-  // --- NAVIGATION ---
-  const sideMenu = [
-    { id: 'orders', icon: Package, label: 'Order Management' },
-    { id: 'customers', icon: Users, label: 'Customers' },
-    { id: 'products', icon: Edit, label: 'Our Products' },
-    { id: 'logistics', icon: Truck, label: 'Delivery & Logistics' },
-    { id: 'partnerships', icon: Users, label: 'Partnerships' },
-    { id: 'reviews', icon: MessageSquare, label: 'Shop Reviews' },
-    { id: 'settings', icon: Settings, label: 'Settings' },
-    { id: 'analytics', icon: BarChart3, label: 'Market Insights' },
-    { id: 'wishlists', icon: Heart, label: 'Customer Interests' }
-  ];
 
   const switchTab = (tabId) => {
     setAdminTab(tabId);

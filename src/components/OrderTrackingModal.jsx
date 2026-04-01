@@ -77,7 +77,7 @@ export default function OrderTrackingModal({
                   {/* Vertical Line Connector (Visual decoration) */}
                   <div className="absolute left-4 top-2 bottom-4 w-0.5 bg-gray-200 -z-10"></div>
 
-                  {ORDER_STATUSES.slice(0, 4).map((step, index) => {
+                  {ORDER_STATUSES.filter(s => s !== 'Cancelled').map((step, index) => {
                     const currentStatusIndex = ORDER_STATUSES.indexOf(trackingResult.status);
                     const stepIndex = ORDER_STATUSES.indexOf(step);
                     const isCompleted = currentStatusIndex >= stepIndex;
@@ -86,21 +86,27 @@ export default function OrderTrackingModal({
                     return (
                       <div key={step} className="flex items-center gap-4">
                         <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${isCompleted ? 'text-white' : 'bg-white border-2 border-gray-200 text-gray-300'
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 z-10 ${isCompleted ? 'text-white border-transparent' : 'bg-white border-2 border-gray-200 text-gray-300'
                             }`}
                           style={{
-                            backgroundColor: isCompleted ? (isCurrent ? siteContent.secondaryColor : 'green') : undefined,
-                            borderColor: isCompleted ? 'transparent' : undefined
+                            backgroundColor: isCompleted ? (isCurrent ? siteContent.secondaryColor : '#10b981') : undefined,
+                            boxShadow: isCurrent ? `0 0 20px ${siteContent.secondaryColor}40` : 'none',
+                            transform: isCurrent ? 'scale(1.2)' : 'scale(1)'
                           }}
                         >
                           {isCompleted ? <CheckCircle size={16} /> : <Clock size={16} />}
                         </div>
-                        <div>
-                          <span className={`font-bold transition-colors ${isCompleted ? 'text-gray-800' : 'text-gray-400'}`}>
-                            {step}
-                          </span>
+                        <div className="flex-grow">
+                          <div className="flex items-center justify-between">
+                            <span className={`font-black text-[11px] uppercase tracking-wider transition-colors ${isCompleted ? 'text-gray-900' : 'text-gray-300'}`}>
+                              {step}
+                            </span>
+                            {isCurrent && (
+                              <span className="text-[9px] font-black text-amber-500 uppercase tracking-widest animate-pulse">Current Status</span>
+                            )}
+                          </div>
                           {isCurrent && (
-                            <p className="text-xs text-gray-500">Current Status</p>
+                            <p className="text-[10px] text-gray-400 font-medium">We are currently at this stage of your order journey.</p>
                           )}
                         </div>
                       </div>
