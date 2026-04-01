@@ -479,7 +479,11 @@ export default function App() {
     console.log("Starting WhatsApp Checkout:", { customerForm, cart });
     
     // Safety net: always clear processing after 20s
-    const safetyTimer = setTimeout(() => setIsProcessing(false), 20000);
+    console.info("[CHECKOUT] Starting processing flow...");
+    const safetyTimer = setTimeout(() => {
+      console.warn("[CHECKOUT] Safety timer triggered. Releasing UI.");
+      setIsProcessing(false);
+    }, 20000);
     
     try {
       const orderId = customerForm.orderId || `KH-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 100)}`;
@@ -557,60 +561,59 @@ export default function App() {
 
       // 4. Trigger Professional Email Receipt
       if (customerForm.email) {
-        try {
-          const emailHtml = `
-            <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
-              <div style="background-color: ${siteContent.primaryColor || '#4c1d95'}; padding: 40px 20px; text-align: center; color: white; border-radius: 16px 16px 0 0;">
-                <h1 style="margin: 0; font-size: 28px; font-weight: 900;">Order Received!</h1>
-                <p style="margin: 10px 0 0; opacity: 0.9;">We've started weaving your story, ${customerForm.name}.</p>
-              </div>
-              <div style="padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; background-color: #fff;">
-                <p style="font-size: 16px; margin-bottom: 25px;">Hello <strong>${customerForm.name}</strong>,</p>
-                <p style="margin-bottom: 25px;">Thank you for choosing KenteHaul! Your order <strong>#${orderId}</strong> is now in our system and awaiting processing.</p>
-                
-                <div style="background-color: #f9fafb; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
-                  <h3 style="margin: 0 0 15px; font-size: 14px; text-transform: uppercase; color: #6b7280; letter-spacing: 1px;">Order Summary</h3>
-                  <table style="width: 100%; border-collapse: collapse;">
-                    ${cart.map(item => `
-                      <tr>
-                        <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
-                          <span style="font-weight: bold; display: block;">${item.name}</span>
-                          <span style="font-size: 12px; color: #6b7280;">Quantity: ${item.quantity}</span>
-                        </td>
-                        <td style="text-align: right; padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;">₵${(item.price * item.quantity).toLocaleString()}</td>
-                      </tr>
-                    `).join('')}
-                    <tr>
-                      <td style="padding-top: 15px; font-weight: bold;">Total Paid</td>
-                      <td style="padding-top: 15px; text-align: right; font-weight: 900; font-size: 18px; color: ${siteContent.secondaryColor || '#f97316'};">₵${totalAmount.toLocaleString()}</td>
-                    </tr>
-                  </table>
-                </div>
-
-                <div style="text-align: center; margin-top: 35px;">
-                  <a href="${window.location.origin}/track/${orderId}" style="background-color: ${siteContent.primaryColor || '#4c1d95'}; color: white; padding: 15px 30px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Track Your Order</a>
-                </div>
-                
-                <hr style="border: none; border-top: 1px solid #eee; margin: 35px 0;" />
-                <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">&copy; 2026 KenteHaul Ghana. All rights reserved.</p>
-              </div>
+        const emailHtml = `
+          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+            <div style="background-color: ${siteContent.primaryColor || '#4c1d95'}; padding: 40px 20px; text-align: center; color: white; border-radius: 16px 16px 0 0;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: 900;">Order Received!</h1>
+              <p style="margin: 10px 0 0; opacity: 0.9;">We've started weaving your story, ${customerForm.name}.</p>
             </div>
-          `;
+            <div style="padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px; background-color: #fff;">
+              <p style="font-size: 16px; margin-bottom: 25px;">Hello <strong>${customerForm.name}</strong>,</p>
+              <p style="margin-bottom: 25px;">Thank you for choosing KenteHaul! Your order <strong>#${orderId}</strong> is now in our system and awaiting processing.</p>
+              
+              <div style="background-color: #f9fafb; padding: 20px; border-radius: 12px; margin-bottom: 25px;">
+                <h3 style="margin: 0 0 15px; font-size: 14px; text-transform: uppercase; color: #6b7280; letter-spacing: 1px;">Order Summary</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  ${cart.map(item => `
+                    <tr>
+                      <td style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                        <span style="font-weight: bold; display: block;">${item.name}</span>
+                        <span style="font-size: 12px; color: #6b7280;">Quantity: ${item.quantity}</span>
+                      </td>
+                      <td style="text-align: right; padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-weight: bold;">₵${(item.price * item.quantity).toLocaleString()}</td>
+                    </tr>
+                  `).join('')}
+                  <tr>
+                    <td style="padding-top: 15px; font-weight: bold;">Total Paid</td>
+                    <td style="padding-top: 15px; text-align: right; font-weight: 900; font-size: 18px; color: ${siteContent.secondaryColor || '#f97316'};">₵${totalAmount.toLocaleString()}</td>
+                  </tr>
+                </table>
+              </div>
 
-          await addDoc(collection(db, "mail"), {
-            to: customerForm.email,
-            message: {
-              subject: `KenteHaul Order Confirmed #${orderId}`,
-              html: emailHtml
-            }
-          });
-        } catch (emailErr) {
-          console.warn("Mail trigger failed:", emailErr);
-        }
+              <div style="text-align: center; margin-top: 35px;">
+                <a href="${window.location.origin}/track/${orderId}" style="background-color: ${siteContent.primaryColor || '#4c1d95'}; color: white; padding: 15px 30px; text-decoration: none; border-radius: 12px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">Track Your Order</a>
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #eee; margin: 35px 0;" />
+              <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">&copy; 2026 KenteHaul Ghana. All rights reserved.</p>
+            </div>
+          </div>
+        `;
+
+        // NON-BLOCKING MAIL TRIGGER
+        addDoc(collection(db, "mail"), {
+          to: customerForm.email,
+          message: {
+            subject: `KenteHaul Order Confirmed #${orderId}`,
+            html: emailHtml
+          }
+        }).catch(e => console.warn("Background Mail trigger failed:", e));
       }
 
       // COMMIT ALL OR NOTHING
+      console.info("[CHECKOUT] Committing atomic batch to Firestore...");
       await batch.commit();
+      console.info("[CHECKOUT] Batch committed successfully.");
 
       // Google Analytics: Purchase
       if (analytics) {

@@ -42,7 +42,7 @@ export default function CartDrawer({
         setTimeout(() => setStep('cart'), 400);
     };
 
-    const handleWhatsApp = () => {
+    const handleWhatsApp = async () => {
         if (isFormValid) {
             const trackingId = `WA-${Date.now()}`;
             // Freeze data for success screen before App clears the cart
@@ -52,8 +52,15 @@ export default function CartDrawer({
                 email: customerForm.email,
                 orderId: trackingId 
             });
-            onWhatsAppCheckout({ ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal, orderId: trackingId });
-            setStep('success'); // Show success screen for WhatsApp too
+            try {
+                // AWAIT the parent's checkout logic to prevent the processing overlay 
+                // from covering a success/error state before it's actually confirmed.
+                await onWhatsAppCheckout({ ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal, orderId: trackingId });
+                setStep('success'); 
+            } catch (err) {
+                console.error("WhatsApp Checkout Flow Error:", err);
+                // Stay on details step so user can see error and retry
+            }
         }
     };
 
@@ -100,7 +107,24 @@ export default function CartDrawer({
                             >
                                 <div className="w-20 h-20 border-4 border-gray-100 border-t-amber-500 rounded-full animate-spin mb-6" />
                                 <h3 className="text-2xl font-black text-gray-900 mb-2">Processing Order</h3>
-                                <p className="text-gray-500 font-bold max-w-xs">We are weaving your order into our system securely. Please do not close this window.</p>
+                                <p className="text-gray-500 font-bold max-w-xs mb-8">We are weaving your order into our system securely. Please do not close this window.</p>
+                                
+                                {siteContent?.contactPhone && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 12 }} // Show if stuck for 12+ seconds
+                                        className="bg-amber-50 p-6 rounded-3xl border border-amber-100 shadow-sm flex flex-col items-center max-w-xs"
+                                    >
+                                        <p className="text-[10px] font-black text-amber-900 uppercase tracking-widest mb-4">Taking longer than usual?</p>
+                                        <a 
+                                           href={`https://wa.me/${siteContent.contactPhone.replace(/[^0-9]/g, '')}?text=My order is stuck at processing...`}
+                                           className="px-6 py-3 bg-white text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-amber-200 shadow-sm active:scale-95 transition-all"
+                                        >
+                                            Contact Support
+                                        </a>
+                                    </motion.div>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>
