@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
-import { Search, ShoppingBag, Smartphone, Eye, ChevronDown, X, SlidersHorizontal, ArrowRight, Grid3X3, List, Filter, LayoutGrid, Heart } from 'lucide-react';
+import { Search, ShoppingBag, Smartphone, Eye, ChevronDown, X, SlidersHorizontal, ArrowRight, Grid3X3, List, Filter, LayoutGrid, Heart, Share2 } from 'lucide-react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SHOP_CATEGORIES } from '../data/constants';
