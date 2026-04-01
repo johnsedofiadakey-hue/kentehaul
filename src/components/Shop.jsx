@@ -614,6 +614,7 @@ export default function Shop({
                     <div className="aspect-[4/5] rounded-[32px] overflow-hidden bg-gray-50 mb-6 relative">
                       <img 
                         src={p.image} 
+                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                         alt={p.name} 
                       />

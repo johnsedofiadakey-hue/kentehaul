@@ -10,11 +10,16 @@ import {
   setDoc,
   updateDoc,
   getDoc,
+  getDocs,
+  query,
+  limit,
+  orderBy,
   writeBatch,
   increment,
   serverTimestamp,
   addDoc
 } from "firebase/firestore";
+import debounce from 'lodash.debounce';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { getToken, onMessage } from "firebase/messaging";
 import { db, auth, messaging, analytics, logEvent } from './firebase';
@@ -229,31 +234,34 @@ export default function App() {
     }
   }, [products, searchParams, setSearchParams]);
 
-  // Sync Wishlist to LocalStorage and Firestore
-  useEffect(() => {
-    localStorage.setItem('kente_wishlist', JSON.stringify(wishlist));
-
-    const syncWishlist = async () => {
+  // --- DEBOUNCED WISHLIST SYNC ---
+  const debouncedSync = useRef(
+    debounce(async (currentWishlist, currentClientId) => {
       try {
-        await setDoc(doc(db, "wishlists", clientId), {
-          items: wishlist.map(p => ({ id: p.id, name: p.name, price: p.price, image: p.image })),
-          itemIds: wishlist.map(p => p.id),
+        await setDoc(doc(db, "wishlists", currentClientId), {
+          items: currentWishlist.map(p => ({ id: p.id, name: p.name, price: p.price, image: p.image })),
+          itemIds: currentWishlist.map(p => p.id),
           updatedAt: serverTimestamp(),
           clientInfo: {
             lastVisit: new Date().toLocaleDateString(),
             platform: navigator.platform
           }
         }, { merge: true });
+        console.debug("Wishlist synced successfully.");
       } catch (e) {
         console.warn("Wishlist sync failed:", e);
       }
-    };
+    }, 2000)
+  ).current;
 
+  useEffect(() => {
+    localStorage.setItem('kente_wishlist', JSON.stringify(wishlist));
     if (wishlist.length > 0 || localStorage.getItem('kente_wishlist_synced')) {
-      syncWishlist();
+      debouncedSync(wishlist, clientId);
       localStorage.setItem('kente_wishlist_synced', 'true');
     }
-  }, [wishlist, clientId]);
+    return () => debouncedSync.cancel();
+  }, [wishlist, clientId, debouncedSync]);
 
   // ==========================================
   // 3. FIREBASE REAL-TIME LISTENERS
@@ -275,7 +283,7 @@ export default function App() {
     });
 
     // B. Listen to Products (CRITICAL: DATA TYPE SANITIZATION)
-    const unsubProducts = onSnapshot(collection(db, "products"), (snapshot) => {
+    const unsubProducts = onSnapshot(query(collection(db, "products"), limit(120)), (snapshot) => {
       const sanitizedProducts = snapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -294,15 +302,23 @@ export default function App() {
 
     // D. (Customers listener moved to Admin Auth effect)
 
-    // E. Listen to Photo Gallery
-    const unsubGallery = onSnapshot(collection(db, "gallery"), (snapshot) => {
-      setGallery(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-    });
+    // E. Fetch Photo Gallery (STATIC: ONE-TIME FETCH)
+    const fetchGallery = async () => {
+      try {
+        const snap = await getDocs(query(collection(db, "gallery"), limit(20)));
+        setGallery(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+      } catch (e) { console.warn("Gallery fetch failed:", e); }
+    };
+    fetchGallery();
 
-    // F. Listen to Client Feedback
-    const unsubFeedback = onSnapshot(collection(db, "feedbacks"), (snapshot) => {
-      setFeedbacks(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-    });
+    // F. Fetch Client Feedback (STATIC: ONE-TIME FETCH)
+    const fetchFeedback = async () => {
+      try {
+        const snap = await getDocs(query(collection(db, "feedbacks"), limit(12)));
+        setFeedbacks(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
+      } catch (e) { console.warn("Feedback fetch failed:", e); }
+    };
+    fetchFeedback();
 
     // G. Listen to Auth State
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -321,9 +337,8 @@ export default function App() {
     return () => {
       unsubContent();
       unsubProducts();
-      // Orders & Customers cleanup handled in their own effect
-      unsubGallery();
-      unsubFeedback();
+      // unsubGallery(); // Now static
+      // unsubFeedback(); // Now static
       unsubAuth();
     };
   }, []);
@@ -345,13 +360,13 @@ export default function App() {
       return;
     }
 
-    // C. Listen to All Orders (Admin Only)
-    const unsubOrders = onSnapshot(collection(db, "orders"), (snapshot) => {
+    // C. Listen to Recent Orders (Admin Only: Limit to latest 100 for speed)
+    const unsubOrders = onSnapshot(query(collection(db, "orders"), orderBy("createdAt", "desc"), limit(100)), (snapshot) => {
       setOrders(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     });
 
-    // D. Listen to Customer Database (CRM) (Admin Only)
-    const unsubCustomers = onSnapshot(collection(db, "customers"), (snapshot) => {
+    // D. Listen to Customer Database (Admin Only: Limit to 100)
+    const unsubCustomers = onSnapshot(query(collection(db, "customers"), orderBy("lastOrder", "desc"), limit(100)), (snapshot) => {
       setCustomers(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id })));
     });
 
@@ -392,7 +407,14 @@ export default function App() {
       }
     };
 
-    setupNotifications();
+    // DEFERRED RECOVERY: Run FCM setup after app is stable (5s)
+    const deferTimer = setTimeout(() => {
+      setupNotifications();
+    }, 5000);
+
+    return () => {
+      clearTimeout(deferTimer);
+    };
 
     // Listen for foreground messages
     const unsubMessaging = onMessage(messaging, (payload) => {
