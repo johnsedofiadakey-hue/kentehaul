@@ -103,25 +103,44 @@ export default function CartDrawer({
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="fixed inset-0 bg-white/80 backdrop-blur-md z-[400] flex flex-col items-center justify-center p-6 text-center"
+                                className="fixed inset-0 bg-white/80 backdrop-blur-xl z-[400] flex flex-col items-center justify-center p-8 text-center"
                             >
-                                <div className="w-20 h-20 border-4 border-gray-100 border-t-amber-500 rounded-full animate-spin mb-6" />
-                                <h3 className="text-2xl font-black text-gray-900 mb-2">Processing Order</h3>
-                                <p className="text-gray-500 font-bold max-w-xs mb-8">We are weaving your order into our system securely. Please do not close this window.</p>
+                                <div className="relative mb-8">
+                                    <div className="w-24 h-24 border-4 border-gray-100 border-t-amber-500 rounded-full animate-spin" />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <ShoppingBag size={24} className="text-amber-500 animate-pulse" />
+                                    </div>
+                                </div>
+                                <h3 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">Securing Your Heritage</h3>
+                                
+                                <div className="h-6 overflow-hidden mb-10">
+                                    <motion.p 
+                                        animate={{ y: [20, 0, 0, -20] }}
+                                        transition={{ duration: 3, repeat: Infinity, times: [0, 0.1, 0.9, 1] }}
+                                        className="text-gray-500 font-bold"
+                                    >
+                                        Warping the loom...
+                                    </motion.p>
+                                </div>
+
+                                <p className="text-gray-400 text-xs font-medium max-w-xs mb-8 italic">Authenticity takes a moment. Please keep this window open.</p>
                                 
                                 {siteContent?.contactPhone && (
                                     <motion.div 
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 12 }} // Show if stuck for 12+ seconds
-                                        className="bg-amber-50 p-6 rounded-3xl border border-amber-100 shadow-sm flex flex-col items-center max-w-xs"
+                                        transition={{ delay: 8 }} // Lowered from 12s to 8s
+                                        className="bg-amber-50 p-6 rounded-[32px] border border-amber-100 shadow-sm flex flex-col items-center max-w-xs"
                                     >
-                                        <p className="text-[10px] font-black text-amber-900 uppercase tracking-widest mb-4">Taking longer than usual?</p>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                                            <p className="text-[10px] font-black text-amber-900 uppercase tracking-widest">Connection taking a while?</p>
+                                        </div>
                                         <a 
-                                           href={`https://wa.me/${siteContent.contactPhone.replace(/[^0-9]/g, '')}?text=My order is stuck at processing...`}
-                                           className="px-6 py-3 bg-white text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-amber-200 shadow-sm active:scale-95 transition-all"
+                                           href={`https://wa.me/${siteContent.contactPhone.replace(/[^0-9]/g, '')}?text=My order is taking a while to process (ID: ${completedOrder?.orderId || 'NEW'})...`}
+                                           className="w-full px-6 py-4 bg-white text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-[2px] border border-amber-200 shadow-sm active:scale-95 transition-all text-center"
                                         >
-                                            Contact Support
+                                            Complete via WhatsApp
                                         </a>
                                     </motion.div>
                                 )}
