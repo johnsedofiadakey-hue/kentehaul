@@ -867,6 +867,7 @@ export default function App() {
         wishlist={wishlist}
         toggleWishlist={toggleWishlist}
         addToCart={addToCart}
+        siteContent={siteContent}
       />
 
       <ProductDetailModal

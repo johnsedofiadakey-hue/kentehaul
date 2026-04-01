@@ -1,6 +1,11 @@
-import React, { useRef } from 'react';
-import { X, Printer, Download, Share2 } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { X, Printer, Download, Share2, Mail, Smartphone, Loader2, CheckCircle2 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
+import { storage, db } from '../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
   const componentRef = useRef();
@@ -18,24 +23,147 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
   const docType = isPaid ? "OFFICIAL RECEIPT" : "PAYMENT BILL";
   const docColor = isPaid ? "#22c55e" : siteContent.primaryColor || "#000";
 
+  const [shareStatus, setShareStatus] = useState(null); // 'generating' | 'uploading' | 'emailing' | 'whatsapp' | 'success' | 'error'
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  // Helper: Replace Template Placeholders
+  const fillTemplate = (text, url) => {
+    if (!text) return "";
+    return text
+      .replace(/\[customerName\]/g, order.customer?.name || "Valued Client")
+      .replace(/\[orderId\]/g, order.id)
+      .replace(/\[total\]/g, order.total.toLocaleString())
+      .replace(/\[invoiceUrl\]/g, url);
+  };
+
+  const generateAndUploadPDF = async () => {
+    setShareStatus('generating');
+    try {
+      const element = componentRef.current;
+      // We need to temporarily force the scale to 1 for html2canvas to work correctly with the A4 container
+      // but since it's already 210mm wide, we just capture it.
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        width: 794, // 210mm at 96 DPI
+        height: 1123 // 297mm at 96 DPI
+      });
+      
+      setShareStatus('uploading');
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+      const blob = pdf.output('blob');
+
+      const fileRef = ref(storage, `invoices/Invoice-${order.id}.pdf`);
+      await uploadBytes(fileRef, blob);
+      const downloadURL = await getDownloadURL(fileRef);
+      return downloadURL;
+    } catch (err) {
+      console.error("PDF Error:", err);
+      throw new Error("Failed to generate PDF.");
+    }
+  };
+
+  const handleEmailInvoice = async () => {
+    let targetEmail = order.customer?.email;
+    if (!targetEmail || !targetEmail.includes('@')) {
+      targetEmail = prompt("The customer didn't provide a valid email. Enter email to send to:", "");
+      if (!targetEmail) return;
+    }
+
+    try {
+      const url = await generateAndUploadPDF();
+      setShareStatus('emailing');
+      
+      const subject = fillTemplate(siteContent.invoiceEmailSubject || "Invoice for Order #[orderId]", url);
+      const body = fillTemplate(siteContent.invoiceEmailBody || "Hello, please find your invoice attached.", url);
+
+      await addDoc(collection(db, "mail"), {
+        to: targetEmail,
+        message: {
+          subject: subject,
+          text: body,
+          html: `<div style="font-family: sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+            <div style="background-color: ${siteContent.primaryColor || '#4c1d95'}; padding: 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Order Invoice</h1>
+            </div>
+            <div style="padding: 40px; background-color: #ffffff;">
+              <p style="font-size: 16px; font-weight: bold;">Dear ${order.customer?.name || 'Valued Client'},</p>
+              <p style="white-space: pre-wrap;">${body}</p>
+              <div style="margin-top: 30px; text-align: center;">
+                <a href="${url}" style="background-color: ${siteContent.secondaryColor || '#f97316'}; color: #ffffff; padding: 16px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Download PDF Invoice</a>
+              </div>
+            </div>
+            <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="margin: 0; font-size: 12px; color: #64748b;">© ${new Date().getFullYear()} ${siteContent.title || 'KenteHaul'}. All rights reserved.</p>
+            </div>
+          </div>`,
+          attachments: [
+            {
+              filename: `Invoice-${order.id}.pdf`,
+              path: url
+            }
+          ]
+        },
+        createdAt: serverTimestamp()
+      });
+
+      setShareStatus('success');
+      setTimeout(() => setShareStatus(null), 3000);
+    } catch (err) {
+      setShareStatus('error');
+      setErrorMsg(err.message);
+      setTimeout(() => setShareStatus(null), 5000);
+    }
+  };
+
+  const handleWhatsAppInvoice = async () => {
+    try {
+      const url = await generateAndUploadPDF();
+      setShareStatus('whatsapp');
+      
+      const message = fillTemplate(siteContent.invoiceWhatsAppMsg || "Hello, here is your invoice: [invoiceUrl]", url);
+      const phone = order.customer?.phone?.replace(/[^0-9]/g, '');
+      
+      if (!phone) {
+        alert("Customer phone number is missing.");
+        setShareStatus(null);
+        return;
+      }
+
+      const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+      
+      setShareStatus('success');
+      setTimeout(() => setShareStatus(null), 3000);
+    } catch (err) {
+      setShareStatus('error');
+      setErrorMsg(err.message);
+      setTimeout(() => setShareStatus(null), 5000);
+    }
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Invoice #${order.id} - KenteHaul`,
+          title: `Invoice #${order.id} - ${siteContent.title}`,
           text: `Invoice ${order.id} for ${order.total}. Status: ${order.status}`,
-          url: window.location.origin,
+          url: window.location.origin + `/track/${order.id}`,
         });
       } catch (err) {
         console.error("Share failed:", err);
       }
     } else {
-      alert("Sharing not supported on this browser.");
+      handleWhatsAppInvoice();
     }
-  };
-
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) onClose();
   };
 
   const iMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
@@ -58,18 +186,57 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               <p className="text-[10px] text-gray-400 mt-1.5 uppercase font-bold tracking-widest leading-none opacity-60">A4 Document Preview</p>
             </div>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleShare}
-              className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all active:scale-95 text-blue-400 border border-white/5"
-            >
-              <Share2 size={20} />
-            </button>
+          <div className="flex gap-2 md:gap-3 flex-wrap justify-end">
+            {shareStatus && shareStatus !== 'success' && shareStatus !== 'error' && (
+              <div className="flex items-center gap-2 bg-blue-600/20 text-blue-400 px-4 py-2 rounded-2xl border border-blue-500/20 animate-pulse transition-all">
+                <Loader2 size={14} className="animate-spin" />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {shareStatus === 'generating' && "Generating PDF..."}
+                  {shareStatus === 'uploading' && "Uploading..."}
+                  {shareStatus === 'emailing' && "Sending Email..."}
+                  {shareStatus === 'whatsapp' && "Opening WhatsApp..."}
+                </span>
+              </div>
+            )}
+
+            {shareStatus === 'success' && (
+              <div className="flex items-center gap-2 bg-green-500/20 text-green-400 px-4 py-2 rounded-2xl border border-green-500/20 animate-bounce transition-all">
+                <CheckCircle2 size={14} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Success!</span>
+              </div>
+            )}
+
+            {!shareStatus && (
+              <>
+                <button
+                  onClick={handleEmailInvoice}
+                  className="p-3 bg-blue-500/10 hover:bg-blue-500/20 rounded-2xl transition-all active:scale-95 text-blue-500 border border-blue-500/10 flex items-center gap-2"
+                  title="Share via Email"
+                >
+                  <Mail size={20} /> <span className="hidden lg:inline text-[10px] font-black uppercase">Email</span>
+                </button>
+                <button
+                  onClick={handleWhatsAppInvoice}
+                  className="p-3 bg-green-500/10 hover:bg-green-500/20 rounded-2xl transition-all active:scale-95 text-green-500 border border-green-500/10 flex items-center gap-2"
+                  title="Share via WhatsApp"
+                >
+                  <Smartphone size={20} /> <span className="hidden lg:inline text-[10px] font-black uppercase">WhatsApp</span>
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl transition-all active:scale-95 text-blue-400 border border-white/5"
+                  title="Native Share"
+                >
+                  <Share2 size={20} />
+                </button>
+              </>
+            )}
+
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2.5 px-6 py-3 bg-white text-black hover:bg-gray-100 rounded-2xl transition-all active:scale-95 text-xs font-black uppercase tracking-widest shadow-xl"
+              className="flex items-center gap-2.5 px-4 md:px-6 py-3 bg-white text-black hover:bg-gray-100 rounded-2xl transition-all active:scale-95 text-xs font-black uppercase tracking-widest shadow-xl"
             >
-              <Printer size={16} /> <span className="hidden sm:inline">Print / Save PDF</span>
+              <Printer size={16} /> <span className="hidden sm:inline">Print / Save</span>
             </button>
             <button
               onClick={onClose}

@@ -10,7 +10,9 @@ import {
   ChevronRight, 
   Users, 
   ArrowUpRight,
-  Target
+  Target,
+  Smartphone,
+  Monitor
 } from 'lucide-react';
 import { 
   collection, 

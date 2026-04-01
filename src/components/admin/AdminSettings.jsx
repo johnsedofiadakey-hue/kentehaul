@@ -725,6 +725,71 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                 </div>
             </div>
 
+            {/* ✉️ MESSAGE TEMPLATES */}
+            <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
+                <h3 className="font-black text-sm mb-4 flex items-center gap-4 text-gray-900 uppercase tracking-widest">
+                    <Globe className="text-amber-500" size={20} /> Invoice Sharing Templates
+                </h3>
+                
+                <div className="mb-6 p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-amber-900 uppercase tracking-widest mb-2">
+                        <Activity size={12} /> Available Placeholders
+                    </div>
+                    <div className="flex flex-wrap gap-x-6 gap-y-2">
+                        <span className="text-[10px] font-bold text-amber-700">`[customerName]`</span>
+                        <span className="text-[10px] font-bold text-amber-700">`[orderId]`</span>
+                        <span className="text-[10px] font-bold text-amber-700">`[total]`</span>
+                        <span className="text-[10px] font-bold text-amber-700">`[invoiceUrl]`</span>
+                    </div>
+                </div>
+
+                <div className="space-y-8">
+                    {/* Email Subject */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block font-black text-gray-700 uppercase tracking-widest text-[10px]">Invoice Email Subject</label>
+                            <SaveIndicator field="invoiceEmailSubject" />
+                        </div>
+                        <input
+                            className="w-full p-5 bg-gray-50 border-none rounded-[25px] font-bold text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                            placeholder="e.g. Your Invoice from KenteHaul #[orderId]"
+                            value={siteContent.invoiceEmailSubject || ''}
+                            onChange={e => updateField('invoiceEmailSubject', e.target.value)}
+                            onBlur={e => saveField('invoiceEmailSubject', e.target.value, siteContent)}
+                        />
+                    </div>
+                    {/* Email Body */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block font-black text-gray-700 uppercase tracking-widest text-[10px]">Invoice Email Message</label>
+                            <SaveIndicator field="invoiceEmailBody" />
+                        </div>
+                        <textarea
+                            className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-48 font-bold text-sm outline-none focus:ring-2 focus:ring-amber-200 leading-relaxed"
+                            placeholder="The message sent to the customer via email..."
+                            value={siteContent.invoiceEmailBody || ''}
+                            onChange={e => updateField('invoiceEmailBody', e.target.value)}
+                            onBlur={e => saveField('invoiceEmailBody', e.target.value, siteContent)}
+                        />
+                    </div>
+                    {/* WhatsApp Template */}
+                    <div className="pt-8 border-t border-gray-100">
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block font-black text-gray-700 uppercase tracking-widest text-[10px]">WhatsApp Message Template</label>
+                            <SaveIndicator field="invoiceWhatsAppMsg" />
+                        </div>
+                        <textarea
+                            className="w-full p-6 bg-gray-50 border-none rounded-[30px] h-32 font-bold text-sm outline-none focus:ring-2 focus:ring-green-200 leading-relaxed"
+                            placeholder="The message sent via WhatsApp (will include the invoice link)..."
+                            value={siteContent.invoiceWhatsAppMsg || ''}
+                            onChange={e => updateField('invoiceWhatsAppMsg', e.target.value)}
+                            onBlur={e => saveField('invoiceWhatsAppMsg', e.target.value, siteContent)}
+                        />
+                        <p className="text-[10px] text-gray-400 mt-2 italic font-bold">Note: WhatsApp does not support direct attachments. The PDF link will be included in the text.</p>
+                    </div>
+                </div>
+            </div>
+
             {/* ⚙️ SYSTEM CONFIG & SHIPPING */}
             <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
                 <h3 className="font-black text-sm mb-8 flex items-center gap-4 text-gray-900 uppercase tracking-widest">

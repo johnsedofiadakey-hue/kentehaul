@@ -364,11 +364,10 @@ export default function CartDrawer({
                                             <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                                             <input
                                                 type="email"
-                                                placeholder="Email *"
+                                                placeholder="Email (Optional)"
                                                 className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
                                                 value={customerForm.email}
                                                 onChange={e => setCustomerForm({ ...customerForm, email: e.target.value })}
-                                                required
                                             />
                                         </div>
                                         {deliveryMethod === 'pickup' && (
