@@ -18,10 +18,21 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
 
   if (!isOpen || !order) return null;
 
-  // Logic: If status is 'Paid' or 'Delivered', it's a RECEIPT. Otherwise, INVOICE.
+  const sc = {
+    title: siteContent?.title || 'KenteHaul',
+    primaryColor: siteContent?.primaryColor || '#4c1d95',
+    secondaryColor: siteContent?.secondaryColor || '#f97316',
+    logo: siteContent?.logo || null,
+    contactPhone: siteContent?.contactPhone || '+233 54 024 9684',
+    contactEmail: siteContent?.contactEmail || 'info@kentehaul.com',
+    invoiceEmailSubject: siteContent?.invoiceEmailSubject,
+    invoiceEmailBody: siteContent?.invoiceEmailBody,
+    invoiceWhatsAppMsg: siteContent?.invoiceWhatsAppMsg
+  };
+
   const isPaid = ['Paid', 'Delivered', 'Shipped'].includes(order.status);
   const docType = isPaid ? "OFFICIAL RECEIPT" : "PAYMENT BILL";
-  const docColor = isPaid ? "#22c55e" : siteContent.primaryColor || "#000";
+  const docColor = isPaid ? "#22c55e" : sc.primaryColor;
 
   const [shareStatus, setShareStatus] = useState(null); // 'generating' | 'uploading' | 'emailing' | 'whatsapp' | 'success' | 'error'
   const [errorMsg, setErrorMsg] = useState("");
@@ -33,11 +44,12 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
   // Helper: Replace Template Placeholders
   const fillTemplate = (text, url) => {
     if (!text) return "";
+    const totalVal = Number(order.total) || 0;
     return text
       .replace(/\[customerName\]/g, order.customer?.name || "Valued Client")
-      .replace(/\[orderId\]/g, order.id)
-      .replace(/\[total\]/g, order.total.toLocaleString())
-      .replace(/\[invoiceUrl\]/g, url);
+      .replace(/\[orderId\]/g, order.id || "N/A")
+      .replace(/\[total\]/g, totalVal.toLocaleString())
+      .replace(/\[invoiceUrl\]/g, url || "");
   };
 
   const generateAndUploadPDF = async () => {
@@ -154,8 +166,8 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Invoice #${order.id} - ${siteContent.title}`,
-          text: `Invoice ${order.id} for ${order.total}. Status: ${order.status}`,
+          title: `Invoice #${order.id} - ${sc.title}`,
+          text: `Invoice ${order.id} for ${Number(order.total).toLocaleString()}. Status: ${order.status}`,
           url: window.location.origin + `/track/${order.id}`,
         });
       } catch (err) {
@@ -309,20 +321,20 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
             <div className="w-full">
               <div className="grid grid-cols-[1fr_auto] gap-8 mb-12 items-start">
                 <div className="space-y-6">
-                  {siteContent.logo ? (
-                    <img src={siteContent.logo} alt="Logo" className="h-[75px] w-auto object-contain" />
+                  {sc.logo ? (
+                    <img src={sc.logo} alt="Logo" className="h-[75px] w-auto object-contain" />
                   ) : (
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-lg" style={{ backgroundColor: siteContent.primaryColor }}>K</div>
-                      <h1 className="text-3xl font-black tracking-tighter text-gray-950 uppercase">{siteContent.title}</h1>
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-2xl shadow-lg" style={{ backgroundColor: sc.primaryColor }}>{sc.title.charAt(0)}</div>
+                      <h1 className="text-3xl font-black tracking-tighter text-gray-950 uppercase">{sc.title}</h1>
                     </div>
                   )}
                   <div className="space-y-1 text-sm font-medium text-gray-500 leading-relaxed max-w-[320px]">
                     <p className="font-black text-gray-950 uppercase tracking-widest text-[10px] mb-1">Our Headquarters</p>
                     <p>Accra Digital Hub, Box 404</p>
                     <p>Greater Accra Region, Ghana</p>
-                    <p className="mt-2 text-gray-900 font-bold">{siteContent.contactPhone || '+233 24 555 0000'}</p>
-                    <p className="text-gray-900 font-bold">{siteContent.contactEmail || 'office@kentehaul.com'}</p>
+                    <p className="mt-2 text-gray-900 font-bold">{sc.contactPhone}</p>
+                    <p className="text-gray-900 font-bold">{sc.contactEmail}</p>
                   </div>
                 </div>
 
@@ -406,8 +418,8 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                           <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">{item.category}</p>
                         </td>
                         <td className="py-6 px-6 text-center font-bold text-gray-700 text-sm">{item.quantity}</td>
-                        <td className="py-6 px-6 text-right font-bold text-gray-700 text-sm font-mono whitespace-nowrap">₵{item.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                        <td className="py-6 px-6 text-right font-black text-gray-950 text-base font-mono tracking-tight whitespace-nowrap">₵{(item.price * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="py-6 px-6 text-right font-bold text-gray-700 text-sm font-mono whitespace-nowrap">₵{(Number(item.price) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="py-6 px-6 text-right font-black text-gray-950 text-base font-mono tracking-tight whitespace-nowrap">₵{((Number(item.price) || 0) * (Number(item.quantity) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -421,10 +433,10 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                 {/* Notes (Left) */}
                 <div className="space-y-6">
                   <div className="p-6 bg-[#fafafa] rounded-[24px] border-2 border-dashed border-gray-100 relative">
-                    <div className="absolute top-0 left-0 w-1.5 h-full rounded-l-full" style={{ backgroundColor: siteContent.primaryColor }} />
+                    <div className="absolute top-0 left-0 w-1.5 h-full rounded-l-full" style={{ backgroundColor: sc.primaryColor }} />
                     <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-[3px] mb-3">Document Terms</h4>
                     <p className="text-[10px] leading-relaxed text-gray-500 font-medium italic">
-                      By accepting this invoice, you agree to the heritage quality guarantee of {siteContent.title}. Any inquiries regarding this transaction must be sent to our support desk within 48 hours for authorized review. This is an official digital record.
+                      By accepting this invoice, you agree to the heritage quality guarantee of {sc.title}. Any inquiries regarding this transaction must be sent to our support desk within 48 hours for authorized review. This is an official digital record.
                     </p>
                   </div>
                   <div className="flex items-center gap-4 opacity-30 no-print">
@@ -437,27 +449,27 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-xs font-bold text-gray-500 px-4">
                     <span className="uppercase tracking-[2px]">Subtotal</span>
-                    <span className="text-gray-950 font-mono">₵{(order.total - (order.shippingFee || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span className="text-gray-950 font-mono">₵{( (Number(order.total) || 0) - (Number(order.shippingFee) || 0) ).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-bold text-gray-500 px-4">
                     <span className="uppercase tracking-[2px]">VAT (0.00%)</span>
                     <span className="text-gray-950 font-mono">₵0.00</span>
                   </div>
-                  {order.shippingFee > 0 && (
+                  {(Number(order.shippingFee) || 0) > 0 && (
                     <div className="flex justify-between items-center text-xs font-bold text-gray-500 px-4">
                       <span className="uppercase tracking-[2px]">Logistics</span>
-                      <span className="text-gray-950 font-mono">₵{order.shippingFee.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      <span className="text-gray-950 font-mono">₵{(Number(order.shippingFee) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
                   )}
 
                   <div className="mt-8 p-8 rounded-[32px] shadow-2xl shadow-gray-200/50 flex flex-col items-end gap-1 relative overflow-hidden"
-                    style={{ background: `linear-gradient(135deg, ${siteContent.primaryColor}08, ${siteContent.primaryColor}15)` }}>
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-current opacity-5 rounded-full -translate-y-12 translate-x-12" style={{ color: siteContent.primaryColor }} />
+                    style={{ background: `linear-gradient(135deg, ${sc.primaryColor}08, ${sc.primaryColor}15)` }}>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-current opacity-5 rounded-full -translate-y-12 translate-x-12" style={{ color: sc.primaryColor }} />
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[4px] mb-1">Total Due</span>
-                    <div className="flex items-baseline gap-1" style={{ color: siteContent.primaryColor }}>
+                    <div className="flex items-baseline gap-1" style={{ color: sc.primaryColor }}>
                       <span className="text-xl font-bold opacity-40">₵</span>
                       <span className="text-5xl font-black tracking-tighter leading-none">
-                        {order.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        {(Number(order.total) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -467,7 +479,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               {/* 5. PROFESSIONAL FOOTER (Pinned to Bottom) */}
               <div className="mt-16 pt-10 border-t border-gray-100 flex justify-between items-end">
                 <div className="space-y-1.5">
-                  <p className="text-[13px] font-black text-gray-950 tracking-wide uppercase">{siteContent.title} Digital Ecosystem</p>
+                  <p className="text-[13px] font-black text-gray-950 tracking-wide uppercase">{sc.title} Digital Ecosystem</p>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[4px]">Approved by Heritage Board — Document Audit Grade A</p>
                 </div>
                 <div className="text-right flex flex-col items-end gap-3 opacity-30">

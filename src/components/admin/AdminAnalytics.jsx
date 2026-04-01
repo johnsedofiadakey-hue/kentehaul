@@ -44,6 +44,7 @@ export default function AdminAnalytics({ products, orders }) {
     });
     const [loading, setLoading] = useState(true);
     const [leaderboardTab, setLeaderboardTab] = useState('hearted'); // 'hearted' or 'viewed'
+    const [activeTab, setActiveTab] = useState('Hottest'); // 'Hottest' | 'Rising' | 'Potential'
 
     useEffect(() => {
         // Listen to activity log
@@ -113,6 +114,54 @@ export default function AdminAnalytics({ products, orders }) {
             })
             .sort((a, b) => b.count - a.count);
 
+        // --- CALCULATE RISING (Last 7 Days) ---
+        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        const risingCounts = {};
+        activityData.forEach(log => {
+            const logTime = log.timestamp?.toMillis() || 0;
+            if (logTime > sevenDaysAgo && log.type === 'view_item' && log.productId) {
+                risingCounts[log.productId] = (risingCounts[log.productId] || 0) + 1;
+            }
+        });
+        const sortedRising = Object.entries(risingCounts)
+             .map(([id, count]) => {
+                const product = products.find(p => p.id === id);
+                return { id, count, name: product?.name || 'Unknown', price: product?.price, image: product?.image };
+             })
+             .sort((a, b) => b.count - a.count);
+
+        // --- CALCULATE POTENTIAL (High Hearts, No orders) ---
+        const orderedProductIds = new Set();
+        orders.forEach(o => {
+            (o.items || []).forEach(item => {
+                if (item.id) orderedProductIds.add(item.id);
+            });
+        });
+
+        const sortedPotential = sortedHearts
+            .filter(item => !orderedProductIds.has(item.id))
+            .slice(0, 10);
+
+        // --- CALC DAILY HISTORY ---
+        const dailyLogs = {};
+        activityData.forEach(log => {
+            const dateStr = log.timestamp ? new Date(log.timestamp.toMillis()).toLocaleDateString() : 'Unknown';
+            if (!dailyLogs[dateStr]) dailyLogs[dateStr] = { visits: 0, views: 0, hearts: 0, orders: 0 };
+            if (log.type === 'site_visit') dailyLogs[dateStr].visits++;
+            if (log.type === 'view_item') dailyLogs[dateStr].views++;
+        });
+        
+        // Add orders to daily history
+        orders.forEach(o => {
+            const dateStr = o.date || 'Unknown';
+            if (!dailyLogs[dateStr]) dailyLogs[dateStr] = { visits: 0, views: 0, hearts: 0, orders: 0 };
+            dailyLogs[dateStr].orders++;
+        });
+
+        const historyList = Object.entries(dailyLogs)
+            .map(([date, data]) => ({ date, ...data }))
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+
         setStats(prev => ({
             ...prev,
             totalViews: activityData.filter(a => a.type === 'view_item').length,
@@ -124,6 +173,9 @@ export default function AdminAnalytics({ products, orders }) {
             trafficSources: Object.entries(referrerCounts).map(([name, count]) => ({ name, count })),
             mostHearted: sortedHearts.slice(0, 10),
             mostViewed: sortedViews.slice(0, 10),
+            mostRising: sortedRising.slice(0, 10),
+            mostPotential: sortedPotential,
+            history: historyList.slice(0, 30),
             recentActivity: wishlistData.sort((a, b) => (b.updatedAt?.toMillis() || 0) - (a.updatedAt?.toMillis() || 0)).slice(0, 10)
         }));
     };
@@ -166,7 +218,11 @@ export default function AdminAnalytics({ products, orders }) {
                 </div>
                 <div className="flex items-center bg-gray-100 p-1.5 rounded-2xl">
                     {['Hottest', 'Rising', 'Potential'].map(tab => (
-                        <button key={tab} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'Hottest' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+                        <button 
+                            key={tab} 
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === activeTab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
                             {tab}
                         </button>
                     ))}
@@ -295,30 +351,43 @@ export default function AdminAnalytics({ products, orders }) {
                                     <TrendingUp size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-xl text-gray-900 uppercase">Product Power Ranking</h3>
+                                    <h3 className="font-black text-xl text-gray-900 uppercase">
+                                        {activeTab === 'Hottest' ? 'Product Power Ranking' : activeTab === 'Rising' ? '7-Day Rising Stars' : 'High Potential (No Orders)'}
+                                    </h3>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">
-                                        {leaderboardTab === 'hearted' ? 'Ranking by customer hearts' : 'Ranking by total page views'}
+                                        {activeTab === 'Hottest' 
+                                            ? (leaderboardTab === 'hearted' ? 'Ranking by customer hearts' : 'Ranking by total page views')
+                                            : activeTab === 'Rising' ? 'Products gaining the most momentum this week'
+                                            : 'Items people want (hearts) but haven\'t purchased yet'
+                                        }
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex bg-gray-100 p-1 rounded-xl">
-                                <button 
-                                    onClick={() => setLeaderboardTab('hearted')}
-                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${leaderboardTab === 'hearted' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                                >
-                                    Most Desired
-                                </button>
-                                <button 
-                                    onClick={() => setLeaderboardTab('viewed')}
-                                    className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${leaderboardTab === 'viewed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                                >
-                                    Most Viewed
-                                </button>
-                            </div>
+                            {activeTab === 'Hottest' && (
+                                <div className="flex bg-gray-100 p-1 rounded-xl">
+                                    <button 
+                                        onClick={() => setLeaderboardTab('hearted')}
+                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${leaderboardTab === 'hearted' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                    >
+                                        Most Desired
+                                    </button>
+                                    <button 
+                                        onClick={() => setLeaderboardTab('viewed')}
+                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${leaderboardTab === 'viewed' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                    >
+                                        Most Viewed
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <div className="p-6 md:p-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {(leaderboardTab === 'hearted' ? stats.mostHearted : stats.mostViewed).map((item, idx) => (
+                                {(
+                                    activeTab === 'Hottest' 
+                                        ? (leaderboardTab === 'hearted' ? stats.mostHearted : stats.mostViewed)
+                                        : activeTab === 'Rising' ? stats.mostRising
+                                        : stats.mostPotential
+                                ).map((item, idx) => (
                                     <motion.div 
                                         key={item.id}
                                         initial={{ opacity: 0, scale: 0.95 }}
@@ -338,25 +407,86 @@ export default function AdminAnalytics({ products, orders }) {
                                         </div>
                                         <div className="flex-1">
                                             <p className="font-black text-gray-900 uppercase text-xs line-clamp-1">{item.name}</p>
-                                            <p className="text-[10px] font-bold text-gray-400 mt-0.5">₵{item.price?.toLocaleString()}</p>
+                                            <p className="text-[10px] font-bold text-gray-400 mt-0.5">₵{(Number(item.price) || 0).toLocaleString()}</p>
                                         </div>
                                         <div className="text-right flex flex-col items-end">
-                                            <div className={`flex items-center gap-1.5 font-black ${leaderboardTab === 'hearted' ? 'text-red-500' : 'text-blue-500'}`}>
-                                                {leaderboardTab === 'hearted' ? <Heart size={14} fill="currentColor" /> : <Eye size={14} />}
+                                            <div className={`flex items-center gap-1.5 font-black ${leaderboardTab === 'hearted' || activeTab === 'Potential' ? 'text-red-500' : 'text-blue-500'}`}>
+                                                {leaderboardTab === 'hearted' || activeTab === 'Potential' ? <Heart size={14} fill="currentColor" /> : <Eye size={14} />}
                                                 <span className="text-xl leading-none">{item.count}</span>
                                             </div>
                                             <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest mt-1">
-                                                {leaderboardTab === 'hearted' ? 'Hearts' : 'Views'}
+                                                {leaderboardTab === 'hearted' || activeTab === 'Potential' ? 'Hearts' : 'Views'}
                                             </p>
                                         </div>
                                     </motion.div>
                                 ))}
                             </div>
-                            {stats.mostHearted.length === 0 && (
+                            {(activeTab === 'Potential' && stats.mostPotential?.length === 0) && (
+                                <div className="py-20 text-center">
+                                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs italic">No high-interest products found without orders.</p>
+                                </div>
+                            )}
+                            {(activeTab === 'Hottest' && stats.mostHearted.length === 0) && (
                                 <div className="py-20 text-center">
                                     <p className="text-gray-400 font-bold uppercase tracking-widest text-xs italic">No interest data captured yet.</p>
                                 </div>
                             )}
+                        </div>
+                    </div>
+
+                    {/* Historical Activity Register */}
+                    <div className="bg-white rounded-[50px] shadow-sm border border-gray-50 overflow-hidden">
+                        <div className="p-8 md:p-10 border-b border-gray-50 flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center">
+                                <Clock size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-xl text-gray-900 uppercase">Growth Register</h3>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Daily collection of visitor intelligence</p>
+                            </div>
+                        </div>
+                        <div className="p-8 overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[2px] border-b border-gray-50">
+                                        <th className="py-4 px-4 font-black">Date</th>
+                                        <th className="py-4 px-4 text-center font-black">Unique Visits</th>
+                                        <th className="py-4 px-4 text-center font-black">Product Views</th>
+                                        <th className="py-4 px-4 text-center font-black">Sales/Orders</th>
+                                        <th className="py-4 px-4 text-right font-black">Growth Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {(stats.history || []).map((day, idx) => (
+                                        <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                            <td className="py-5 px-4">
+                                                <span className="font-black text-gray-900 text-sm whitespace-nowrap">{day.date}</span>
+                                            </td>
+                                            <td className="py-5 px-4 text-center">
+                                                <span className="font-bold text-gray-600 bg-gray-100 px-3 py-1 rounded-lg">{day.visits}</span>
+                                            </td>
+                                            <td className="py-5 px-4 text-center">
+                                                <span className="font-bold text-gray-600 bg-gray-100 px-3 py-1 rounded-lg">{day.views}</span>
+                                            </td>
+                                            <td className="py-5 px-4 text-center">
+                                                <span className="font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-lg">{day.orders}</span>
+                                            </td>
+                                            <td className="py-5 px-4 text-right">
+                                                <div className="inline-flex items-center gap-1.5 text-green-500 font-extrabold text-[10px] uppercase tracking-widest">
+                                                    <TrendingUp size={12} /> Positive
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {(stats.history?.length === 0) && (
+                                        <tr>
+                                            <td colSpan={5} className="py-20 text-center">
+                                                <p className="text-gray-300 font-bold uppercase tracking-widest text-xs italic">Historical census in progress...</p>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
