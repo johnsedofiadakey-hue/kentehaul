@@ -553,7 +553,7 @@ export default function Shop({
                           onClick={() => addToCart(p)}
                           disabled={p.stockQuantity <= 0}
                           className="shimmer-premium flex-1 h-10 md:h-16 rounded-[12px] md:rounded-[24px] font-black text-[8px] md:text-xs uppercase tracking-[1px] md:tracking-[3px] transition-all relative overflow-hidden group/btn disabled:bg-gray-50 disabled:text-gray-200 border-2 border-transparent hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] active:scale-95 transform hover:-translate-y-1"
-                          style={{ backgroundColor: p.stockQuantity > 0 ? (siteContent?.primaryColor || '#4c1d95') : undefined, color: p.stockQuantity > 0 ? 'white' : undefined }}
+                          style={{ backgroundColor: p.stockQuantity > 0 ? (siteContent?.primaryColor || '#5b0143') : undefined, color: p.stockQuantity > 0 ? 'white' : undefined }}
                         >
                           <span className="relative z-10 flex items-center justify-center gap-1 md:gap-3">
                             <ShoppingBag size={12} className="md:size-[16px] group-hover/btn:scale-110 transition-transform" /> Buy Now

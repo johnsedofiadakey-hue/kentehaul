@@ -15,7 +15,7 @@ export default function OrderSuccessModal({
     const [renderError, setRenderError] = useState(false);
 
     // Resilience: Fallback for missing theme data
-    const sc = siteContent || { primaryColor: '#4c1d95', secondaryColor: '#f97316' };
+    const sc = siteContent || { primaryColor: '#5b0143', secondaryColor: '#f97316' };
     
     if (!isOpen) return null;
 

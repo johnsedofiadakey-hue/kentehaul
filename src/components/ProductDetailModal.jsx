@@ -249,7 +249,7 @@ export default function ProductDetailModal({
                                 <div className="flex items-center gap-2 mb-3">
                                     <span
                                         className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md"
-                                        style={{ color: siteContent?.primaryColor || '#4c1d95', backgroundColor: (siteContent?.primaryColor || '#4c1d95') + '10' }}
+                                        style={{ color: siteContent?.primaryColor || '#5b0143', backgroundColor: (siteContent?.primaryColor || '#5b0143') + '10' }}
                                     >
                                         {product.category}
                                     </span>
@@ -293,11 +293,11 @@ export default function ProductDetailModal({
 
                                     {/* 2. HERITAGE STORY (If active) */}
                                     {product.longHistory && (
-                                        <section className="p-5 rounded-2xl border border-amber-100 relative overflow-hidden" style={{ backgroundColor: (siteContent?.primaryColor || '#4c1d95') + '05' }}>
+                                        <section className="p-5 rounded-2xl border border-amber-100 relative overflow-hidden" style={{ backgroundColor: (siteContent?.primaryColor || '#5b0143') + '05' }}>
                                             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                                                 <BookOpen size={80} />
                                             </div>
-                                            <div className="flex items-center gap-2 mb-3" style={{ color: siteContent?.primaryColor || '#4c1d95' }}>
+                                            <div className="flex items-center gap-2 mb-3" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
                                                 <BookOpen size={16} />
                                                 <h3 className="font-black text-[10px] uppercase tracking-widest">Cultural Heritage</h3>
                                             </div>

@@ -168,7 +168,7 @@ const PartnerForm = ({ siteContent }) => {
         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Why Partner With Us? / Vision</label>
         <textarea required placeholder="Tell us about your proposed collaboration..." className="w-full p-5 bg-white border border-gray-100 rounded-3xl font-bold shadow-sm outline-none focus:ring-2 focus:ring-amber-500/20 h-40 resize-none" value={form.reason} onChange={e => setForm({...form, reason: e.target.value})} />
       </div>
-      <button type="submit" disabled={isSubmitting} className="w-full py-6 text-white rounded-3xl font-black text-xs uppercase tracking-[5px] shadow-2xl transition hover:shadow-xl active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3" style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}>
+      <button type="submit" disabled={isSubmitting} className="w-full py-6 text-white rounded-3xl font-black text-xs uppercase tracking-[5px] shadow-2xl transition hover:shadow-xl active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
         {isSubmitting ? "Processing..." : <><ArrowRight size={18} /> Send Partnership Inquiry</>}
       </button>
     </form>
@@ -277,11 +277,11 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
       )}
 
       {/* HERO SECTION */}
-      <div className="relative min-h-[85vh] flex items-center justify-center" style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}>
+      <div className="relative min-h-[85vh] flex items-center justify-center" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
         {siteContent?.heroImage ? (
           <div className="absolute inset-0 z-0">
             <LazyImage src={siteContent?.heroImage} className="w-full h-full object-cover opacity-60" alt="Hero" />
-            <div className="absolute inset-0 bg-gradient-to-t via-transparent to-transparent" style={{ '--tw-gradient-from': siteContent?.primaryColor || '#4c1d95', '--tw-gradient-to': 'transparent' }}></div>
+            <div className="absolute inset-0 bg-gradient-to-t via-transparent to-transparent" style={{ '--tw-gradient-from': siteContent?.primaryColor || '#5b0143', '--tw-gradient-to': 'transparent' }}></div>
           </div>
         ) : (
           <div className="absolute inset-0 z-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
@@ -428,7 +428,7 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
               className="flex flex-col items-center"
             >
               <div className="w-12 h-1 bg-amber-500 mb-6 rounded-full"></div>
-              <h2 className="text-5xl md:text-7xl font-black mb-6 uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#4c1d95' }}>
+              <h2 className="text-5xl md:text-7xl font-black mb-6 uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
                 {siteContent?.galleryTitle || "Lifestyle Gallery"}
               </h2>
               <p className="text-gray-400 font-bold max-w-xl mx-auto uppercase tracking-widest text-xs">Curated moments of cultural excellence and royal style.</p>
@@ -451,7 +451,7 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
               ))}
             </div>
           ) : (
-            <div className="text-center p-12 bg-gray-50 rounded-3xl border-2 border-dashed" style={{ borderColor: `${siteContent?.primaryColor || '#4c1d95'}40`, color: `${siteContent?.primaryColor || '#4c1d95'}80` }}>
+            <div className="text-center p-12 bg-gray-50 rounded-3xl border-2 border-dashed" style={{ borderColor: `${siteContent?.primaryColor || '#5b0143'}40`, color: `${siteContent?.primaryColor || '#5b0143'}80` }}>
               <p className="font-medium">Gallery images coming soon! Add them in Admin.</p>
             </div>
           )}
@@ -485,7 +485,7 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             <span className="text-amber-500 font-black text-xs uppercase tracking-[5px] mb-4 block">Our Legacy</span>
-            <h2 className="text-4xl md:text-6xl font-black mb-8 leading-tight tracking-tighter uppercase" style={{ color: siteContent?.primaryColor || '#4c1d95' }}>
+            <h2 className="text-4xl md:text-6xl font-black mb-8 leading-tight tracking-tighter uppercase" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
               {siteContent?.heritageHomeTitle || "A Story in Every Thread"}
             </h2>
             <p className="text-gray-600 text-lg leading-relaxed mb-10 font-medium">
@@ -494,7 +494,7 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
             <Link
               to="/heritage"
               className="inline-flex items-center gap-3 font-black text-xs uppercase tracking-[3px] hover:gap-5 transition-all"
-              style={{ color: siteContent?.primaryColor || '#4c1d95' }}
+              style={{ color: siteContent?.primaryColor || '#5b0143' }}
             >
               Read full heritage <ArrowRight size={16} />
             </Link>
@@ -503,7 +503,7 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
       </div>
 
       {/* FEEDBACK SECTION */}
-      <div className="py-20 text-white relative overflow-hidden" style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}>
+      <div className="py-20 text-white relative overflow-hidden" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
         <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full blur-[100px] opacity-10"></div>
         <div className="max-w-5xl mx-auto px-6 relative z-10">
           <div className="text-center mb-12">
@@ -598,7 +598,7 @@ export const Heritage = ({ siteContent }) => (
         <Link
           to="/shop"
           className="text-white px-8 py-4 rounded-full font-bold shadow-xl hover:opacity-90 transition inline-flex items-center justify-center"
-          style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}
+          style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
         >
           Own a Piece of History
         </Link>
@@ -616,7 +616,7 @@ export const Institute = ({ siteContent, products }) => (
       ogTitle="KenteHaul Institute | Preserving Royal Craft"
       canonicalPath="/institute"
     />
-    <div className="text-white py-24 px-6 text-center rounded-b-[4rem] shadow-2xl relative overflow-hidden" style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}>
+    <div className="text-white py-24 px-6 text-center rounded-b-[4rem] shadow-2xl relative overflow-hidden" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
       <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/diagmonds-light.png')]"></div>
       <h1 className="text-5xl md:text-6xl font-serif font-bold mb-6 relative z-10">{siteContent?.instituteTitle}</h1>
     </div>
@@ -691,7 +691,7 @@ export const Contact = ({ siteContent }) => (
         <span className="inline-block py-2 px-6 rounded-full bg-white shadow-sm border border-gray-100 text-[10px] font-black uppercase tracking-[4px] mb-6" style={{ color: siteContent?.secondaryColor || '#f97316' }}>
           Connect With Royalty
         </span>
-        <h1 className="text-5xl md:text-8xl font-black mb-6 uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#4c1d95' }}>
+        <h1 className="text-5xl md:text-8xl font-black mb-6 uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
           Get in Touch
         </h1>
         <p className="text-gray-400 font-bold max-w-xl mx-auto uppercase tracking-widest text-[10px] sm:text-xs">
@@ -704,7 +704,7 @@ export const Contact = ({ siteContent }) => (
       <div className="grid lg:grid-cols-12 gap-6 bg-white rounded-[40px] md:rounded-[60px] shadow-[0_40px_100px_rgba(0,0,0,0.08)] overflow-hidden border border-gray-50">
         
         {/* Info Column */}
-        <div className="lg:col-span-5 text-white p-8 md:p-16 lg:p-20 flex flex-col justify-between relative overflow-hidden order-2 lg:order-1" style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}>
+        <div className="lg:col-span-5 text-white p-8 md:p-16 lg:p-20 flex flex-col justify-between relative overflow-hidden order-2 lg:order-1" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
           {/* Decorative Pattern */}
           <div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-white rounded-full opacity-10 blur-3xl"></div>
@@ -760,7 +760,7 @@ export const Contact = ({ siteContent }) => (
         {/* Form Column */}
         <div className="lg:col-span-7 p-8 md:p-16 lg:p-20 order-1 lg:order-2">
           <div className="mb-12">
-            <h2 className="text-3xl font-black uppercase tracking-tighter mb-2" style={{ color: siteContent?.primaryColor || '#4c1d95' }}>Write to Us</h2>
+            <h2 className="text-3xl font-black uppercase tracking-tighter mb-2" style={{ color: siteContent?.primaryColor || '#5b0143' }}>Write to Us</h2>
             <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Expected response time: Under 24 hours.</p>
           </div>
           <ContactForm primaryColor={siteContent?.primaryColor} secondaryColor={siteContent?.secondaryColor} />

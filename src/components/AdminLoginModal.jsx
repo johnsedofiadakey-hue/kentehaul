@@ -61,12 +61,12 @@ export default function AdminLoginModal({
           >
             <div
               className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-gray-100 transition-colors"
-              style={{ color: siteContent?.primaryColor || '#4c1d95' }}
+              style={{ color: siteContent?.primaryColor || '#5b0143' }}
             >
               <Lock size={32} />
             </div>
 
-            <h2 className="text-2xl font-bold mb-2" style={{ color: siteContent?.primaryColor || '#4c1d95' }}>
+            <h2 className="text-2xl font-bold mb-2" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
               Admin Access
             </h2>
             <p className="text-gray-500 mb-8 text-sm">Staff Only Access</p>
@@ -89,7 +89,7 @@ export default function AdminLoginModal({
                 input:focus + label, input:not(:placeholder-shown) + label {
                   transform: translateY(-2.2rem) translateX(-2.5rem);
                   font-size: 0.75rem;
-                  color: ${siteContent?.primaryColor || '#4c1d95'};
+                  color: ${siteContent?.primaryColor || '#5b0143'};
                   font-weight: 800;
                 }
               `}</style>
@@ -130,7 +130,7 @@ export default function AdminLoginModal({
                 type="submit"
                 disabled={loading}
                 className="w-full text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-xl hover:opacity-90 transform active:scale-95 transition-all mt-4"
-                style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}
+                style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
               >
                 {loading ? "Checking..." : "Log In Now"}
               </button>

@@ -67,7 +67,7 @@ const getEmailTemplate = (orderId, total, items, customer, content) => {
 
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-      <div style="background-color: ${content.primaryColor || '#4c1d95'}; color: white; padding: 40px; text-align: center; border-radius: 16px 16px 0 0;">
+      <div style="background-color: ${content.primaryColor || '#5b0143'}; color: white; padding: 40px; text-align: center; border-radius: 16px 16px 0 0;">
         <h1 style="margin: 0; font-size: 24px; letter-spacing: 2px;">KENTEHAUL</h1>
         <p style="margin: 10px 0 0; opacity: 0.8; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Royal Order Confirmation</p>
       </div>
@@ -96,7 +96,7 @@ const getEmailTemplate = (orderId, total, items, customer, content) => {
 
         <div style="background-color: #fffbeb; border: 1px solid #fef3c7; padding: 20px; border-radius: 12px; margin: 20px 0;">
           <p style="margin: 0; font-size: 12px; color: #92400e; font-weight: bold; text-transform: uppercase;">Tracking Your Order</p>
-          <p style="margin: 5px 0 0; font-size: 14px;">You can track your order live at: <a href="${window.location.origin}/track/${orderId}" style="color: #4c1d95; text-decoration: none; font-weight: bold;">Track My Kente</a></p>
+          <p style="margin: 5px 0 0; font-size: 14px;">You can track your order live at: <a href="${window.location.origin}/track/${orderId}" style="color: #5b0143; text-decoration: none; font-weight: bold;">Track My Kente</a></p>
         </div>
 
         <p>If you have any questions, reach out to us on WhatsApp.</p>
@@ -627,7 +627,7 @@ export default function App() {
   // ==========================================
   
   const getEmailTemplate = (orderId, total, items, customer, sc) => {
-    const primary = sc?.primaryColor || '#4c1d95';
+    const primary = sc?.primaryColor || '#5b0143';
     const accent = sc?.secondaryColor || '#f97316';
     
     const itemsHtml = items.map(item => `

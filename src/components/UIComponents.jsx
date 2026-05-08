@@ -226,7 +226,7 @@ export const PaystackButton = ({ amount, email, publicKey, onSuccess, onClose, p
       onClick={handleClick}
       disabled={isLoading}
       className="w-full py-5 rounded-[24px] font-black text-white text-sm uppercase tracking-[2px] flex items-center justify-center gap-3 active:scale-95 transition-all shadow-[0_15px_30px_rgba(0,0,0,0.15)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] transform hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-      style={{ background: `linear-gradient(135deg, ${primaryColor || '#4c1d95'}, ${secondaryColor || '#f97316'})` }}
+      style={{ background: `linear-gradient(135deg, ${primaryColor || '#5b0143'}, ${secondaryColor || '#f97316'})` }}
     >
       {isLoading ? (
         <>

@@ -41,7 +41,7 @@ export default function OrderTrackingModal({
               <X size={20} />
             </button>
 
-            <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: siteContent?.primaryColor || '#4c1d95' }}>
+            <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
               Track Your Order
             </h2>
 
@@ -51,14 +51,14 @@ export default function OrderTrackingModal({
                 type="text"
                 placeholder="Enter Order ID (e.g., 123456...)"
                 className="flex-grow p-3 border rounded-xl focus:outline-none focus:ring-2"
-                style={{ '--tw-ring-color': siteContent?.primaryColor || '#4c1d95' }}
+                style={{ '--tw-ring-color': siteContent?.primaryColor || '#5b0143' }}
                 value={trackingInput}
                 onChange={(e) => setTrackingInput(e.target.value)}
               />
               <button
                 onClick={handleTrackOrder}
                 className="px-6 py-3 rounded-xl font-bold text-white shadow-md hover:opacity-90 transition"
-                style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}
+                style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
               >
                 Track
               </button>

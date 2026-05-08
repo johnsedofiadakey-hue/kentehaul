@@ -23,7 +23,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
 
   const sc = {
     title: siteContent?.title || 'KenteHaul',
-    primaryColor: siteContent?.primaryColor || '#4c1d95',
+    primaryColor: siteContent?.primaryColor || '#5b0143',
     secondaryColor: siteContent?.secondaryColor || '#f97316',
     logo: siteContent?.logo || null,
     contactPhone: siteContent?.contactPhone || '+233 54 024 9684',
@@ -129,7 +129,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
           subject: subject,
           text: body,
           html: `<div style="font-family: sans-serif; line-height: 1.6; color: #1e293b; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-            <div style="background-color: ${siteContent?.primaryColor || '#4c1d95'}; padding: 30px; text-align: center;">
+            <div style="background-color: ${siteContent?.primaryColor || '#5b0143'}; padding: 30px; text-align: center;">
               <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Order Invoice</h1>
             </div>
             <div style="padding: 40px; background-color: #ffffff;">
@@ -351,7 +351,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                     <img src={sc.logo} alt="Logo" className="h-[75px] w-auto object-contain" />
                   ) : (
                     <div className="flex items-center gap-3">
-                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto" style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}>
+                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
 {sc.title.charAt(0)}</div>
                       <h1 className="text-3xl font-black tracking-tighter text-gray-950 uppercase">{sc.title}</h1>
                     </div>
@@ -379,9 +379,9 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                     <div className="pt-4">
                       <span className="px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[2px] border-2"
                         style={{
-                          borderColor: order.status === 'Paid' ? '#22c55e' : (siteContent?.primaryColor || '#4c1d95') + '40',
-                          backgroundColor: order.status === 'Paid' ? '#f0fdf4' : (siteContent?.primaryColor || '#4c1d95') + '05',
-                          color: order.status === 'Paid' ? '#166534' : (siteContent?.primaryColor || '#4c1d95')
+                          borderColor: order.status === 'Paid' ? '#22c55e' : (siteContent?.primaryColor || '#5b0143') + '40',
+                          backgroundColor: order.status === 'Paid' ? '#f0fdf4' : (siteContent?.primaryColor || '#5b0143') + '05',
+                          color: order.status === 'Paid' ? '#166534' : (siteContent?.primaryColor || '#5b0143')
                         }}>
                         {order.status}
                       </span>
@@ -430,7 +430,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
               <div className="w-full overflow-hidden rounded-xl border border-gray-100">
                 <table className="w-full border-collapse">
                   <thead>
-                    <tr style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}>
+                    <tr style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
                       <th className="py-4 px-6 text-left text-[11px] font-black uppercase tracking-[2px] text-white">Item Description</th>
                       <th className="py-4 px-6 text-center text-[11px] font-black uppercase tracking-[2px] text-white w-24">Qty</th>
                       <th className="py-4 px-6 text-right text-[11px] font-black uppercase tracking-[2px] text-white w-40">Unit Price</th>
@@ -460,7 +460,7 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                 {/* Notes (Left) */}
                 <div className="space-y-6">
                   <div className="p-6 bg-[#fafafa] rounded-[24px] border-2 border-dashed border-gray-100 relative">
-                    <div className="absolute top-0 left-0 w-1.5 h-full rounded-l-full" style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }} />
+                    <div className="absolute top-0 left-0 w-1.5 h-full rounded-l-full" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }} />
                     <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-[3px] mb-3">Terms & Conditions</h4>
                     <p className="text-[10px] leading-relaxed text-gray-500 font-medium">
                       Thank you for choosing {sc.title}. If you have any questions about this invoice, please contact us within 48 hours. This is an official digital record of your transaction.
@@ -490,10 +490,10 @@ export default function InvoiceModal({ isOpen, onClose, order, siteContent }) {
                   )}
 
                   <div className="mt-8 p-8 rounded-[32px] shadow-2xl shadow-gray-200/50 flex flex-col items-end gap-1 relative overflow-hidden"
-                    style={{ background: `linear-gradient(135deg, ${(siteContent?.primaryColor || '#4c1d95')}08, ${(siteContent?.primaryColor || '#4c1d95')}15)` }}>
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-current opacity-5 rounded-full -translate-y-12 translate-x-12" style={{ color: siteContent?.primaryColor || '#4c1d95' }} />
+                    style={{ background: `linear-gradient(135deg, ${(siteContent?.primaryColor || '#5b0143')}08, ${(siteContent?.primaryColor || '#5b0143')}15)` }}>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-current opacity-5 rounded-full -translate-y-12 translate-x-12" style={{ color: siteContent?.primaryColor || '#5b0143' }} />
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[4px] mb-1">Total Due</span>
-                            <div className="flex items-center gap-4 border-b border-gray-100 pb-8 mb-8" style={{ color: siteContent?.primaryColor || '#4c1d95' }}>
+                            <div className="flex items-center gap-4 border-b border-gray-100 pb-8 mb-8" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
                       <span className="text-xl font-bold opacity-40">₵</span>
                       <span className="text-5xl font-black tracking-tighter leading-none">
                         {(Number(order.total) || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}

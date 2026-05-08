@@ -181,19 +181,19 @@ export default function CartDrawer({
                                 </button>
                             )}
                             <div className="flex-1">
-                                <h2 className="text-xl font-black flex items-center gap-2" style={{ color: siteContent?.primaryColor || '#4c1d95' }}>
+                                <h2 className="text-xl font-black flex items-center gap-2" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
                                     {step === 'cart' && <><ShoppingBag size={20} /> Your Bag {cartCount > 0 && <span className="text-sm font-bold text-gray-400">({cartCount} items)</span>}</>}
                                     {step === 'details' && '📦 Delivery Details'}
                                 </h2>
                                 {step === 'cart' && cart.length > 0 && (
                                     <div className="flex gap-2 mt-1">
-                                        <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }} />
+                                        <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }} />
                                         <div className="flex-1 h-1 rounded-full bg-gray-200" />
                                     </div>
                                 )}
                                 {step === 'details' && (
                                     <div className="flex gap-2 mt-1">
-                                        <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }} />
+                                        <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }} />
                                         <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: siteContent?.secondaryColor || '#f97316' }} />
                                     </div>
                                 )}
@@ -215,7 +215,7 @@ export default function CartDrawer({
                                             <button
                                                 onClick={handleClose}
                                                 className="mt-6 px-8 py-3 rounded-2xl font-bold text-white text-sm"
-                                                style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}
+                                                style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
                                             >
                                                 Start Shopping
                                             </button>

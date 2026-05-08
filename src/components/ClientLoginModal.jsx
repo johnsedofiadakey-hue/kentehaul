@@ -181,7 +181,7 @@ export default function ClientLoginModal({
                                 type="submit"
                                 disabled={loading}
                                 className="w-full py-5 text-white rounded-[24px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:opacity-90 flex items-center justify-center gap-3 mt-4 disabled:opacity-70 group"
-                                style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}
+                                style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
                             >
                                 {loading ? <Loader2 className="animate-spin" /> : (
                                     <>

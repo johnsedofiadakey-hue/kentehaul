@@ -257,7 +257,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                                 <input
                                     type="color"
                                     className="h-16 w-16 rounded-2xl cursor-pointer border-none bg-transparent"
-                                    value={siteContent[field] || (field === 'primaryColor' ? '#4c1d95' : '#f97316')}
+                                    value={siteContent[field] || (field === 'primaryColor' ? '#5b0143' : '#f97316')}
                                     onChange={e => handleColorChange(field, e.target.value)}
                                 />
                                 <div>

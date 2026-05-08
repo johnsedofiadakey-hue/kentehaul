@@ -67,7 +67,7 @@ export default function WishlistDrawer({ isOpen, onClose, wishlist, toggleWishli
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
-                                            style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}
+                                            style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
                                             className="group flex gap-4 p-3 bg-gray-50/50 rounded-3xl border border-gray-100 hover:bg-white hover:shadow-xl transition-all duration-500"
                                         >
                                             <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 bg-white border border-gray-100">

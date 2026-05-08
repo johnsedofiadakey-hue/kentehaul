@@ -63,7 +63,7 @@ export default function LegalView({ title, content, siteContent, type }) {
           <div className="p-12 md:p-16 border-b border-gray-50 flex flex-col md:flex-row items-center gap-8 bg-gradient-to-br from-white to-gray-50/50">
             <div 
               className="w-20 h-20 rounded-3xl flex items-center justify-center text-white shadow-2xl"
-              style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}
+              style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
             >
               {icons[type] || <Scale size={40} />}
             </div>
