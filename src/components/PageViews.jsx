@@ -394,7 +394,12 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
                     <h3 className="font-black text-sm uppercase tracking-tight text-white mb-1 truncate">{p.name}</h3>
                     <p className="text-white/70 font-bold text-xs mb-3">{p.category}</p>
                     <div className="flex justify-between items-center">
-                      <p className="text-white font-black text-sm">₵{p.price?.toLocaleString()}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-white font-black text-sm">₵{p.price?.toLocaleString()}</p>
+                        {p.originalPrice && (
+                          <p className="text-white/40 font-bold text-xs line-through">₵{p.originalPrice?.toLocaleString()}</p>
+                        )}
+                      </div>
                       <Link to="/shop" className="text-white/70 hover:text-white transition">
                         <ArrowRight size={16} />
                       </Link>

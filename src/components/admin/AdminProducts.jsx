@@ -19,7 +19,7 @@ export default function AdminProducts({
     // --- STATE: PRODUCTS ---
     const [editingProduct, setEditingProduct] = useState(null);
     const [productForm, setProductForm] = useState({
-        name: '', price: '', stockQuantity: 1, sku: '', category: '', subcategory: '',
+        name: '', price: '', originalPrice: '', stockQuantity: 1, sku: '', category: '', subcategory: '',
         description: '', image: '', isPreorder: false, preorderDays: 14
     });
 
@@ -119,6 +119,7 @@ export default function AdminProducts({
             const sanitizedProduct = {
                 ...productForm,
                 price: Number(productForm.price),
+                originalPrice: productForm.originalPrice ? Number(productForm.originalPrice) : null,
                 stockQuantity: Number(productForm.stockQuantity),
                 date: Date.now()
             };
@@ -130,7 +131,7 @@ export default function AdminProducts({
                 await addDoc(collection(db, "products"), sanitizedProduct);
             }
 
-            setProductForm({ name: '', price: '', stockQuantity: 1, sku: '', category: '', subcategory: '', description: '', image: '', isPreorder: false, preorderDays: 14 });
+            setProductForm({ name: '', price: '', originalPrice: '', stockQuantity: 1, sku: '', category: '', subcategory: '', description: '', image: '', isPreorder: false, preorderDays: 14 });
             alert("Inventory updated successfully!");
         } catch (error) {
             console.error("Product Save Error:", error);
@@ -317,9 +318,13 @@ export default function AdminProducts({
                             <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Product Title</label>
                             <input required placeholder="Enter name" className="w-full p-4 bg-gray-50 border rounded-2xl font-bold" value={productForm.name} onChange={e => setProductForm({ ...productForm, name: e.target.value })} />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-3 gap-4">
                             <div className="space-y-2">
-                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Price (₵)</label>
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Original Price (₵)</label>
+                                <input placeholder="0.00" className="w-full p-4 bg-gray-50 border rounded-2xl font-black" value={productForm.originalPrice || ''} onChange={e => setProductForm({ ...productForm, originalPrice: e.target.value })} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Sale Price (₵)</label>
                                 <input required placeholder="0.00" className="w-full p-4 bg-gray-50 border rounded-2xl font-black" value={productForm.price} onChange={e => setProductForm({ ...productForm, price: e.target.value })} />
                             </div>
                             <div className="space-y-2">
