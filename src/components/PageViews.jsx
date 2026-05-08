@@ -273,10 +273,16 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
         )}
 
         {siteContent?.flashSaleEnabled && (
-          <div className="absolute top-0 inset-x-0 bg-white/10 backdrop-blur-md py-3 text-center text-white z-20 border-b border-white/20">
-            <p className="text-xs font-black uppercase tracking-[4px]">
-              🔥 {siteContent?.flashSaleTitle || "Mother's Day Sales"} is Live! 
-              {siteContent?.flashSaleEndDate && ` — Ends in ${timeLeft.days}d ${timeLeft.hours}h ${timeLeft.minutes}m`}
+          <div className="absolute top-0 inset-x-0 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 py-4 text-center text-white z-20 shadow-lg">
+            <p className="text-sm font-black uppercase tracking-[2px] flex items-center justify-center gap-2 flex-wrap">
+              <span className="animate-pulse text-lg">✨</span> 
+              {siteContent?.flashSaleTitle || "Mother's Day Sales"} is Live! 
+              <span className="animate-pulse text-lg">✨</span>
+              {siteContent?.flashSaleEndDate && (
+                <span className="ml-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold tracking-normal backdrop-blur-sm">
+                  Ends in {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
+                </span>
+              )}
             </p>
           </div>
         )}
