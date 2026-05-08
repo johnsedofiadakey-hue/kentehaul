@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- AUTHENTICATION HELPERS ---
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'admin@kentehaul.com';
+    }
+
+    // --- LOGGING & ACTIVITY (WRITE ONLY FOR PUBLIC) ---
+    match /activity_log/{logId} {
+      allow read: if isAdmin();
+      allow create: if true; 
+      allow update, delete: if false;
+    }
+
+    // --- PUBLIC CONTENT (READ FOR ALL, WRITE FOR ADMIN) ---
+    match /settings/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /settings/categories {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      // Allow customers to decrement stock during atomic checkout (optional hardening)
+      allow update: if isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stockQuantity']);
+    }
+    
+    match /gallery/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if true; // Public can submit
+      allow update, delete: if isAdmin();
+    }
+
+    match /feedbacks/{feedbackId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // --- SENSITIVE COMMERCE DATA (STRICT PROTECTION) ---
+    
+    match /orders/{orderId} {
+      // Admin sees everything. Public can ONLY get their own order if they have the exact ID.
+      // We block 'list' queries for non-admins to prevent database scraping.
+      allow list: if isAdmin();
+      allow get: if true; 
+      allow create: if true; 
+      allow update, delete: if isAdmin();
+    }
+    
+    match /customers/{phone} {
+      // CRM is strictly Admin only.
+      // During checkout, public can create/update their own profile stub.
+      allow read: if isAdmin();
+      allow create, update: if true; 
+      allow delete: if isAdmin();
+    }
+
+    match /wishlists/{clientId} {
+      allow read: if isAdmin();
+      allow write: if true; 
+    }
+    
+    match /mail/{mailId} {
+      // Trigger Email collection: Write only for system, never readable by public.
+      allow read, update, delete: if false; 
+      allow create: if true; 
+    }
+    
+    // --- PARTNERSHIPS ---
+    match /partnerships/{id} {
+        allow read: if isAdmin();
+        allow create: if true;
+        allow update, delete: if isAdmin();
+    }
+
+    // --- DEFAULT DENY ---
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

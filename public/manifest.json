@@ -1,0 +1,20 @@
+{
+  "name": "KenteHaul",
+  "short_name": "KenteHaul",
+  "description": "Authentic Ghanaian Kente and Smocks — Shop Online",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4c1d95",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "lifestyle"],
+  "lang": "en-GH"
+}

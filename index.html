@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5" />
+    
+    <title>KenteHaul — Authentic Ghanaian Kente & Smocks</title>
+    
+    <script>
+      (function() {
+        var V = '2026.05.08.V1';
+        if (localStorage.getItem('kh_deploy_v') !== V) {
+          localStorage.clear();
+          localStorage.setItem('kh_deploy_v', V);
+          
+          // Kill any active Service Workers that might be caching stale HTML
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              for(let registration of registrations) {
+                registration.unregister();
+              }
+            });
+          }
+          
+          console.log("Nuclear Refresh Triggered: Version " + V);
+          window.location.reload(true);
+        }
+      })();
+    </script>
+    <style>
+      /* Shell Styles to prevent "Ghost Theme" flicker */
+      html, body {
+        background-color: #0f172a; /* Slate 900 - Dark Neutral */
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+      }
+      #root:empty {
+        background-color: #0f172a;
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
