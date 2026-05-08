@@ -382,9 +382,9 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
             </motion.div>
           </div>
 
-          {products && products.length > 0 ? (
+          {products && products.filter(p => p.isFlashSale === true).length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
-              {products.slice(0, 4).map((p) => (
+              {products.filter(p => p.isFlashSale === true).slice(0, 4).map((p) => (
                 <div key={p.id} className="bg-white/10 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 hover:bg-white/20 transition group">
                   <div className="aspect-[4/5] overflow-hidden relative">
                     <LazyImage src={p.image} alt={p.name} className="w-full h-full object-cover transition duration-700 group-hover:scale-110" />

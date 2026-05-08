@@ -20,7 +20,7 @@ export default function AdminProducts({
     const [editingProduct, setEditingProduct] = useState(null);
     const [productForm, setProductForm] = useState({
         name: '', price: '', originalPrice: '', stockQuantity: 1, sku: '', category: '', subcategory: '',
-        description: '', image: '', isPreorder: false, preorderDays: 14
+        description: '', image: '', isPreorder: false, preorderDays: 14, isFlashSale: false
     });
 
     // --- STATE: CATEGORY MANAGEMENT ---
@@ -131,7 +131,7 @@ export default function AdminProducts({
                 await addDoc(collection(db, "products"), sanitizedProduct);
             }
 
-            setProductForm({ name: '', price: '', originalPrice: '', stockQuantity: 1, sku: '', category: '', subcategory: '', description: '', image: '', isPreorder: false, preorderDays: 14 });
+            setProductForm({ name: '', price: '', originalPrice: '', stockQuantity: 1, sku: '', category: '', subcategory: '', description: '', image: '', isPreorder: false, preorderDays: 14, isFlashSale: false });
             alert("Inventory updated successfully!");
         } catch (error) {
             console.error("Product Save Error:", error);
@@ -151,7 +151,8 @@ export default function AdminProducts({
             ...p, 
             stockQuantity: p.stockQuantity ?? p.stock ?? 0,
             isPreorder: p.isPreorder ?? false,
-            preorderDays: p.preorderDays ?? 14
+            preorderDays: p.preorderDays ?? 14,
+            isFlashSale: p.isFlashSale ?? false
         }); 
         window.scrollTo({ top: 0, behavior: 'smooth' }); 
     };
@@ -330,6 +331,20 @@ export default function AdminProducts({
                             <div className="space-y-2">
                                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Stock Qty</label>
                                 <input required placeholder="Qty" type="number" className="w-full p-4 bg-gray-50 border rounded-2xl font-black" value={productForm.stockQuantity} onChange={e => setProductForm({ ...productForm, stockQuantity: Number(e.target.value) })} />
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-2 bg-rose-50/50 p-6 rounded-[30px] border border-rose-100/50 flex items-center gap-4">
+                            <button 
+                                type="button"
+                                onClick={() => setProductForm({ ...productForm, isFlashSale: !productForm.isFlashSale })}
+                                className={`w-14 h-8 rounded-full transition-all relative ${productForm.isFlashSale ? 'bg-rose-500' : 'bg-gray-200'}`}
+                            >
+                                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${productForm.isFlashSale ? 'left-7' : 'left-1'}`} />
+                            </button>
+                            <div>
+                                <p className="text-xs font-black text-gray-900 uppercase tracking-wider">Include in Flash Sale</p>
+                                <p className="text-[10px] text-gray-500 font-bold">This item will appear in the sales section on the home page.</p>
                             </div>
                         </div>
 
