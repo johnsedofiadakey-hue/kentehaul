@@ -261,6 +261,21 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
         ogDescription="Shop authentic, high-quality Ghanaian Kente cloth. We deliver heritage to your doorstep."
         canonicalPath="/"
       />
+      {siteContent?.flashSaleEnabled && (
+        <div className="relative bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 py-4 text-center text-white z-20 shadow-lg">
+          <p className="text-sm font-black uppercase tracking-[2px] flex items-center justify-center gap-2 flex-wrap">
+            <span className="animate-pulse text-lg">✨</span> 
+            {siteContent?.flashSaleTitle || "Mother's Day Sales"} is Live! 
+            <span className="animate-pulse text-lg">✨</span>
+            {siteContent?.flashSaleEndDate && (
+              <span className="ml-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold tracking-normal backdrop-blur-sm">
+                Ends in {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
       {/* HERO SECTION */}
       <div className="relative min-h-[85vh] flex items-center justify-center" style={{ backgroundColor: siteContent?.primaryColor || '#4c1d95' }}>
         {siteContent?.heroImage ? (
@@ -270,21 +285,6 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
           </div>
         ) : (
           <div className="absolute inset-0 z-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-        )}
-
-        {siteContent?.flashSaleEnabled && (
-          <div className="absolute top-0 inset-x-0 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 py-4 text-center text-white z-20 shadow-lg">
-            <p className="text-sm font-black uppercase tracking-[2px] flex items-center justify-center gap-2 flex-wrap">
-              <span className="animate-pulse text-lg">✨</span> 
-              {siteContent?.flashSaleTitle || "Mother's Day Sales"} is Live! 
-              <span className="animate-pulse text-lg">✨</span>
-              {siteContent?.flashSaleEndDate && (
-                <span className="ml-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold tracking-normal backdrop-blur-sm">
-                  Ends in {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
-                </span>
-              )}
-            </p>
-          </div>
         )}
 
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white rounded-full mix-blend-overlay filter blur-[120px] opacity-20 animate-blob pointer-events-none"></div>
@@ -383,7 +383,7 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
           </div>
 
           {products && products.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
               {products.slice(0, 4).map((p) => (
                 <div key={p.id} className="bg-white/10 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 hover:bg-white/20 transition group">
                   <div className="aspect-[4/5] overflow-hidden relative">
