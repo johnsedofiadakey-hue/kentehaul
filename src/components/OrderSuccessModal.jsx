@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Truck, Share2, Smartphone, X, ArrowRight, AlertCircle, ShoppingBag } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function OrderSuccessModal({ 
     isOpen, 
@@ -13,6 +14,7 @@ export default function OrderSuccessModal({
     setIsTrackingOpen 
 }) {
     const [renderError, setRenderError] = useState(false);
+    const navigate = useNavigate();
 
     // Resilience: Fallback for missing theme data
     const sc = siteContent || { primaryColor: '#5b0143', secondaryColor: '#f97316' };
@@ -111,13 +113,9 @@ export default function OrderSuccessModal({
 
                         <div className="flex flex-col md:flex-row h-full">
                             {/* Visual Side */}
-                            <div className="w-full md:w-[40%] bg-gray-900 relative min-h-[200px] md:min-h-full">
-                                <img 
-                                    src={sc?.heroImage || "https://images.unsplash.com/photo-1590666014404-5f50ba56008d?ixlib=rb-4.0.3&auto=format&fit=crop&q=80&w=600"} 
-                                    alt="Success" 
-                                    className="absolute inset-0 w-full h-full object-cover opacity-50"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/10 to-transparent flex flex-col justify-end p-8">
+                            <div className="w-full md:w-[40%] relative min-h-[200px] md:min-h-full overflow-hidden" style={{ background: `linear-gradient(135deg, ${sc.primaryColor}, ${sc.secondaryColor})` }}>
+                                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent flex flex-col justify-end p-8">
                                     <div className="w-12 h-12 rounded-[18px] bg-white text-gray-900 flex items-center justify-center shadow-2xl mb-4">
                                         <Check size={24} strokeWidth={3} />
                                     </div>
@@ -152,7 +150,7 @@ export default function OrderSuccessModal({
 
                                         <div className="grid grid-cols-2 gap-3">
                                             <button 
-                                                onClick={() => { setIsTrackingOpen(true); onClose(); }}
+                                                onClick={() => { onClose(); navigate(`/track/${orderId}`); }}
                                                 className="flex items-center justify-center gap-2 p-4 bg-gray-900 text-white rounded-[20px] font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all active:scale-95"
                                             >
                                                 <Truck size={14} /> Track
