@@ -16,7 +16,8 @@ export default function CartDrawer({
     siteContent,
     onPaystackSuccess,
     onWhatsAppCheckout,
-    isProcessing
+    isProcessing,
+    onForceClearProcessing
 }) {
     const [step, setStep] = useState('cart'); // 'cart' | 'details'
     const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', riderName: '', riderPhone: '', riderCompany: '', pickupLocationId: '' });
