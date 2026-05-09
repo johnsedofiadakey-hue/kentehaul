@@ -33,6 +33,7 @@ export default function AdminProducts({
 
     // --- STATE: GALLERY ---
     const [galleryImage, setGalleryImage] = useState('');
+    const [galleryDescription, setGalleryDescription] = useState('');
     const [localGallery, setLocalGallery] = useState(gallery || []);
 
     useEffect(() => {
@@ -165,7 +166,17 @@ export default function AdminProducts({
     const addGalleryImage = async () => {
         if (!galleryImage) return;
         setLoading(true);
-        try { await addDoc(collection(db, "gallery"), { image: galleryImage, date: Date.now() }); setGalleryImage(''); } catch (e) { alert("Gallery error."); }
+        try { 
+            await addDoc(collection(db, "gallery"), { 
+                image: galleryImage, 
+                description: galleryDescription, 
+                date: Date.now() 
+            }); 
+            setGalleryImage(''); 
+            setGalleryDescription(''); 
+        } catch (e) { 
+            alert("Gallery error."); 
+        }
         setLoading(false);
     };
 
@@ -175,6 +186,18 @@ export default function AdminProducts({
             await deleteDoc(doc(db, "gallery", id)); 
             setLocalGallery(prev => prev.filter(g => g.id !== id));
         } catch (e) { alert("Error deleting image."); }
+    };
+
+    const handleUpdateGalleryDescription = (id, text) => {
+        setLocalGallery(prev => prev.map(g => g.id === id ? { ...g, description: text } : g));
+    };
+
+    const handleSaveGalleryDescription = async (id, text) => {
+        try {
+            await updateDoc(doc(db, "gallery", id), { description: text });
+        } catch (e) {
+            console.error("Error saving description:", e);
+        }
     };
 
     const addFeedback = async (e) => {
@@ -267,6 +290,12 @@ export default function AdminProducts({
                     <h3 className="font-black text-lg mb-6 flex items-center gap-3 text-gray-800 uppercase tracking-widest text-sm"><Camera size={20} className="text-blue-500" /> Brand Gallery</h3>
                     <div className="space-y-6">
                         <ImageUpload image={galleryImage} onUpload={setGalleryImage} label="Select Professional Photo" primaryColor={siteContent?.primaryColor} />
+                        <textarea
+                          placeholder="Add a breathtaking description for this image..."
+                          className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-400/20 h-24 resize-none"
+                          value={galleryDescription}
+                          onChange={e => setGalleryDescription(e.target.value)}
+                        />
                         <button 
                             type="button"
                             onClick={addGalleryImage} 
@@ -275,11 +304,25 @@ export default function AdminProducts({
                         >
                             {loading ? <Loader2 className="animate-spin" size={20} /> : <><Camera size={18} /> Publish to Gallery</>}
                         </button>
-                        <div className="grid grid-cols-3 gap-3">
-                            {localGallery.slice(0, 9).map(g => (
-                                <div key={g.id} className="relative group aspect-square rounded-2xl overflow-hidden shadow-sm">
-                                    <img src={g.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="gal" />
-                                    <button onClick={() => deleteGalleryImage(g.id)} className="absolute inset-0 bg-red-600/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={20} /></button>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {localGallery.map(g => (
+                                <div key={g.id} className="space-y-2">
+                                    <div className="relative group aspect-square rounded-2xl overflow-hidden shadow-sm">
+                                        <img src={g.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="gal" />
+                                        <button 
+                                            onClick={() => deleteGalleryImage(g.id)} 
+                                            className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                    <textarea
+                                      placeholder="Add description..."
+                                      className="w-full p-2 bg-gray-50 border border-gray-100 rounded-xl font-bold text-xs outline-none focus:ring-2 focus:ring-blue-400/20 h-16 resize-none"
+                                      value={g.description || ''}
+                                      onChange={e => handleUpdateGalleryDescription(g.id, e.target.value)}
+                                      onBlur={e => handleSaveGalleryDescription(g.id, e.target.value)}
+                                    />
                                 </div>
                             ))}
                         </div>

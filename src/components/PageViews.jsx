@@ -504,7 +504,7 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
                     <div className="w-full md:w-2/5 space-y-4 text-center md:text-left">
                       <span className="text-amber-500 font-black text-xs uppercase tracking-[3px]">Archive 0{index + 1}</span>
                       <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#5b0143' }}>Heritage Captured</h3>
-                      <p className="text-gray-500 font-medium text-sm leading-relaxed">This exclusive piece tells a story of royalty and tradition. Handcrafted by master weavers in the heart of Ghana.</p>
+                      <p className="text-gray-500 font-medium text-sm leading-relaxed">{item.description || "This exclusive piece tells a story of royalty and tradition. Handcrafted by master weavers in the heart of Ghana."}</p>
                       <div className="pt-2">
                         <span className="inline-block w-8 h-0.5 bg-amber-500"></span>
                       </div>
