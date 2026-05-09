@@ -273,6 +273,14 @@ export default function Shop({
               >
                 All Archives
               </button>
+              {siteContent?.flashSaleEnabled && (
+                <button
+                  onClick={() => updateCategory('sales')}
+                  className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === 'sales' ? 'bg-rose-600 text-white shadow-lg' : 'bg-gray-100 text-gray-500'}`}
+                >
+                  {siteContent?.flashSaleTitle || "Flash Sale"} 🔥
+                </button>
+              )}
               {categories.map(cat => (
                 <button
                   key={cat.id}

@@ -417,7 +417,7 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
               ))}
 
               {/* Side Grid (Right) */}
-              <div className="md:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="md:col-span-5 grid grid-cols-2 gap-4">
                 {products.filter(p => p.isFlashSale === true).slice(1, 3).map((p) => (
                   <div key={p.id} className="bg-white/10 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 hover:bg-white/15 transition-all duration-500 group flex flex-col justify-between">
                     <div className="aspect-[4/5] overflow-hidden relative">
