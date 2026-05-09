@@ -166,9 +166,9 @@ export default function App() {
       const cachedV = localStorage.getItem('kh_deploy_v');
       const cached = localStorage.getItem('kente_theme');
       
-      // If version mismatch or no cache, prioritize INITIAL_CONTENT (The Royal Theme)
+      // If version mismatch or no cache, prioritize return null to show loader
       if (cachedV !== deployV || !cached) {
-          return INITIAL_CONTENT;
+          return null;
       }
       
       const parsed = JSON.parse(cached);
@@ -176,7 +176,7 @@ export default function App() {
       if (parsed && typeof parsed === 'object' && parsed.primaryColor) {
         return parsed;
       }
-      return INITIAL_CONTENT;
+      return null;
     } catch (e) {
       console.error("Theme restoration failed, using INITIAL_CONTENT:", e);
       return INITIAL_CONTENT;
@@ -465,6 +465,7 @@ export default function App() {
         setSiteContent(themeData);
         // Cache theme in localStorage to prevent FOUC on next load
         localStorage.setItem('kente_theme', JSON.stringify(themeData));
+        localStorage.setItem('kh_deploy_v', '2026.04.21.V1'); // Fix: Save version to make cache valid!
       } else {
         // Use default constants if database is empty
         setSiteContent(INITIAL_CONTENT);
@@ -1131,6 +1132,15 @@ export default function App() {
   };
 
   const isAdminPath = location.pathname.startsWith('/admin');
+
+  if (!siteContent) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 mb-4" style={{ borderColor: '#5b0143' }}></div>
+        <p className="text-gray-600 font-medium">Loading Kente Experience...</p>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
