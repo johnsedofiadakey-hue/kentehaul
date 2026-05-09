@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { Upload, CreditCard, Loader2, X } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -37,18 +37,25 @@ export const LazyImage = ({ src, alt, className }) => {
 // --- MAGNETIC BUTTON COMPONENT ---
 export const MagneticButton = ({ children, className, ...props }) => {
   const ref = React.useRef(null);
-  const [position, setPosition] = React.useState({ x: 0, y: 0 });
+  
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  
+  const springX = useSpring(x, { stiffness: 150, damping: 15 });
+  const springY = useSpring(y, { stiffness: 150, damping: 15 });
 
   const handleMouseMove = (e) => {
     const { clientX, clientY } = e;
     const { left, top, width, height } = ref.current.getBoundingClientRect();
-    const x = clientX - (left + width / 2);
-    const y = clientY - (top + height / 2);
-    setPosition({ x: x * 0.3, y: y * 0.3 }); // 0.3 strength for subtle effect
+    const posX = clientX - (left + width / 2);
+    const posY = clientY - (top + height / 2);
+    x.set(posX * 0.3);
+    y.set(posY * 0.3);
   };
 
   const handleMouseLeave = () => {
-    setPosition({ x: 0, y: 0 });
+    x.set(0);
+    y.set(0);
   };
 
   return (
@@ -56,8 +63,7 @@ export const MagneticButton = ({ children, className, ...props }) => {
       ref={ref}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      animate={{ x: position.x, y: position.y }}
-      transition={{ type: 'spring', stiffness: 150, damping: 15 }}
+      style={{ x: springX, y: springY }}
       className="inline-block"
     >
       {children}
