@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Package, Plus, DollarSign, CreditCard, Edit, Printer, ChevronDown, TrendingUp, Clock, Truck, MapPin, User, X, Check, ExternalLink, Smartphone } from 'lucide-react';
+import { Package, Plus, DollarSign, CreditCard, Edit, Printer, ChevronDown, TrendingUp, Clock, Truck, MapPin, User, X, Check, ExternalLink, Smartphone, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../../firebase';
 import { ORDER_STATUSES } from '../../data/constants';
 
@@ -38,6 +38,15 @@ export default function AdminOrders({
             alert("Could not update status.");
         }
         setUpdatingId(null);
+    };
+
+    const handleDeleteOrder = async (orderId) => {
+        if (!window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
+        try {
+            await deleteDoc(doc(db, "orders", orderId));
+        } catch (e) {
+            alert("Could not delete order: " + e.message);
+        }
     };
 
     const revenue = orders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
@@ -229,6 +238,9 @@ export default function AdminOrders({
                                         )}
                                         <button onClick={() => onEditInvoice(order)} className="p-3 bg-gray-100 text-gray-600 rounded-2xl hover:bg-gray-900 hover:text-white transition-all" title="Edit Order">
                                             <Edit size={18} />
+                                        </button>
+                                        <button onClick={() => handleDeleteOrder(order.id)} className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all" title="Delete Order">
+                                            <Trash2 size={18} />
                                         </button>
                                         <button onClick={() => onViewOrder(order)} className="flex items-center gap-2 font-black text-blue-600 bg-blue-50 px-5 py-3 rounded-2xl hover:bg-blue-100 transition-all text-sm" title="View Invoice">
                                             <Printer size={16} /> Invoice
