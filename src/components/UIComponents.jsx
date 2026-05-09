@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Upload, CreditCard, Loader2, X } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -9,10 +10,10 @@ export const LazyImage = ({ src, alt, className }) => {
   const [isLoaded, setIsLoaded] = React.useState(false);
 
   return (
-    <div className={`relative overflow-hidden ${className} bg-gray-100`}>
+    <div className={`relative overflow-hidden ${className} bg-amber-50/50`}>
       {/* Placeholder / Skeleton */}
       {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
+        <div className="absolute inset-0 flex items-center justify-center bg-amber-50/50 animate-pulse">
           <span className="sr-only">Loading...</span>
         </div>
       )}
@@ -30,6 +31,37 @@ export const LazyImage = ({ src, alt, className }) => {
         onLoad={() => setIsLoaded(true)}
       />
     </div>
+  );
+};
+
+// --- MAGNETIC BUTTON COMPONENT ---
+export const MagneticButton = ({ children, className, ...props }) => {
+  const ref = React.useRef(null);
+  const [position, setPosition] = React.useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e) => {
+    const { clientX, clientY } = e;
+    const { left, top, width, height } = ref.current.getBoundingClientRect();
+    const x = clientX - (left + width / 2);
+    const y = clientY - (top + height / 2);
+    setPosition({ x: x * 0.3, y: y * 0.3 }); // 0.3 strength for subtle effect
+  };
+
+  const handleMouseLeave = () => {
+    setPosition({ x: 0, y: 0 });
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      animate={{ x: position.x, y: position.y }}
+      transition={{ type: 'spring', stiffness: 150, damping: 15 }}
+      className="inline-block"
+    >
+      {children}
+    </motion.div>
   );
 };
 

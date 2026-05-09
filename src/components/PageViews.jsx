@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Camera, MessageCircle, Star, Quote, Phone, Mail, MapPin, ShoppingBag, X, ChevronLeft, ChevronRight, ZoomIn, ArrowRight, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { LazyImage } from './UIComponents';
+import { LazyImage, MagneticButton } from './UIComponents';
 import PhoneInput from './PhoneInput';
 import SEO from './SEO';
 
@@ -327,13 +327,16 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
             transition={{ delay: 0.6, duration: 1, ease: [0.22, 1, 0.36, 1] }}
             className="flex flex-col sm:flex-row gap-5 justify-center mt-10"
           >
-            <Link
-              to="/shop"
-              className="shimmer-premium group text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all transform hover:-translate-y-2 inline-flex items-center justify-center relative overflow-hidden active:scale-95"
-              style={{ backgroundColor: siteContent?.secondaryColor || '#f97316' }}
-            >
-              <span className="relative z-10 flex items-center gap-2">Our Shop <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
-            </Link>
+            <MagneticButton>
+              <Link
+                to="/shop"
+                className="shimmer-premium group text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all transform hover:-translate-y-2 inline-flex items-center justify-center relative overflow-hidden active:scale-95"
+                style={{ backgroundColor: siteContent?.secondaryColor || '#f97316' }}
+              >
+                <span className="relative z-10 flex items-center gap-2">Our Shop <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
+              </Link>
+            </MagneticButton>
+            
             <Link to="/heritage" className="bg-white/5 backdrop-blur-2xl text-white border border-white/20 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] hover:bg-white/10 transition-all transform hover:-translate-y-2 inline-flex items-center justify-center active:scale-95 shadow-xl">
               Our Legacy
             </Link>

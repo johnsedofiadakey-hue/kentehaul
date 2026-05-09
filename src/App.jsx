@@ -457,9 +457,20 @@ export default function App() {
   // 3. FIREBASE REAL-TIME LISTENERS
   // ==========================================
   useEffect(() => {
+    // Safety Timeout for Loading Screen
+    const timeoutId = setTimeout(() => {
+      setSiteContent(prev => {
+        if (!prev) {
+          console.warn("Theme fetch timed out, falling back to INITIAL_CONTENT.");
+          return INITIAL_CONTENT;
+        }
+        return prev;
+      });
+    }, 3000); // 3 seconds timeout
 
     // A. Listen to Site Settings (Logo, Colors, Hero Text)
     const unsubContent = onSnapshot(doc(db, "settings", "siteContent"), (doc) => {
+      clearTimeout(timeoutId); // Clear timeout if we get data!
       if (doc.exists()) {
         const themeData = doc.data();
         setSiteContent(themeData);
@@ -526,6 +537,7 @@ export default function App() {
 
     // Cleanup all listeners when the application closes
     return () => {
+      clearTimeout(timeoutId);
       unsubContent();
       unsubProducts();
       // unsubGallery(); // Now static
@@ -1211,6 +1223,17 @@ export default function App() {
           addToCart={addToCart}
           siteContent={siteContent}
         />
+
+        {selectedProduct && (
+          <SEO
+            siteContent={siteContent}
+            title={selectedProduct.name}
+            description={selectedProduct.description || `Buy ${selectedProduct.name} on KenteHaul.`}
+            ogImage={selectedProduct.image}
+            ogTitle={selectedProduct.name}
+            ogDescription={`Price: ₵${selectedProduct.price}. Buy authentic Kente on KenteHaul.`}
+          />
+        )}
 
         <ProductDetailModal
           product={selectedProduct}
