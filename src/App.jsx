@@ -1159,28 +1159,42 @@ export default function App() {
       <div className="min-h-screen bg-neutral-50 font-sans text-gray-800 flex flex-col">
         <SEO 
           siteContent={siteContent}
-          title="KenteHaul | Authentic Royal Ghanaian Kente Cloth"
-          description="The world's premier destination for authentic, hand-woven Ghanaian Kente. Discover the legacy of royalty, heritage, and imperial craftsmanship."
+          title="KenteHaul | Authentic Royal Ghanaian Kente Cloth & Smocks"
+          description="The world's premier destination for authentic, hand-woven Ghanaian Kente cloth and Fugu Smocks. Discover the legacy of royalty, heritage, and imperial craftsmanship."
           ogTitle="KenteHaul - Royal Heritage Collections"
-          ogDescription="Discover the finest hand-woven Ghanaian Kente. Authentic designs delivered worldwide from the heart of Ghana."
+          ogDescription="Discover the finest hand-woven Ghanaian Kente and Smocks. Authentic designs delivered worldwide from the heart of Ghana."
           ogImage={siteContent?.heroImage || siteContent?.logo || "/favicon.svg"}
-          jsonLd={{
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            "name": "KenteHaul",
-            "url": window.location.origin,
-            "logo": siteContent?.logo || `${window.location.origin}/favicon.svg`,
-            "sameAs": [
-              siteContent?.instagramLink || "https://instagram.com/kentehaul",
-              "https://tiktok.com/@kentehaul"
-            ],
-            "contactPoint": {
-              "@type": "ContactPoint",
-              "telephone": siteContent?.contactPhone,
-              "contactType": "customer service",
-              "email": siteContent?.contactEmail
+          keywords="Kente, Smocks, Fugu, Ghana, Authentic Kente, Hand-woven, African Fashion, Heritage, KenteHaul"
+          jsonLd={[
+            {
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "KenteHaul",
+              "url": window.location.origin,
+              "logo": siteContent?.logo || `${window.location.origin}/favicon.svg`,
+              "sameAs": [
+                siteContent?.instagramLink || "https://instagram.com/kentehaul",
+                "https://tiktok.com/@kentehaul"
+              ],
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "telephone": siteContent?.contactPhone,
+                "contactType": "customer service",
+                "email": siteContent?.contactEmail
+              }
+            },
+            {
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "url": window.location.origin,
+              "name": "KenteHaul",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": `${window.location.origin}/shop?q={search_term_string}`,
+                "query-input": "required name=search_term_string"
+              }
             }
-          }}
+          ]}
         />
 
         <ScrollToTop />

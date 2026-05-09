@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet-async';
  * SEO Component for centralized Meta tag management.
  * Isolating Helmet logic helps prevent initialization race conditions in production builds.
  */
-const SEO = ({ siteContent, title, description, ogImage, ogTitle, ogDescription, canonicalPath, jsonLd }) => {
+const SEO = ({ siteContent, title, description, ogImage, ogTitle, ogDescription, canonicalPath, jsonLd, keywords }) => {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://kentehaul.com';
   const favicon = siteContent?.logo || `${origin}/favicon.svg`;
   const siteTitle = title ? `${title} | KenteHaul` : "KenteHaul | Authentic Ghanaian Kente & Smocks";
@@ -17,6 +17,7 @@ const SEO = ({ siteContent, title, description, ogImage, ogTitle, ogDescription,
       {/* Basic Meta Tags */}
       <title>{siteTitle}</title>
       <meta name="description" content={seoDescription} />
+      {keywords && <meta name="keywords" content={keywords} />}
       <link rel="canonical" href={fullUrl} />
 
       {/* Open Graph / Facebook */}
