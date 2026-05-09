@@ -743,9 +743,10 @@ export default function App() {
         
         // Google Analytics: Add to Cart
         if (analytics) {
+          const activePrice = siteContent?.flashSaleEnabled ? product.price : (product.originalPrice || product.price);
           logEvent(analytics, 'add_to_cart', {
-            items: [{ item_id: product.id, item_name: product.name, price: product.price, quantity: 1 }],
-            value: product.price,
+            items: [{ item_id: product.id, item_name: product.name, price: activePrice, quantity: 1 }],
+            value: activePrice,
             currency: 'GHS'
           });
         }
@@ -779,7 +780,10 @@ export default function App() {
     }));
   };
 
-  const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const cartTotal = cart.reduce((total, item) => {
+    const price = siteContent?.flashSaleEnabled ? item.price : (item.originalPrice || item.price);
+    return total + (price * item.quantity);
+  }, 0);
 
   // --- ATOMIC CHECKOUT LOGIC (Robust Firestore Writes) ---
 
@@ -809,7 +813,7 @@ export default function App() {
           const snap = productSnapshots[idx];
           if (snap.exists()) {
               const liveProd = snap.data();
-              const price = Number(liveProd.price || 0);
+              const price = siteContent?.flashSaleEnabled ? Number(liveProd.price || 0) : Number(liveProd.originalPrice || liveProd.price || 0);
               const qty = Number(item.quantity || 1);
               const itemTotal = price * qty;
               
@@ -989,7 +993,7 @@ export default function App() {
           const snap = productSnapshots[idx];
           if (snap.exists()) {
               const liveProd = snap.data();
-              const price = Number(liveProd.price || 0);
+              const price = siteContent?.flashSaleEnabled ? Number(liveProd.price || 0) : Number(liveProd.originalPrice || liveProd.price || 0);
               const qty = Number(item.quantity || 1);
               totalAmount += (price * qty);
 
@@ -1237,7 +1241,7 @@ export default function App() {
         <main className="flex-grow">
           <Suspense fallback={<div className="h-screen flex items-center justify-center"><div className="animate-pulse text-xl font-light">Loading Kente Heritage...</div></div>}>
             <Routes>
-              <Route path="/" element={<Home siteContent={siteContent} gallery={gallery} feedbacks={feedbacks} products={products} />} />
+              <Route path="/" element={<Home siteContent={siteContent} gallery={gallery} feedbacks={feedbacks} products={products} addToCart={addToCart} />} />
               <Route path="/heritage" element={<Heritage siteContent={siteContent} />} />
               <Route path="/shop" element={<Shop products={products} currentCategory={currentCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} handleSingleBuy={handleSingleBuy} setSelectedProduct={setSelectedProduct} siteContent={siteContent} wishlist={wishlist} toggleWishlist={toggleWishlist} />} />
               <Route path="/institute" element={<Institute siteContent={siteContent} products={products} />} />

@@ -72,7 +72,7 @@ export default function Shop({
   // Filter + Sort Logic
   const filteredProducts = useMemo(() => {
     let result = products.filter(p =>
-      (!activeCategory || p.category === activeCategory) &&
+      (activeCategory === 'sales' ? (p.isFlashSale || (p.originalPrice > p.price)) : (!activeCategory || p.category === activeCategory)) &&
       (!activeSubcategory || p.subcategory === activeSubcategory) &&
       (
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -311,6 +311,14 @@ export default function Shop({
                   >
                     All Archives
                   </button>
+                {siteContent?.flashSaleEnabled && (
+                  <button
+                    onClick={() => updateCategory('sales')}
+                    className={`text-left px-4 py-3 rounded-2xl text-sm font-black transition-all ${activeCategory === 'sales' ? 'bg-rose-600 text-white shadow-xl translate-x-1' : 'text-gray-500 hover:bg-gray-50'}`}
+                  >
+                    {siteContent?.flashSaleTitle || "Flash Sale"} 🔥
+                  </button>
+                )}
                   {categories.map(cat => (
                     <button
                       key={cat.id}
@@ -389,6 +397,14 @@ export default function Shop({
                             >
                               All Archives
                             </button>
+                            {siteContent?.flashSaleEnabled && (
+                              <button
+                                onClick={() => { setActiveCategory('sales'); setActiveSubcategory(null); setIsMobileFiltersOpen(false); }}
+                                className={`text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all ${activeCategory === 'sales' ? 'bg-rose-600 text-white' : 'bg-gray-50 text-gray-500'}`}
+                              >
+                                {siteContent?.flashSaleTitle || "Flash Sale"} 🔥
+                              </button>
+                            )}
                             {categories.map(cat => (
                               <button
                                 key={cat.id}
@@ -493,45 +509,51 @@ export default function Shop({
                         </div>
                       </div>
 
-                      {/* Status Badges */}
-                      <div className="absolute top-4 left-4 right-4 md:top-8 md:left-8 md:right-8 flex justify-between items-start z-30 pointer-events-none">
+                      {/* Status Badges (Horizontal Glassmorphism) */}
+                      <div className="absolute top-4 left-4 right-4 md:top-6 md:left-6 md:right-6 flex flex-row flex-wrap gap-2 items-start z-30 pointer-events-none">
                         {p.stockQuantity <= 0 ? (
-                          <span className="bg-red-600 text-white text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-1 md:px-4 md:py-2 rounded-full shadow-2xl border border-white/20">Sold Out</span>
+                          <span className="bg-red-600/80 backdrop-blur-md text-white text-[8px] md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg border border-white/20">Sold Out</span>
                         ) : p.stockQuantity <= 3 && (
-                          <span className="bg-amber-600 text-white text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-1 md:px-4 md:py-2 rounded-full shadow-2xl">Low Stock</span>
+                          <span className="bg-amber-600/80 backdrop-blur-md text-white text-[8px] md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg border border-white/20">Low Stock</span>
                         )}
-
-                        {p.category && (
-                          <span className="bg-white/95 backdrop-blur-md text-[8px] md:text-[10px] font-black uppercase tracking-widest px-2 py-1 md:px-4 md:py-2 rounded-full shadow-xl text-gray-900 pointer-events-none">
-                            {categories.find(c => c.id === p.category)?.name}
+                        {siteContent?.flashSaleEnabled && (p.isFlashSale || (p.originalPrice > p.price)) && (
+                          <span className="bg-rose-600/80 backdrop-blur-md text-white text-[8px] md:text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg border border-white/20">
+                            {siteContent?.flashSaleTitle || "Sale"}
                           </span>
                         )}
+                      </div>
 
-                        {/* Heart + Share buttons */}
-                        <div className="absolute -bottom-12 right-0 md:-bottom-16 flex flex-col gap-2 z-40 pointer-events-auto">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleWishlist && toggleWishlist(p); }}
-                            className="p-2.5 md:p-3.5 bg-white shadow-xl rounded-2xl hover:scale-110 active:scale-95 transition-all group/heart"
-                          >
-                            <Heart
-                              size={18}
-                              fill={(p.id && (wishlist || []).some(item => item.id === p.id)) ? '#ef4444' : 'none'}
-                              className={`transition-colors duration-300 ${(p.id && (wishlist || []).some(item => item.id === p.id)) ? 'text-red-500' : 'text-gray-400 group-hover/heart:text-red-400'}`}
-                            />
-                          </button>
-                          <button
-                            onClick={(e) => handleShare(e, p)}
-                            className="p-2.5 md:p-3.5 bg-white shadow-xl rounded-2xl hover:scale-110 active:scale-95 transition-all text-gray-400 hover:text-blue-500"
-                          >
-                            <Share2 size={18} />
-                          </button>
-                        </div>
+                      {/* Heart + Share buttons (Bottom Corners) */}
+                      <div className="absolute bottom-4 left-4 right-4 z-30 flex justify-between items-center pointer-events-auto opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleWishlist && toggleWishlist(p); }}
+                          className="p-2 bg-white/90 backdrop-blur-md shadow-lg rounded-full hover:scale-110 active:scale-95 transition-all group/heart"
+                        >
+                          <Heart
+                            size={16}
+                            fill={(p.id && (wishlist || []).some(item => item.id === p.id)) ? '#ef4444' : 'none'}
+                            className={`transition-colors duration-300 ${(p.id && (wishlist || []).some(item => item.id === p.id)) ? 'text-red-500' : 'text-gray-400 group-hover/heart:text-red-400'}`}
+                          />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleShare(e, p); }}
+                          className="p-2 bg-white/90 backdrop-blur-md shadow-lg rounded-full hover:scale-110 active:scale-95 transition-all text-gray-400 hover:text-blue-500"
+                        >
+                          <Share2 size={16} />
+                        </button>
                       </div>
                     </div>
 
                     {/* Info Area */}
-                    <div className="pt-4 md:pt-10 px-2 md:px-6 flex flex-col flex-1 pb-4 md:pb-6">
-                      <div className="flex-1 mb-4 md:mb-8 text-center md:text-left">
+                    <div className="pt-4 md:pt-6 px-2 md:px-6 flex flex-col flex-1 pb-4 md:pb-6">
+                      <div className="flex-1 mb-4 md:mb-6 text-center md:text-left">
+                        {p.category && (
+                          <div className="mb-1">
+                            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-amber-600">
+                              {categories.find(c => c.id === p.category)?.name}
+                            </span>
+                          </div>
+                        )}
                         <h3
                           className="font-black text-[13px] md:text-xl text-gray-900 leading-tight uppercase tracking-tight mb-1 cursor-pointer group-hover:text-amber-600 transition-colors line-clamp-2"
                           onClick={() => setSelectedProduct(p)}
@@ -542,9 +564,16 @@ export default function Shop({
                           <span className="h-[1px] w-3 md:w-6 bg-amber-500 rounded-full opacity-40"></span>
                           <span className="text-[7px] md:text-[10px] font-bold text-gray-300 uppercase tracking-widest line-clamp-1">{p.subcategory || "Traditional Heritage"}</span>
                         </div>
-                        <p className="text-base md:text-2xl font-light text-gray-800 tracking-tighter">
-                          ₵{p.price.toLocaleString()}
-                        </p>
+                        <div className="flex items-baseline gap-2 justify-center md:justify-start">
+                          <p className="text-base md:text-2xl font-light text-gray-800 tracking-tighter">
+                            ₵{(siteContent?.flashSaleEnabled ? p.price : (p.originalPrice || p.price)).toLocaleString()}
+                          </p>
+                          {siteContent?.flashSaleEnabled && (p.originalPrice > p.price) && (
+                            <p className="text-sm md:text-lg font-light text-gray-400 line-through tracking-tighter">
+                              ₵{p.originalPrice.toLocaleString()}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       {/* Action Buttons */}

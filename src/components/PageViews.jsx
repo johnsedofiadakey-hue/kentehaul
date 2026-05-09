@@ -220,7 +220,7 @@ const PartnerInvitation = ({ siteContent }) => {
 };
 
 // --- HOME PAGE COMPONENT ---
-export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
+export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
@@ -383,30 +383,72 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
           </div>
 
           {products && products.filter(p => p.isFlashSale === true).length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
-              {products.filter(p => p.isFlashSale === true).slice(0, 4).map((p) => (
-                <div key={p.id} className="bg-white/10 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 hover:bg-white/20 transition group">
-                  <div className="aspect-[4/5] overflow-hidden relative">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+              {/* Spotlight Card (Left) */}
+              {products.filter(p => p.isFlashSale === true).slice(0, 1).map((p) => (
+                <div key={p.id} className="md:col-span-7 bg-white/10 backdrop-blur-md rounded-[40px] overflow-hidden border border-white/20 hover:bg-white/15 transition-all duration-500 group flex flex-col md:flex-row h-full">
+                  <div className="md:w-1/2 h-[300px] md:h-full overflow-hidden relative">
                     <LazyImage src={p.image} alt={p.name} className="w-full h-full object-cover transition duration-700 group-hover:scale-110" />
-                    <div className="absolute top-4 right-4 bg-white text-gray-900 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Sale</div>
+                    <div className="absolute top-4 left-4 bg-rose-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Featured</div>
                   </div>
-                  <div className="p-6">
-                    <h3 className="font-black text-sm uppercase tracking-tight text-white mb-1 truncate">{p.name}</h3>
-                    <p className="text-white/70 font-bold text-xs mb-3">{p.category}</p>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <p className="text-white font-black text-sm">₵{p.price?.toLocaleString()}</p>
+                  <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-between">
+                    <div>
+                      <span className="text-amber-300 font-black text-xs uppercase tracking-[3px] mb-2 block">{p.category}</span>
+                      <h3 className="font-black text-2xl md:text-4xl uppercase tracking-tighter text-white mb-4 leading-tight">{p.name}</h3>
+                      <p className="text-white/60 text-sm mb-6 line-clamp-3">Experience authentic heritage with our specially curated pieces. Limited availability.</p>
+                      
+                      <div className="flex items-baseline gap-3 mb-6">
+                        <p className="text-white font-black text-2xl md:text-3xl">₵{p.price?.toLocaleString()}</p>
                         {p.originalPrice && (
-                          <p className="text-white/40 font-bold text-xs line-through">₵{p.originalPrice?.toLocaleString()}</p>
+                          <p className="text-white/40 font-bold text-sm md:text-lg line-through">₵{p.originalPrice?.toLocaleString()}</p>
                         )}
                       </div>
-                      <Link to="/shop" className="text-white/70 hover:text-white transition">
-                        <ArrowRight size={16} />
-                      </Link>
                     </div>
+                    
+                    <button
+                      onClick={() => addToCart && addToCart(p)}
+                      className="w-full py-4 bg-white text-gray-900 rounded-2xl font-black text-xs uppercase tracking-[2px] shadow-2xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 group/btn"
+                    >
+                      <ShoppingBag size={14} className="group-hover/btn:scale-110 transition-transform" /> Add to Bag
+                    </button>
                   </div>
                 </div>
               ))}
+
+              {/* Side Grid (Right) */}
+              <div className="md:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {products.filter(p => p.isFlashSale === true).slice(1, 3).map((p) => (
+                  <div key={p.id} className="bg-white/10 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 hover:bg-white/15 transition-all duration-500 group flex flex-col justify-between">
+                    <div className="aspect-[4/5] overflow-hidden relative">
+                      <LazyImage src={p.image} alt={p.name} className="w-full h-full object-cover transition duration-700 group-hover:scale-110" />
+                      <div className="absolute top-3 right-3 bg-white text-gray-900 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest">Sale</div>
+                      
+                      {/* Quick Add Hover Button */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20">
+                        <button
+                          onClick={() => addToCart && addToCart(p)}
+                          className="bg-white text-gray-900 p-3 rounded-full shadow-2xl hover:scale-110 transition-transform active:scale-95"
+                          title="Add to Bag"
+                        >
+                          <ShoppingBag size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-black text-xs uppercase tracking-tight text-white mb-1 truncate">{p.name}</h3>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <p className="text-white font-black text-xs">₵{p.price?.toLocaleString()}</p>
+                          {p.originalPrice && (
+                            <p className="text-white/40 font-bold text-[10px] line-through">₵{p.originalPrice?.toLocaleString()}</p>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-bold text-white/50">{p.category}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="text-center p-12 bg-white/5 rounded-3xl border-2 border-dashed border-white/20 text-white/70">
@@ -436,20 +478,57 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [] }) => {
           </div>
 
           {gallery.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px]">
-              {gallery.map((item, index) => (
-                <div key={item.id} className={`rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition duration-300 relative group ${index % 3 === 0 ? 'md:col-span-2 md:row-span-2' : ''}`}>
-                  <LazyImage src={item.image} alt="Gallery" className="w-full h-full object-cover transition duration-700 group-hover:scale-110" />
-                  <div
-                    className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-300 flex flex-col items-center justify-center cursor-zoom-in p-6"
-                    onClick={() => setSelectedImage(item.image)}
+            siteContent?.galleryLayout === 'parallax' ? (
+              /* Parallax Storyboard Layout */
+              <div className="space-y-12 md:space-y-24 max-w-5xl mx-auto">
+                {gallery.map((item, index) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 50 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-100px" }}
+                    transition={{ duration: 0.8, delay: (index % 3) * 0.1 }}
+                    className={`relative group flex flex-col ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} items-center gap-8 md:gap-16`}
                   >
-                    <ZoomIn className="text-white mb-2" size={32} />
-                    <span className="text-white font-black text-[10px] uppercase tracking-[3px]">View Details</span>
+                    <div className="w-full md:w-3/5 aspect-[4/5] rounded-[32px] overflow-hidden shadow-2xl relative">
+                      <LazyImage src={item.image} alt="Gallery" className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+                      <div
+                        className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition duration-300 flex flex-col items-center justify-center cursor-zoom-in p-6"
+                        onClick={() => setSelectedImage(item.image)}
+                      >
+                        <ZoomIn className="text-white mb-2" size={32} />
+                        <span className="text-white font-black text-[10px] uppercase tracking-[3px]">View Details</span>
+                      </div>
+                    </div>
+                    
+                    <div className="w-full md:w-2/5 space-y-4 text-center md:text-left">
+                      <span className="text-amber-500 font-black text-xs uppercase tracking-[3px]">Archive 0{index + 1}</span>
+                      <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#5b0143' }}>Heritage Captured</h3>
+                      <p className="text-gray-500 font-medium text-sm leading-relaxed">This exclusive piece tells a story of royalty and tradition. Handcrafted by master weavers in the heart of Ghana.</p>
+                      <div className="pt-2">
+                        <span className="inline-block w-8 h-0.5 bg-amber-500"></span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              /* Classic Bento Box Layout (Default) */
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px]">
+                {gallery.map((item, index) => (
+                  <div key={item.id} className={`rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition duration-300 relative group ${index % 3 === 0 ? 'md:col-span-2 md:row-span-2' : ''}`}>
+                    <LazyImage src={item.image} alt="Gallery" className="w-full h-full object-cover transition duration-700 group-hover:scale-110" />
+                    <div
+                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-300 flex flex-col items-center justify-center cursor-zoom-in p-6"
+                      onClick={() => setSelectedImage(item.image)}
+                    >
+                      <ZoomIn className="text-white mb-2" size={32} />
+                      <span className="text-white font-black text-[10px] uppercase tracking-[3px]">View Details</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
           ) : (
             <div className="text-center p-12 bg-gray-50 rounded-3xl border-2 border-dashed" style={{ borderColor: `${siteContent?.primaryColor || '#5b0143'}40`, color: `${siteContent?.primaryColor || '#5b0143'}80` }}>
               <p className="font-medium">Gallery images coming soon! Add them in Admin.</p>

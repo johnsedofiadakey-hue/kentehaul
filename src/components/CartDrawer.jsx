@@ -252,9 +252,16 @@ export default function CartDrawer({
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <p className="font-black text-sm mt-0.5" style={{ color: siteContent?.secondaryColor }}>
-                                                            ₵{(item.price * item.quantity).toLocaleString()}
-                                                        </p>
+                                                        <div className="flex items-baseline gap-2">
+                                                            <p className="font-black text-sm mt-0.5" style={{ color: siteContent?.secondaryColor }}>
+                                                                ₵{((siteContent?.flashSaleEnabled ? item.price : (item.originalPrice || item.price)) * item.quantity).toLocaleString()}
+                                                            </p>
+                                                            {siteContent?.flashSaleEnabled && (item.originalPrice > item.price) && (
+                                                                <p className="text-xs text-gray-400 line-through">
+                                                                    ₵{(item.originalPrice * item.quantity).toLocaleString()}
+                                                                </p>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <div className="flex flex-col items-end gap-2">
                                                         <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-500 transition-colors p-1">
@@ -310,7 +317,12 @@ export default function CartDrawer({
                                         {cart.map(item => (
                                             <div key={item.id} className="flex justify-between items-center text-sm mb-2">
                                                 <span className="text-gray-600 truncate flex-1 mr-2">{item.name} <span className="text-gray-400">×{item.quantity}</span></span>
-                                                <span className="font-bold flex-shrink-0">₵{(item.price * item.quantity).toLocaleString()}</span>
+                                                <div className="flex items-baseline gap-2 flex-shrink-0">
+                                                    <span className="font-bold">₵{((siteContent?.flashSaleEnabled ? item.price : (item.originalPrice || item.price)) * item.quantity).toLocaleString()}</span>
+                                                    {siteContent?.flashSaleEnabled && (item.originalPrice > item.price) && (
+                                                        <span className="text-xs text-gray-400 line-through">₵{(item.originalPrice * item.quantity).toLocaleString()}</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                         <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">

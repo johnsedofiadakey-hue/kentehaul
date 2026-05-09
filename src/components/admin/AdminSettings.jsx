@@ -366,6 +366,25 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                     ))}
                 </div>
 
+                {/* Gallery Layout Setting */}
+                <div className="mb-8 max-w-xs">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[4px]">Gallery Layout</label>
+                    <SaveIndicator field="galleryLayout" saving={saving} saved={saved} />
+                  </div>
+                  <select
+                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-blue-400/20"
+                    value={siteContent?.galleryLayout || 'bento'}
+                    onChange={e => {
+                      updateField('galleryLayout', e.target.value);
+                      saveField('galleryLayout', e.target.value, siteContent);
+                    }}
+                  >
+                    <option value="bento">Classic Bento Box</option>
+                    <option value="parallax">Parallax Storyboard</option>
+                  </select>
+                </div>
+
                 <div className="space-y-6">
                     {[
                         { id: 'heroTitle', label: 'Hero Headline', placeholder: 'e.g. Weave Your Story' },

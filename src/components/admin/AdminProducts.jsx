@@ -33,6 +33,11 @@ export default function AdminProducts({
 
     // --- STATE: GALLERY ---
     const [galleryImage, setGalleryImage] = useState('');
+    const [localGallery, setLocalGallery] = useState(gallery || []);
+
+    useEffect(() => {
+        setLocalGallery(gallery || []);
+    }, [gallery]);
 
     // --- STATE: FEEDBACK ---
     const [feedbackForm, setFeedbackForm] = useState({
@@ -166,7 +171,10 @@ export default function AdminProducts({
 
     const deleteGalleryImage = async (id) => {
         if (!window.confirm("Remove this image?")) return;
-        try { await deleteDoc(doc(db, "gallery", id)); } catch (e) { alert("Error deleting image."); }
+        try { 
+            await deleteDoc(doc(db, "gallery", id)); 
+            setLocalGallery(prev => prev.filter(g => g.id !== id));
+        } catch (e) { alert("Error deleting image."); }
     };
 
     const addFeedback = async (e) => {
@@ -268,7 +276,7 @@ export default function AdminProducts({
                             {loading ? <Loader2 className="animate-spin" size={20} /> : <><Camera size={18} /> Publish to Gallery</>}
                         </button>
                         <div className="grid grid-cols-3 gap-3">
-                            {gallery.slice(0, 9).map(g => (
+                            {localGallery.slice(0, 9).map(g => (
                                 <div key={g.id} className="relative group aspect-square rounded-2xl overflow-hidden shadow-sm">
                                     <img src={g.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="gal" />
                                     <button onClick={() => deleteGalleryImage(g.id)} className="absolute inset-0 bg-red-600/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={20} /></button>
