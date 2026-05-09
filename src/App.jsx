@@ -1325,6 +1325,7 @@ export default function App() {
           whatsappUrl={successOrderData?.whatsappUrl}
           siteContent={siteContent}
           setIsTrackingOpen={setIsTrackingOpen}
+          setIsProcessing={setIsProcessing}
         />
       </div>
     </ErrorBoundary>

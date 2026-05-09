@@ -11,7 +11,8 @@ export default function OrderSuccessModal({
     items = [],
     whatsappUrl,
     siteContent,
-    setIsTrackingOpen 
+    setIsTrackingOpen,
+    setIsProcessing 
 }) {
     const [renderError, setRenderError] = useState(false);
     const navigate = useNavigate();
@@ -150,7 +151,7 @@ export default function OrderSuccessModal({
 
                                         <div className="grid grid-cols-2 gap-3">
                                             <button 
-                                                onClick={() => { onClose(); navigate(`/track/${orderId}`); }}
+                                                onClick={() => { onClose(); setIsProcessing && setIsProcessing(false); navigate(`/track/${orderId}`); }}
                                                 className="flex items-center justify-center gap-2 p-4 bg-gray-900 text-white rounded-[20px] font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all active:scale-95"
                                             >
                                                 <Truck size={14} /> Track

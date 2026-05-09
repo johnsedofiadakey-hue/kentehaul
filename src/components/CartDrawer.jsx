@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, X, Minus, Plus, Smartphone, User, MapPin, Mail, ArrowLeft, ArrowRight, CheckCircle, Package, Clock, CreditCard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,6 +25,16 @@ export default function CartDrawer({
     const [shippingRegion, setShippingRegion] = useState('Accra');
     const [feeConfirmed, setFeeConfirmed] = useState(false);
     const [activeOrderId, setActiveOrderId] = useState(null);
+    const [loadingStep, setLoadingStep] = useState(0);
+    
+    useEffect(() => {
+        if (isProcessing) {
+            const interval = setInterval(() => {
+                setLoadingStep(prev => (prev + 1) % 3);
+            }, 1500);
+            return () => clearInterval(interval);
+        }
+    }, [isProcessing]);
     const shippingRegions = siteContent?.deliveryRegions || [
         { region: 'Accra', fee: 30 },
         { region: 'Other Ghana', fee: 70 },
@@ -108,28 +118,21 @@ export default function CartDrawer({
                                 </div>
                                  <h3 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">Processing Order</h3>
                                 
-                                <div className="h-6 overflow-hidden mb-10">
-                                    <motion.p 
-                                        animate={{ y: [20, 0, 0, -20] }}
-                                        transition={{ duration: 3, repeat: Infinity, times: [0, 0.1, 0.9, 1] }}
-                                        className="text-gray-500 font-extrabold uppercase text-[10px] tracking-[2px]"
-                                    >
-                                        Connecting...
-                                    </motion.p>
-                                    <motion.p 
-                                        animate={{ y: [20, 0, 0, -20] }}
-                                        transition={{ duration: 3, repeat: Infinity, delay: 1, times: [0, 0.1, 0.9, 1] }}
-                                        className="text-gray-500 font-extrabold uppercase text-[10px] tracking-[2px]"
-                                    >
-                                        Checking items...
-                                    </motion.p>
-                                    <motion.p 
-                                        animate={{ y: [20, 0, 0, -20] }}
-                                        transition={{ duration: 3, repeat: Infinity, delay: 2, times: [0, 0.1, 0.9, 1] }}
-                                        className="text-gray-500 font-extrabold uppercase text-[10px] tracking-[2px]"
-                                    >
-                                        Finishing receipt...
-                                    </motion.p>
+                                <div className="h-6 overflow-hidden mb-10 text-center">
+                                    <AnimatePresence mode="wait">
+                                        <motion.p 
+                                            key={loadingStep}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="text-gray-500 font-extrabold uppercase text-[10px] tracking-[2px]"
+                                        >
+                                            {loadingStep === 0 && "Connecting..."}
+                                            {loadingStep === 1 && "Checking items..."}
+                                            {loadingStep === 2 && "Preparing your order..."}
+                                        </motion.p>
+                                    </AnimatePresence>
                                 </div>
 
                                 <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest max-w-xs mb-8 italic">Preparing your order.</p>
