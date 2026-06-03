@@ -13,9 +13,24 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("CRITICAL ERROR:", error, errorInfo);
+    
+    // Auto-reload for chunk loading errors (stale assets after a new deployment)
+    const isChunkLoadFailed = error?.message?.match(/Failed to fetch dynamically imported module/i) || error?.name === 'ChunkLoadError' || error?.message?.match(/Importing a module script failed/i);
+    
+    if (isChunkLoadFailed) {
+      const isRetrying = sessionStorage.getItem('lr_chunk_retry');
+      if (!isRetrying) {
+        sessionStorage.setItem('lr_chunk_retry', 'true');
+        window.location.reload();
+        return;
+      } else {
+        sessionStorage.removeItem('lr_chunk_retry');
+      }
+    }
   }
 
   handleRestart = () => {
+    sessionStorage.removeItem('lr_chunk_retry');
     window.location.href = '/';
   };
 
