@@ -13,7 +13,6 @@
     /* Enable momentum scrolling on iOS */
     -webkit-overflow-scrolling: touch;
     /* Native mobile feel */
-    overscroll-behavior: bounce;
   }
 
   body {
@@ -24,7 +23,7 @@
     padding-right: env(safe-area-inset-right);
 
     /* Prevent pull-to-refresh on mobile */
-    overscroll-behavior-y: contain;
+
 
     /* Better font rendering on mobile */
     -webkit-font-smoothing: antialiased;
