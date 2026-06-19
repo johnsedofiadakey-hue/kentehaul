@@ -4,6 +4,7 @@ import { getStorage } from "firebase/storage";
 import { getAuth, setPersistence, browserSessionPersistence } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 import { getMessaging } from "firebase/messaging";
+import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC9Mmi2kpizV6_8nlNJxLJKM29mVsuw-PM",
@@ -36,6 +37,8 @@ try {
   console.warn("Firebase Messaging not supported in this browser:", e);
 }
 export const messaging = messagingInstance;
+
+export const functions = getFunctions(app);
 
 // Configure Persistence (Session Only)
 // setPersistence(auth, browserSessionPersistence)

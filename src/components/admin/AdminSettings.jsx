@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { 
-    FileText, Palette, Sliders, CheckCircle, RefreshCw, Eye, Save, Plus, 
-    Trash2, Truck, Shield, Clock, Activity, Globe, Mail, Smartphone 
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+    FileText, Palette, Sliders, CheckCircle, RefreshCw, Eye, Save, Plus,
+    Trash2, Truck, Shield, Clock, Activity, Globe, Mail, Smartphone, Zap, Key, MapPin
 } from 'lucide-react';
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from '../../firebase';
 import { ImageUpload } from '../UIComponents';
 
@@ -71,6 +71,31 @@ const TemplateGuide = ({ placeholders }) => (
 export default function AdminSettings({ siteContent, setSiteContent, onlyLogistics = false }) {
     const [saving, setSaving] = useState({});
     const [saved, setSaved] = useState({});
+
+    // Private settings (API keys) — loaded separately, never exposed to client bundle
+    const [privateSettings, setPrivateSettings] = useState({});
+    const [savingPrivate, setSavingPrivate] = useState({});
+    const [savedPrivate, setSavedPrivate] = useState({});
+
+    useEffect(() => {
+        getDoc(doc(db, "settings", "private")).then(snap => {
+            if (snap.exists()) setPrivateSettings(snap.data());
+        }).catch(() => {});
+    }, []);
+
+    const savePrivateField = useCallback(async (field, value) => {
+        if (value === undefined) return;
+        setSavingPrivate(prev => ({ ...prev, [field]: true }));
+        try {
+            await setDoc(doc(db, "settings", "private"), { [field]: value }, { merge: true });
+            setPrivateSettings(prev => ({ ...prev, [field]: value }));
+            setSavedPrivate(prev => ({ ...prev, [field]: true }));
+            setTimeout(() => setSavedPrivate(prev => ({ ...prev, [field]: false })), 2500);
+        } catch (e) {
+            console.error("Private settings sync failed:", e);
+        }
+        setSavingPrivate(prev => ({ ...prev, [field]: false }));
+    }, []);
 
     // INSTANT UPDATE: updates local state immediately
     const updateField = useCallback((field, value) => {
@@ -157,7 +182,26 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
     const renderLogistics = () => (
         <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
             <SectionHeader icon={Truck} title="Shipping & Delivery Management" colorClass="text-gray-400" />
-            
+
+            {/* Workshop / Pickup Address */}
+            <div className="space-y-3 mb-10">
+                <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <MapPin size={12} /> Workshop / Dispatch Address
+                    </label>
+                    <SaveIndicator field="workshopAddress" saving={saving} saved={saved} />
+                </div>
+                <input
+                    type="text"
+                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-[20px] font-bold text-sm outline-none focus:border-blue-300"
+                    placeholder="e.g. 12 Tetteh Quarshie Road, Adabraka, Accra, Ghana"
+                    value={siteContent?.workshopAddress || ''}
+                    onChange={e => updateField('workshopAddress', e.target.value)}
+                    onBlur={e => saveField('workshopAddress', e.target.value, siteContent)}
+                />
+                <p className="text-[10px] text-gray-400 font-bold ml-1">This is used as the pickup point for all Kwik Delivery bookings.</p>
+            </div>
+
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Global Delivery Regions & Fees</label>
@@ -621,6 +665,46 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
 
             {/* 🚛 LOGISTICS (Secondary inclusion) */}
             {renderLogistics()}
+
+            {/* ⚡ INTEGRATIONS & API KEYS */}
+            <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
+                <SectionHeader icon={Zap} title="Integrations & API Keys" colorClass="text-violet-500" />
+                <div className="p-5 bg-violet-50 rounded-[24px] border border-violet-100 mb-8">
+                    <p className="text-[11px] font-bold text-violet-700 leading-relaxed">
+                        API keys are stored securely in a private Firestore document — never in client code or the public bundle.
+                        These keys are only readable by the admin account.
+                    </p>
+                </div>
+
+                {/* Kwik Delivery */}
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <Key size={12} /> Kwik Delivery API Key
+                        </label>
+                        <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-black">
+                            {savingPrivate.kwikApiKey && <RefreshCw size={10} className="animate-spin text-blue-500" />}
+                            {savedPrivate.kwikApiKey && !savingPrivate.kwikApiKey && (
+                                <>
+                                    <CheckCircle size={10} className="text-green-500" />
+                                    <span className="text-green-500 uppercase tracking-widest">Saved & LIVE</span>
+                                </>
+                            )}
+                        </span>
+                    </div>
+                    <input
+                        type="password"
+                        className="w-full p-4 bg-gray-950 text-green-400 rounded-2xl font-mono text-xs outline-none tracking-widest"
+                        placeholder="Paste your Kwik API key here..."
+                        value={privateSettings.kwikApiKey || ''}
+                        onChange={e => setPrivateSettings(prev => ({ ...prev, kwikApiKey: e.target.value }))}
+                        onBlur={e => savePrivateField('kwikApiKey', e.target.value)}
+                    />
+                    <p className="text-[10px] text-gray-400 font-bold ml-1">
+                        Sign up at kwikdelivery.com → Dashboard → API Keys. Required for "Book Rider via Kwik" in order management.
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }

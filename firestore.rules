@@ -19,6 +19,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Private settings (API keys, secrets) — admin only
+    match /settings/private {
+      allow read, write: if isAdmin();
+    }
     
     match /settings/categories {
       allow read: if true;

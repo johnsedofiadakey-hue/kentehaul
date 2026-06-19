@@ -1,6 +1,7 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
+const https = require("https");
 admin.initializeApp();
 
 const db = admin.firestore();
@@ -239,6 +240,183 @@ exports.onOrderStatusChanged = functions.firestore
 
         return null;
     });
+// ──────────────────────────────────────────────────────────
+// KWIK DELIVERY INTEGRATION
+// Docs: https://app.kwikdelivery.com/docs  (update path/payload to match your account)
+// Admin must set kwikApiKey in Firestore settings/private
+// and workshopAddress in settings/siteContent
+// ──────────────────────────────────────────────────────────
+
+function kwikRequest(path, apiKey, body) {
+    return new Promise((resolve, reject) => {
+        const payload = JSON.stringify(body);
+        const req = https.request({
+            hostname: "app.kwikdelivery.com",
+            path,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Authorization": `Bearer ${apiKey}`
+            }
+        }, (res) => {
+            let raw = "";
+            res.on("data", chunk => raw += chunk);
+            res.on("end", () => {
+                try { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
+                catch { resolve({ status: res.statusCode, body: raw }); }
+            });
+        });
+        req.on("error", reject);
+        req.write(payload);
+        req.end();
+    });
+}
+
+/**
+ * bookKwikDelivery — Admin callable.
+ * Fetches a delivery quote from Kwik for an order.
+ * Returns { quoteId, price, eta, pickupAddress, dropoffAddress }
+ */
+exports.bookKwikDelivery = functions.https.onCall(async (data, context) => {
+    if (!context.auth || context.auth.token.email !== "admin@kentehaul.com") {
+        throw new functions.https.HttpsError("permission-denied", "Admin only.");
+    }
+
+    const { orderId } = data;
+    if (!orderId) throw new functions.https.HttpsError("invalid-argument", "orderId required.");
+
+    const [orderSnap, contentSnap, privateSnap] = await Promise.all([
+        admin.firestore().collection("orders").doc(orderId).get(),
+        admin.firestore().collection("settings").doc("siteContent").get(),
+        admin.firestore().collection("settings").doc("private").get()
+    ]);
+
+    if (!orderSnap.exists) throw new functions.https.HttpsError("not-found", "Order not found.");
+
+    const order = orderSnap.data();
+    const siteContent = contentSnap.data() || {};
+    const privateSettings = privateSnap.data() || {};
+
+    const kwikApiKey = privateSettings.kwikApiKey;
+    if (!kwikApiKey) {
+        throw new functions.https.HttpsError("failed-precondition", "Kwik API key not configured. Go to Settings → Integrations and add your Kwik API key.");
+    }
+
+    const workshopAddress = siteContent.workshopAddress;
+    if (!workshopAddress) {
+        throw new functions.https.HttpsError("failed-precondition", "Workshop address not configured. Go to Settings → Logistics and add your Workshop Address.");
+    }
+
+    const customer = order.customer || {};
+    const dropoffAddress = [customer.landmark, customer.address, "Accra", "Ghana"].filter(Boolean).join(", ");
+
+    const res = await kwikRequest("/api/v1/delivery/quote", kwikApiKey, {
+        pickup_address: workshopAddress,
+        dropoff_address: dropoffAddress,
+        dropoff_name: customer.name || "",
+        dropoff_phone: customer.phone || "",
+        package_description: `KenteHaul Order #${orderId} — ${(order.items || []).length} item(s)`,
+        package_weight: 2
+    });
+
+    console.log(`[KWIK QUOTE] Order ${orderId}, status ${res.status}:`, JSON.stringify(res.body));
+
+    if (res.status !== 200 && res.status !== 201) {
+        throw new functions.https.HttpsError("internal", `Kwik API error ${res.status}: ${JSON.stringify(res.body)}`);
+    }
+
+    const result = res.body?.data || res.body;
+    return {
+        quoteId:         result.id        || result.quote_id  || "",
+        price:           result.price     || result.amount    || 0,
+        eta:             result.estimated_time || result.eta  || "30–45 min",
+        pickupAddress:   workshopAddress,
+        dropoffAddress
+    };
+});
+
+/**
+ * confirmKwikDelivery — Admin callable.
+ * Confirms a Kwik quote and dispatches a rider.
+ * Writes delivery object to order doc, sets status → "Rider Assigned".
+ * Returns { bookingRef, trackingUrl, riderName, riderPhone }
+ */
+exports.confirmKwikDelivery = functions.https.onCall(async (data, context) => {
+    if (!context.auth || context.auth.token.email !== "admin@kentehaul.com") {
+        throw new functions.https.HttpsError("permission-denied", "Admin only.");
+    }
+
+    const { orderId, quoteId } = data;
+    if (!orderId || !quoteId) {
+        throw new functions.https.HttpsError("invalid-argument", "orderId and quoteId are required.");
+    }
+
+    const [orderSnap, contentSnap, privateSnap] = await Promise.all([
+        admin.firestore().collection("orders").doc(orderId).get(),
+        admin.firestore().collection("settings").doc("siteContent").get(),
+        admin.firestore().collection("settings").doc("private").get()
+    ]);
+
+    if (!orderSnap.exists) throw new functions.https.HttpsError("not-found", "Order not found.");
+
+    const order = orderSnap.data();
+    const siteContent = contentSnap.data() || {};
+    const kwikApiKey = (privateSnap.data() || {}).kwikApiKey;
+    if (!kwikApiKey) throw new functions.https.HttpsError("failed-precondition", "Kwik API key not configured.");
+
+    const customer = order.customer || {};
+    const dropoffAddress = [customer.landmark, customer.address, "Accra", "Ghana"].filter(Boolean).join(", ");
+
+    const res = await kwikRequest("/api/v1/delivery/create", kwikApiKey, {
+        quote_id:          quoteId,
+        pickup_address:    siteContent.workshopAddress || "",
+        dropoff_address:   dropoffAddress,
+        dropoff_name:      customer.name  || "",
+        dropoff_phone:     customer.phone || "",
+        package_description: `KenteHaul Order #${orderId}`,
+        package_weight:    2
+    });
+
+    console.log(`[KWIK CREATE] Order ${orderId}, status ${res.status}:`, JSON.stringify(res.body));
+
+    if (res.status !== 200 && res.status !== 201) {
+        throw new functions.https.HttpsError("internal", `Kwik booking failed ${res.status}: ${JSON.stringify(res.body)}`);
+    }
+
+    const result  = res.body?.data || res.body;
+    const ref     = result.tracking_number || result.id        || `KW-${Date.now()}`;
+    const url     = result.tracking_url    || `https://app.kwikdelivery.com/track/${ref}`;
+    const rider   = result.rider           || {};
+    const riderName  = rider.name  || "Kwik Rider";
+    const riderPhone = rider.phone || "";
+    const price      = result.price || result.amount || 0;
+    const eta        = result.estimated_time || result.eta || "30–45 min";
+
+    await admin.firestore().collection("orders").doc(orderId).update({
+        delivery: {
+            provider:    "kwik",
+            bookingRef:  ref,
+            trackingUrl: url,
+            riderName,
+            riderPhone,
+            price,
+            eta,
+            bookedAt: admin.firestore.FieldValue.serverTimestamp()
+        },
+        rider: {
+            name:    riderName,
+            phone:   riderPhone,
+            vehicle: "Motorbike",
+            plate:   "",
+            company: "Kwik Delivery"
+        },
+        status: "Rider Assigned"
+    });
+
+    return { bookingRef: ref, trackingUrl: url, riderName, riderPhone, price, eta };
+});
+
 /**
  * Paystack Webhook Handler
  * Verifies and processes successful payments purely on the server side.
