@@ -198,7 +198,7 @@ export default function Navbar({
                                                         return (
                                                             <div className="animate-fade-in">
                                                                 <h3 className="text-3xl font-black text-gray-900 mb-2 uppercase tracking-tight">{cat.name}</h3>
-                                                                <p className="text-gray-400 text-sm mb-10 font-bold max-w-md">{siteContent?.navShopSubtitle || `Discover the finest ${cat.name} Kente patterns, curated with cultural precision and royal elegance.`}</p>
+                                                                <p className="text-gray-400 text-sm mb-10 font-bold max-w-md">{siteContent?.navShopSubtitle || `Discover the finest ${cat.name} patterns, curated with cultural precision and royal elegance.`}</p>
 
                                                                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
                                                                     {cat.subcategories.map(sub => (

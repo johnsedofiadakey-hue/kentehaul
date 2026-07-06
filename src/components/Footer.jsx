@@ -4,7 +4,7 @@ import { Instagram, Smartphone } from 'lucide-react';
 import { TikTokIcon } from './UIComponents'; // Importing from our UI file
 import { SOCIAL_LINKS } from '../data/constants'; // Importing from constants
 
-export default function Footer({ siteContent, onNavClick, onAdminClick }) {
+export default function Footer({ siteContent, onNavClick }) {
   return (
     <footer className="text-white py-16 border-t border-white/10 mt-auto" style={{ backgroundColor: siteContent?.primaryColor }}>
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-20 text-sm">
@@ -47,7 +47,6 @@ export default function Footer({ siteContent, onNavClick, onAdminClick }) {
             <li><Link to="/privacy-policy" className="hover:opacity-80 transition block font-bold">Privacy Policy</Link></li>
             <li><Link to="/terms-conditions" className="hover:opacity-80 transition block font-bold">Terms & Conditions</Link></li>
             <li><Link to="/refund-policy" className="hover:opacity-80 transition block font-bold">Refund Policy</Link></li>
-            <li><button className="hover:opacity-100 cursor-pointer transition text-white/30 hover:text-white text-[10px] uppercase tracking-widest mt-4 block" onClick={onAdminClick}>Manager Access</button></li>
           </ul>
         </div>
 

@@ -6,7 +6,9 @@ import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from '../firebase';
 
 // --- LAZY LOADING IMAGE COMPONENT ---
-export const LazyImage = ({ src, alt, className }) => {
+// priority: set true for above-the-fold images (e.g. hero) so the browser
+// fetches them immediately instead of deferring like an offscreen image.
+export const LazyImage = ({ src, alt, className, priority = false }) => {
   const [isLoaded, setIsLoaded] = React.useState(false);
 
   return (
@@ -23,11 +25,12 @@ export const LazyImage = ({ src, alt, className }) => {
         src={src}
         alt={alt}
         className={`
-          ${className} 
+          ${className}
           transition-opacity duration-700 ease-in-out
           ${isLoaded ? 'opacity-100' : 'opacity-0'}
         `}
-        loading="lazy"
+        loading={priority ? 'eager' : 'lazy'}
+        fetchpriority={priority ? 'high' : 'auto'}
         onLoad={() => setIsLoaded(true)}
       />
     </div>
@@ -179,7 +182,7 @@ export const ImageUpload = ({ image, onUpload, label = "Upload Image", height = 
         <button
           type="button"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onUpload(''); }}
-          className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110 z-20"
+          className="absolute -top-2 -right-2 bg-red-500 text-white p-1.5 rounded-full shadow-xl opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all hover:scale-110 z-20"
         >
           <X size={14} />
         </button>

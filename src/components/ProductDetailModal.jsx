@@ -77,6 +77,10 @@ export default function ProductDetailModal({
         return () => document.removeEventListener('keydown', handleKey);
     }, [onClose]);
 
+    // Match the price logic used everywhere else (Shop grid, cart, checkout) so the
+    // number shown here never disagrees with what the customer is charged.
+    const displayPrice = siteContent?.flashSaleEnabled ? product.price : (product.originalPrice || product.price);
+
     const handleAddToCart = () => {
         const availableStock = product.stockQuantity ?? product.stock ?? 0;
         const finalQuantity = Math.min(quantity, availableStock);
@@ -87,7 +91,7 @@ export default function ProductDetailModal({
 
     const handleShare = async () => {
         const shareUrl = `${window.location.origin}/shop?product=${product.id}`;
-        const shareText = `Check out ${product.name} on KenteHaul! ₵${product.price?.toLocaleString()}`;
+        const shareText = `Check out ${product.name} on KenteHaul! ₵${displayPrice?.toLocaleString()}`;
         
         if (navigator.share) {
             try { 
@@ -157,7 +161,7 @@ export default function ProductDetailModal({
                         title={product.name}
                         description={product.description?.slice(0, 160)}
                         ogImage={product.image?.startsWith('http') ? product.image : `${window.location.origin}${product.image}`}
-                        ogTitle={`${product.name} - ₵${product.price?.toLocaleString()} | KenteHaul`}
+                        ogTitle={`${product.name} - ₵${displayPrice?.toLocaleString()} | KenteHaul`}
                         ogDescription={product.description?.slice(0, 120) || `Hand-woven authentic ${product.category} from Ghana.`}
                         canonicalPath={`/shop?product=${product.id}`}
                         jsonLd={{
@@ -169,7 +173,7 @@ export default function ProductDetailModal({
                             "sku": product.id,
                             "offers": {
                                 "@type": "Offer",
-                                "price": product.price,
+                                "price": displayPrice,
                                 "priceCurrency": "GHS",
                                 "availability": (product.stockQuantity > 0 || product.stock > 0) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
                                 "url": typeof window !== 'undefined' ? window.location.href : ""
@@ -272,10 +276,15 @@ export default function ProductDetailModal({
                                 </h2>
 
                                 {/* Price + stock */}
-                                <div className="flex items-center gap-3 mb-6">
+                                <div className="flex items-center gap-3 mb-6 flex-wrap">
                                     <span className="text-2xl md:text-3xl font-black" style={{ color: siteContent?.secondaryColor || '#f97316' }}>
-                                        ₵{product.price?.toLocaleString()}
+                                        ₵{displayPrice?.toLocaleString()}
                                     </span>
+                                    {siteContent?.flashSaleEnabled && (product.originalPrice > product.price) && (
+                                        <span className="text-base md:text-lg font-bold text-gray-300 line-through">
+                                            ₵{product.originalPrice?.toLocaleString()}
+                                        </span>
+                                    )}
                                     <span className={`text-[10px] font-black px-2 py-1 rounded-full ${stockLabel.color}`}>
                                         {stockLabel.text}
                                     </span>
@@ -332,15 +341,17 @@ export default function ProductDetailModal({
                                     <section>
                                         <div className="flex items-center justify-between mb-6 border-b border-gray-50 pb-2">
                                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Client Feedback</h3>
-                                            <div className="flex items-center gap-1.5 text-amber-500">
-                                                <Star size={10} fill="currentColor" />
-                                                <span className="text-[10px] font-black">
-                                                    {reviews.length > 0
-                                                        ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1)
-                                                        : "5.0"}
-                                                </span>
-                                                <span className="text-[9px] text-gray-400">({reviews.length})</span>
-                                            </div>
+                                            {reviews.length > 0 ? (
+                                                <div className="flex items-center gap-1.5 text-amber-500">
+                                                    <Star size={10} fill="currentColor" />
+                                                    <span className="text-[10px] font-black">
+                                                        {(reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1)}
+                                                    </span>
+                                                    <span className="text-[9px] text-gray-400">({reviews.length})</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[9px] text-gray-400 font-bold">No feedback yet</span>
+                                            )}
                                         </div>
 
                                         <div className="space-y-6">
@@ -453,7 +464,7 @@ export default function ProductDetailModal({
                                             </button>
                                         </div>
                                         <span className="font-black text-xl ml-auto" style={{ color: siteContent?.secondaryColor }}>
-                                            ₵{(product.price * quantity).toLocaleString()}
+                                            ₵{(displayPrice * quantity).toLocaleString()}
                                         </span>
                                     </div>
 

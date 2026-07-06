@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Local Firestore data snapshots (restore points) — not for version control
+backups/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

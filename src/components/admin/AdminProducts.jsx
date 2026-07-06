@@ -120,6 +120,19 @@ export default function AdminProducts({
             return;
         }
 
+        // Products sharing a generic name (e.g. "PREORDER") are impossible to tell apart
+        // in wishlists, order history, or WhatsApp chats. Nudge toward a unique name.
+        const trimmedName = productForm.name.trim();
+        const isDuplicateName = products.some(p =>
+            p.id !== editingProduct?.id && p.name.trim().toLowerCase() === trimmedName.toLowerCase()
+        );
+        if (isDuplicateName) {
+            const proceed = window.confirm(
+                `Another product is already named "${trimmedName}". Customers won't be able to tell them apart in their wishlist or order history.\n\nConsider adding a distinguishing detail (color, style, SKU) to the name.\n\nSave anyway?`
+            );
+            if (!proceed) return;
+        }
+
         setLoading(true);
         try {
             const sanitizedProduct = {
@@ -216,7 +229,7 @@ export default function AdminProducts({
 
     return (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-10 animate-fade-in-up">
-            <div className="xl:col-span-1 space-y-8">
+            <div className="order-2 xl:order-1 xl:col-span-1 space-y-8">
                 {/* CATEGORY MANAGER */}
                 <div className="bg-white rounded-[40px] shadow-xl border border-gray-50 overflow-hidden">
                     <button onClick={() => setShowCategoryManager(!showCategoryManager)} className="w-full p-8 flex items-center justify-between text-left">
@@ -309,9 +322,9 @@ export default function AdminProducts({
                                 <div key={g.id} className="space-y-2">
                                     <div className="relative group aspect-square rounded-2xl overflow-hidden shadow-sm">
                                         <img src={g.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="gal" />
-                                        <button 
-                                            onClick={() => deleteGalleryImage(g.id)} 
-                                            className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                                        <button
+                                            onClick={() => deleteGalleryImage(g.id)}
+                                            className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all hover:scale-110"
                                         >
                                             <Trash2 size={14} />
                                         </button>
@@ -357,7 +370,7 @@ export default function AdminProducts({
             </div>
 
             {/* Product Form */}
-            <div className="xl:col-span-2 space-y-10">
+            <div className="order-1 xl:order-2 xl:col-span-2 space-y-10">
                 <div className="bg-white p-10 md:p-12 rounded-[50px] shadow-2xl border border-gray-50">
                     <h3 className="font-black text-3xl mb-10 text-gray-900 tracking-tight">
                         {editingProduct ? 'Update Inventory Item' : 'Register New Asset'}
@@ -370,7 +383,7 @@ export default function AdminProducts({
                             <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Product Title</label>
                             <input required placeholder="Enter name" className="w-full p-4 bg-gray-50 border rounded-2xl font-bold" value={productForm.name} onChange={e => setProductForm({ ...productForm, name: e.target.value })} />
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Original Price (₵)</label>
                                 <input placeholder="0.00" className="w-full p-4 bg-gray-50 border rounded-2xl font-black" value={productForm.originalPrice || ''} onChange={e => setProductForm({ ...productForm, originalPrice: e.target.value })} />
@@ -485,12 +498,41 @@ export default function AdminProducts({
                 </div>
 
                 {/* Inventory Table */}
-                <div className="bg-white p-10 rounded-[40px] shadow-xl border border-gray-100 overflow-hidden">
+                <div className="bg-white p-6 md:p-10 rounded-[40px] shadow-xl border border-gray-100 overflow-hidden">
                     <h3 className="font-black text-2xl mb-8 text-gray-900 flex items-center justify-between">
                         Master Stock List
                         <span className="text-xs font-bold text-gray-300 uppercase tracking-[4px]">{products.length} Items</span>
                     </h3>
-                    <div className="overflow-x-auto">
+
+                    {/* Mobile: stacked cards (a 5-column table doesn't work on a phone screen) */}
+                    <div className="md:hidden space-y-4">
+                        {products.map(p => (
+                            <div key={p.id} className="border border-gray-100 rounded-3xl p-5 space-y-3">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="font-black text-gray-800">{p.name}</p>
+                                        <p className="text-xs font-black text-gray-500">{categories.find(c => c.id === p.category)?.name || p.category || '—'}{p.subcategory ? ` · ${p.subcategory}` : ''}</p>
+                                    </div>
+                                    <p className="font-black text-gray-600 whitespace-nowrap">₵{p.price}</p>
+                                </div>
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex flex-col gap-1">
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase w-fit ${p.stockQuantity <= 0 && !p.isPreorder ? 'bg-black text-white' : p.stockQuantity < 5 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'}`}>
+                                            {p.isPreorder ? `Pre-Order (${p.preorderDays || 14}d)` : p.stockQuantity <= 0 ? 'Out of Stock' : `${p.stockQuantity} left`}
+                                        </span>
+                                        {p.sku && <span className="text-[10px] font-bold text-gray-400">SKU: {p.sku}</span>}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => startEditProduct(p)} className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 shadow-sm"><Edit size={16} /></button>
+                                        <button onClick={() => deleteProduct(p.id)} className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 shadow-sm"><Trash2 size={16} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Desktop / tablet: full table */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50/50 text-gray-400 uppercase font-black text-[10px] tracking-widest">
                                 <tr><th className="p-5">Product</th><th className="p-5">Category</th><th className="p-5">Stock</th><th className="p-5">Price</th><th className="p-5 text-right">Actions</th></tr>

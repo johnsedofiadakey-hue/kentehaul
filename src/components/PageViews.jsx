@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Camera, MessageCircle, Star, Quote, Phone, Mail, MapPin, ShoppingBag, X, ChevronLeft, ChevronRight, ZoomIn, ArrowRight, CheckCircle } from 'lucide-react';
+import { Camera, MessageCircle, Star, Quote, Phone, Mail, MapPin, ShoppingBag, X, ChevronLeft, ChevronRight, ZoomIn, ArrowRight, CheckCircle, Compass } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { LazyImage, MagneticButton } from './UIComponents';
 import PhoneInput from './PhoneInput';
@@ -280,7 +280,7 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
       <div className="relative min-h-[85vh] flex items-center justify-center" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
         {siteContent?.heroImage ? (
           <div className="absolute inset-0 z-0">
-            <LazyImage src={siteContent?.heroImage} className="w-full h-full object-cover opacity-60" alt="Hero" />
+            <LazyImage src={siteContent?.heroImage} className="w-full h-full object-cover opacity-60" alt="Hero" priority />
             <div className="absolute inset-0 bg-gradient-to-t via-transparent to-transparent" style={{ '--tw-gradient-from': siteContent?.primaryColor || '#5b0143', '--tw-gradient-to': 'transparent' }}></div>
           </div>
         ) : (
@@ -848,5 +848,45 @@ export const Contact = ({ siteContent }) => (
 
       </div>
     </div>
+  </div>
+);
+
+export const NotFound = ({ siteContent }) => (
+  <div className="min-h-[80vh] flex items-center justify-center px-6 text-center">
+    <SEO
+      title="Page Not Found"
+      description="The page you're looking for doesn't exist on KenteHaul."
+      canonicalPath="/404"
+    />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="max-w-md"
+    >
+      <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8" style={{ backgroundColor: (siteContent?.primaryColor || '#5b0143') + '10', color: siteContent?.primaryColor || '#5b0143' }}>
+        <Compass size={36} strokeWidth={2} />
+      </div>
+      <span className="inline-block py-2 px-6 rounded-full bg-gray-50 border border-gray-100 text-[10px] font-black uppercase tracking-[4px] mb-6 text-gray-400">
+        404
+      </span>
+      <h1 className="text-3xl md:text-5xl font-black text-gray-900 uppercase tracking-tighter mb-4">Lost in the Archives</h1>
+      <p className="text-gray-400 font-bold max-w-sm mx-auto mb-12">This path doesn't lead anywhere in the Royal Collection. The page may have moved or the link may be outdated.</p>
+      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <Link
+          to="/shop"
+          className="px-10 py-5 rounded-[25px] font-black text-white uppercase tracking-widest text-xs shadow-lg hover:opacity-90 transition-all"
+          style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
+        >
+          Return to Shop
+        </Link>
+        <Link
+          to="/"
+          className="px-10 py-5 rounded-[25px] font-black text-gray-500 border border-gray-200 uppercase tracking-widest text-xs hover:text-gray-900 transition-all"
+        >
+          Back Home
+        </Link>
+      </div>
+    </motion.div>
   </div>
 );

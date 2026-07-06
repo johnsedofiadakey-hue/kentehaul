@@ -41,6 +41,7 @@ const Home = lazy(() => import('./components/PageViews').then(module => ({ defau
 const Heritage = lazy(() => import('./components/PageViews').then(module => ({ default: module.Heritage })));
 const Institute = lazy(() => import('./components/PageViews').then(module => ({ default: module.Institute })));
 const Contact = lazy(() => import('./components/PageViews').then(module => ({ default: module.Contact })));
+const NotFound = lazy(() => import('./components/PageViews').then(module => ({ default: module.NotFound })));
 const Shop = lazy(() => import('./components/Shop'));
 import CartDrawer from './components/CartDrawer';
 import ProductDetailModal from './components/ProductDetailModal';
@@ -1302,18 +1303,13 @@ export default function App() {
                   <AdminDashboard siteContent={siteContent} setSiteContent={setSiteContent} products={products} orders={orders} setOrders={setOrders} gallery={gallery} setGallery={setGallery} feedbacks={feedbacks} setFeedbacks={setFeedbacks} customers={customers} setIsAdminAuthenticated={setIsAdminAuthenticated} />
                 </Suspense>
               ) : <AdminLoginRequired setIsAdminLoginOpen={setIsAdminLoginOpen} />} />
+              <Route path="*" element={<NotFound siteContent={siteContent} />} />
             </Routes>
           </Suspense>
         </main>
 
         {!isAdminPath && (
-          <Footer
-            siteContent={siteContent}
-            onAdminClick={() => {
-              if (isAdminAuthenticated) navigate('/admin');
-              else setIsAdminLoginOpen(true);
-            }}
-          />
+          <Footer siteContent={siteContent} />
         )}
         {/* SUCCESS MODAL LAYER */}
         <OrderSuccessModal 

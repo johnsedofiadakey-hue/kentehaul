@@ -43,8 +43,10 @@ export default function Shop({
   useEffect(() => {
     const cat = searchParams.get('category');
     const sub = searchParams.get('sub');
+    const search = searchParams.get('search');
     if (cat) setActiveCategory(cat);
     if (sub) setActiveSubcategory(sub);
+    if (search) setSearchQuery(search);
   }, [searchParams]);
 
   const updateCategory = (id) => {
@@ -71,17 +73,23 @@ export default function Shop({
 
   // Filter + Sort Logic
   const filteredProducts = useMemo(() => {
-    let result = products.filter(p =>
-      (activeCategory === 'sales' ? (p.isFlashSale || (p.originalPrice > p.price)) : (!activeCategory || p.category === activeCategory)) &&
-      (!activeSubcategory || p.subcategory === activeSubcategory) &&
-      (
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.longHistory || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.color || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.symbolism || '').toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    );
+    const query = searchQuery.trim().toLowerCase();
+    let result = products.filter(p => {
+      const cat = categories.find(c => c.id === p.category);
+      const matchesSearch = !query ||
+        p.name.toLowerCase().includes(query) ||
+        (p.description || '').toLowerCase().includes(query) ||
+        (p.longHistory || '').toLowerCase().includes(query) ||
+        (p.color || '').toLowerCase().includes(query) ||
+        (p.symbolism || '').toLowerCase().includes(query) ||
+        (p.category || '').toLowerCase().includes(query) ||
+        (cat?.name || '').toLowerCase().includes(query) ||
+        (p.subcategory || '').toLowerCase().includes(query);
+
+      return (activeCategory === 'sales' ? (p.isFlashSale || (p.originalPrice > p.price)) : (!activeCategory || p.category === activeCategory)) &&
+        (!activeSubcategory || p.subcategory === activeSubcategory) &&
+        matchesSearch;
+    });
 
     if (sortBy === 'price-asc') result = [...result].sort((a, b) => a.price - b.price);
     else if (sortBy === 'price-desc') result = [...result].sort((a, b) => b.price - a.price);
@@ -89,7 +97,7 @@ export default function Shop({
     else if (sortBy === 'stock') result = [...result].sort((a, b) => (b.stockQuantity || 0) - (a.stockQuantity || 0));
 
     return result;
-  }, [products, activeCategory, activeSubcategory, searchQuery, sortBy]);
+  }, [products, categories, activeCategory, activeSubcategory, searchQuery, sortBy]);
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 

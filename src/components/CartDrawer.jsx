@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, X, Minus, Plus, Smartphone, User, MapPin, Mail, ArrowLeft, ArrowRight, CheckCircle, Package, Clock, CreditCard } from 'lucide-react';
+import { ShoppingBag, X, Minus, Plus, Smartphone, User, MapPin, Mail, ArrowLeft, ArrowRight, CheckCircle, Package, Clock, CreditCard, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PaystackButton } from './UIComponents';
 import PhoneInput from './PhoneInput';
@@ -23,6 +23,7 @@ export default function CartDrawer({
     const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', riderName: '', riderPhone: '', riderCompany: '', pickupLocationId: '' });
     const [deliveryMethod, setDeliveryMethod] = useState('seller_rider'); // 'customer_rider' | 'seller_rider' | 'pickup'
     const [shippingRegion, setShippingRegion] = useState('Accra');
+    const [regionSearch, setRegionSearch] = useState('');
     const [feeConfirmed, setFeeConfirmed] = useState(false);
     const [activeOrderId, setActiveOrderId] = useState(null);
     const [loadingStep, setLoadingStep] = useState(0);
@@ -40,6 +41,18 @@ export default function CartDrawer({
         { region: 'Other Ghana', fee: 70 },
         { region: 'International', fee: 250 }
     ];
+
+    // Sort A-Z for scannability, but keep "Outside Accra/Ghana" catch-all entries pinned at the bottom
+    // where customers expect them, instead of scattered wherever they happen to sort alphabetically.
+    const sortedRegions = [...shippingRegions].sort((a, b) => {
+        const aOutside = /^outside/i.test(a.region);
+        const bOutside = /^outside/i.test(b.region);
+        if (aOutside !== bOutside) return aOutside ? 1 : -1;
+        return a.region.localeCompare(b.region);
+    });
+    const visibleRegions = regionSearch.trim()
+        ? sortedRegions.filter(r => r.region.toLowerCase().includes(regionSearch.trim().toLowerCase()))
+        : sortedRegions;
 
     // Find current shipping fee based on selected region name
     const selectedRegion = shippingRegions.find(r => r.region === shippingRegion) || shippingRegions[0];
@@ -381,8 +394,20 @@ export default function CartDrawer({
                                         {deliveryMethod === 'seller_rider' && (
                                             <div className="space-y-3 animate-fade-in">
                                                 <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Select Delivery Region</p>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {shippingRegions.map(r => (
+                                                {shippingRegions.length > 8 && (
+                                                    <div className="relative">
+                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                                                        <input
+                                                            type="text"
+                                                            value={regionSearch}
+                                                            onChange={e => setRegionSearch(e.target.value)}
+                                                            placeholder="Search your area..."
+                                                            className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold outline-none focus:ring-1 focus:ring-amber-500/30"
+                                                        />
+                                                    </div>
+                                                )}
+                                                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+                                                    {visibleRegions.length > 0 ? visibleRegions.map(r => (
                                                         <button
                                                             key={r.region}
                                                             onClick={() => { setShippingRegion(r.region); setFeeConfirmed(false); }}
@@ -392,7 +417,9 @@ export default function CartDrawer({
                                                             <div className="text-[10px] font-black uppercase tracking-wider">{r.region}</div>
                                                             <div className="text-xs font-black" style={{ color: shippingRegion === r.region ? siteContent?.primaryColor : '' }}>₵{r.fee}</div>
                                                         </button>
-                                                    ))}
+                                                    )) : (
+                                                        <p className="col-span-2 text-xs text-gray-400 font-bold py-4 text-center">No matching area. Try a different spelling.</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
