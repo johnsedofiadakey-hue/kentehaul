@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Users, Edit, Settings, LogOut, Menu, X, ChevronRight, MessageSquare, Truck } from 'lucide-react';
+import { Package, Users, Edit, Settings, LogOut, Menu, X, ChevronRight, MessageSquare, MessageCircle, Truck, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from "firebase/auth";
 import { auth, db, messaging } from '../firebase';
@@ -11,6 +11,8 @@ import { useEffect } from 'react';
 import AdminOrders from './admin/AdminOrders';
 import AdminCRM from './admin/AdminCRM';
 import AdminProducts from './admin/AdminProducts';
+import AdminGallery from './admin/AdminGallery';
+import AdminTestimonials from './admin/AdminTestimonials';
 import AdminSettings from './admin/AdminSettings';
 import InvoiceCreator from './admin/InvoiceCreator';
 import AdminReviews from './admin/AdminReviews';
@@ -28,6 +30,8 @@ const sideMenu = [
   { id: 'orders', icon: Package, label: 'Order Management' },
   { id: 'customers', icon: Users, label: 'Customers' },
   { id: 'products', icon: Edit, label: 'Our Products' },
+  { id: 'gallery', icon: Camera, label: 'Brand Gallery' },
+  { id: 'testimonials', icon: MessageCircle, label: 'Client Stories' },
   { id: 'logistics', icon: Truck, label: 'Delivery & Logistics' },
   { id: 'partnerships', icon: Users, label: 'Partnerships' },
   { id: 'reviews', icon: MessageSquare, label: 'Shop Reviews' },
@@ -216,10 +220,16 @@ export default function AdminDashboard({
             <AdminProducts
               key="admin-products"
               products={products}
-              gallery={gallery}
-              feedbacks={feedbacks}
               siteContent={siteContent}
             />
+          )}
+
+          {adminTab === 'gallery' && (
+            <AdminGallery key="admin-gallery" gallery={gallery} siteContent={siteContent} />
+          )}
+
+          {adminTab === 'testimonials' && (
+            <AdminTestimonials key="admin-testimonials" feedbacks={feedbacks} siteContent={siteContent} />
           )}
 
           {adminTab === 'reviews' && (

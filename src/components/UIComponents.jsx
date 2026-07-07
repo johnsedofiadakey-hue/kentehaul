@@ -1,9 +1,45 @@
 import React from 'react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
-import { Upload, CreditCard, Loader2, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useMotionValue, useSpring } from 'framer-motion';
+import { Upload, CreditCard, Loader2, X, CheckCircle, AlertCircle } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from '../firebase';
+
+// --- TOAST NOTIFICATIONS (replaces jarring native alert()) ---
+export function useToast() {
+  const [toast, setToast] = React.useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type, id: Date.now() });
+  };
+  const dismissToast = () => setToast(null);
+  return [toast, showToast, dismissToast];
+}
+
+export function Toast({ toast, onDone }) {
+  React.useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => onDone?.(), 3200);
+    return () => clearTimeout(t);
+  }, [toast, onDone]);
+
+  return (
+    <AnimatePresence>
+      {toast && (
+        <motion.div
+          key={toast.id}
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[500] px-6 py-4 rounded-2xl shadow-2xl font-bold text-sm text-white flex items-center gap-3 max-w-[90vw] ${toast.type === 'error' ? 'bg-red-600' : 'bg-gray-900'}`}
+        >
+          {toast.type === 'error' ? <AlertCircle size={18} className="flex-shrink-0" /> : <CheckCircle size={18} className="flex-shrink-0" />}
+          <span>{toast.message}</span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
 
 // --- LAZY LOADING IMAGE COMPONENT ---
 // priority: set true for above-the-fold images (e.g. hero) so the browser
