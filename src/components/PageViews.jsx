@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { LazyImage, MagneticButton } from './UIComponents';
 import PhoneInput from './PhoneInput';
 import SEO from './SEO';
+import { FEATURED_PRODUCTS_LIMIT } from '../data/constants';
 
 // Helper for paragraphing and rich text (bold/italics) from Admin
 const FormattedText = ({ text, centered = false }) => {
@@ -466,9 +467,12 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
       </div>
       )}
 
-      {/* FEATURED PRODUCTS SECTION — always visible, independent of the flash-sale toggle,
-          so a visitor sees real pieces and prices without having to leave the homepage. */}
-      {products && products.length > 0 && (
+      {/* FEATURED PRODUCTS SECTION — independent of the flash-sale toggle, so a visitor
+          sees real pieces and prices without having to leave the homepage. Shows whatever
+          the admin has marked "Feature on Homepage" (up to FEATURED_PRODUCTS_LIMIT), or
+          falls back to the newest products if nothing has been curated yet. Can be turned
+          off entirely from Settings. */}
+      {siteContent?.featuredEnabled !== false && products && products.length > 0 && (
         <div className="py-20 bg-gray-50/50">
           <div className="max-w-7xl mx-auto px-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
@@ -479,9 +483,9 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
               >
                 <div className="w-12 h-1 bg-amber-500 mb-6 rounded-full"></div>
                 <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
-                  New Arrivals
+                  Featured Pieces
                 </h2>
-                <p className="text-gray-400 font-bold mt-3 max-w-md">Fresh off the loom — the latest pieces added to the collection.</p>
+                <p className="text-gray-400 font-bold mt-3 max-w-md">A closer look at the pieces we love most right now.</p>
               </motion.div>
               <Link
                 to="/shop"
@@ -492,10 +496,11 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {[...products]
-                .sort((a, b) => (b.date || 0) - (a.date || 0))
-                .slice(0, 8)
-                .map(p => (
+              {(() => {
+                const curated = products.filter(p => p.isFeatured);
+                const pool = curated.length > 0 ? curated : products;
+                return [...pool].sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, FEATURED_PRODUCTS_LIMIT);
+              })().map(p => (
                   <Link
                     key={p.id}
                     to={`/shop?product=${p.id}`}

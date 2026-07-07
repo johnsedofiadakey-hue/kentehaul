@@ -344,6 +344,39 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                 </div>
             </div>
 
+            {/* ⭐ FEATURED PRODUCTS */}
+            <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100 mt-8">
+                <SectionHeader
+                    icon={Sliders}
+                    title="Featured Products Settings"
+                    colorClass="text-amber-400"
+                    subtitle="Homepage showcase, right below the hero"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block font-black text-gray-700 uppercase tracking-widest text-[10px]">Show on Homepage</label>
+                            <SaveIndicator field="featuredEnabled" saving={saving} saved={saved} />
+                        </div>
+                        <div className="flex gap-4 items-center bg-gray-50 p-4 rounded-[25px] mt-2">
+                            <input
+                                type="checkbox"
+                                className="h-6 w-6 cursor-pointer"
+                                checked={siteContent?.featuredEnabled !== false}
+                                onChange={e => {
+                                    updateField('featuredEnabled', e.target.checked);
+                                    saveField('featuredEnabled', e.target.checked, siteContent);
+                                }}
+                            />
+                            <span className="font-bold text-sm text-gray-700">Turn on Featured Products section</span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-2 px-1">
+                            Choose which products appear by turning on "Feature on Homepage" for up to 4 items in Our Products. If none are marked, the 4 newest products show automatically.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             {/* 🖼️ ASSETS & TEXT */}
             <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
                 <SectionHeader icon={Sliders} title="Visual Assets & Headlines" colorClass="text-blue-400" />

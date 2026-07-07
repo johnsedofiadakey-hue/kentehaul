@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, CheckCircle, Loader2, Tag, AlertCircle, Clock } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Loader2, Tag, AlertCircle, Clock, Star } from 'lucide-react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import { db } from '../../firebase';
 import { ImageUpload, useToast, Toast } from '../UIComponents';
-import { SHOP_CATEGORIES } from '../../data/constants';
+import { SHOP_CATEGORIES, FEATURED_PRODUCTS_LIMIT } from '../../data/constants';
 import CategoryManagerModal from './CategoryManagerModal';
 
 const INITIAL_PRODUCT_FORM = {
     name: '', price: '', originalPrice: '', stockQuantity: 1, sku: '', category: '', subcategory: '',
-    description: '', image: '', isPreorder: false, preorderDays: 14, isFlashSale: false
+    description: '', image: '', isPreorder: false, preorderDays: 14, isFlashSale: false, isFeatured: false
 };
 
 export default function AdminProducts({
@@ -77,6 +77,18 @@ export default function AdminProducts({
             if (!proceed) return;
         }
 
+        // Only the first FEATURED_PRODUCTS_LIMIT featured products actually show on the homepage —
+        // warn rather than silently letting one drop off unexplained.
+        if (productForm.isFeatured) {
+            const featuredCount = products.filter(p => p.isFeatured && p.id !== editingProduct?.id).length;
+            if (featuredCount >= FEATURED_PRODUCTS_LIMIT) {
+                const proceed = window.confirm(
+                    `${featuredCount} products are already featured, which is the max shown on the homepage (${FEATURED_PRODUCTS_LIMIT}). This one won't display until you un-feature another.\n\nSave anyway?`
+                );
+                if (!proceed) return;
+            }
+        }
+
         setLoading(true);
         try {
             const sanitizedProduct = {
@@ -122,7 +134,8 @@ export default function AdminProducts({
             stockQuantity: p.stockQuantity ?? p.stock ?? 0,
             isPreorder: p.isPreorder ?? false,
             preorderDays: p.preorderDays ?? 14,
-            isFlashSale: p.isFlashSale ?? false
+            isFlashSale: p.isFlashSale ?? false,
+            isFeatured: p.isFeatured ?? false
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -197,6 +210,25 @@ export default function AdminProducts({
                         <div>
                             <p className="text-xs font-black text-gray-900 uppercase tracking-wider">Include in Flash Sale</p>
                             <p className="text-[10px] text-gray-500 font-bold">This item will appear in the sales section on the home page. Only takes effect while the site-wide Flash Sale is turned on in Settings.</p>
+                        </div>
+                    </div>
+
+                    <div className="md:col-span-2 bg-amber-50/50 p-6 rounded-[30px] border border-amber-100/50 flex items-center gap-4">
+                        <button
+                            type="button"
+                            onClick={() => setProductForm({ ...productForm, isFeatured: !productForm.isFeatured })}
+                            className={`w-14 h-8 rounded-full transition-all relative flex-shrink-0 ${productForm.isFeatured ? 'bg-amber-500' : 'bg-gray-200'}`}
+                        >
+                            <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${productForm.isFeatured ? 'left-7' : 'left-1'}`} />
+                        </button>
+                        <div>
+                            <p className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                                <Star size={12} className="text-amber-500" /> Feature on Homepage
+                            </p>
+                            <p className="text-[10px] text-gray-500 font-bold">
+                                Shows in the "Featured Pieces" section right below the hero. Only the first {FEATURED_PRODUCTS_LIMIT} featured products show — currently {products.filter(p => p.isFeatured && p.id !== editingProduct?.id).length + (productForm.isFeatured ? 1 : 0)} of {FEATURED_PRODUCTS_LIMIT} used.
+                                {' '}Turn it off in Settings to hide the whole section, or leave nothing featured to show the newest items automatically.
+                            </p>
                         </div>
                     </div>
 

@@ -1,5 +1,8 @@
 // src/data/constants.js
 
+// Max number of admin-curated products shown in the homepage "Featured Pieces" section.
+export const FEATURED_PRODUCTS_LIMIT = 4;
+
 export const SHOP_CATEGORIES = [
   {
     id: 'kente',
