@@ -460,6 +460,64 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
       </div>
       )}
 
+      {/* FEATURED PRODUCTS SECTION — always visible, independent of the flash-sale toggle,
+          so a visitor sees real pieces and prices without having to leave the homepage. */}
+      {products && products.length > 0 && (
+        <div className="py-20 bg-gray-50/50">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+              >
+                <div className="w-12 h-1 bg-amber-500 mb-6 rounded-full"></div>
+                <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
+                  New Arrivals
+                </h2>
+                <p className="text-gray-400 font-bold mt-3 max-w-md">Fresh off the loom — the latest pieces added to the collection.</p>
+              </motion.div>
+              <Link
+                to="/shop"
+                className="hidden md:flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-900 hover:text-amber-600 transition-colors flex-shrink-0"
+              >
+                Shop all <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {[...products]
+                .sort((a, b) => (b.date || 0) - (a.date || 0))
+                .slice(0, 8)
+                .map(p => (
+                  <Link
+                    key={p.id}
+                    to={`/shop?product=${p.id}`}
+                    className="group block bg-white rounded-2xl md:rounded-3xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300"
+                  >
+                    <div className="aspect-square overflow-hidden bg-gray-50">
+                      <LazyImage src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    </div>
+                    <div className="p-3 md:p-4">
+                      <p className="text-[9px] md:text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1 truncate">{p.category}</p>
+                      <p className="font-bold text-xs md:text-sm text-gray-900 truncate mb-1">{p.name}</p>
+                      <p className="font-black text-sm md:text-base" style={{ color: siteContent?.secondaryColor || '#f97316' }}>₵{p.price?.toLocaleString()}</p>
+                    </div>
+                  </Link>
+                ))}
+            </div>
+
+            <Link
+              to="/shop"
+              className="md:hidden mt-10 flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest text-white"
+              style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
+            >
+              Shop all <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* GALLERY SECTION */}
       <div className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">

@@ -1149,8 +1149,20 @@ export default function App() {
   if (!siteContent) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 mb-4" style={{ borderColor: '#5b0143' }}></div>
-        <p className="text-gray-600 font-medium">Loading Kente Experience...</p>
+        <div className="relative w-16 h-16 mb-6">
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-amber-500 border-r-amber-500 animate-kh-ring" />
+          <div
+            className="absolute inset-2 rounded-xl flex items-center justify-center text-white font-black text-xl animate-kh-pulse"
+            style={{ backgroundColor: '#5b0143' }}
+          >
+            K
+          </div>
+        </div>
+        <p className="font-black text-lg tracking-tight animate-fade-in">
+          <span style={{ color: '#5b0143' }}>KENTE</span>
+          <span className="font-light italic" style={{ color: '#f97316' }}>HAUL</span>
+        </p>
+        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[3px] mt-3">Weaving your experience</p>
       </div>
     );
   }

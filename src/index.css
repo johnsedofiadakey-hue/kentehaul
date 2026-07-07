@@ -262,3 +262,32 @@ a {
     transform: translateY(0);
   }
 }
+
+/* Loading screen: logo mark breathes gently while a ring spins around it */
+.animate-kh-pulse {
+  animation: khPulse 1.8s ease-in-out infinite;
+}
+
+.animate-kh-ring {
+  animation: khRing 1.4s linear infinite;
+}
+
+@keyframes khPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes khRing {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
