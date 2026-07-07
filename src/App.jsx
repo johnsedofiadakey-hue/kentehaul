@@ -1309,7 +1309,13 @@ export default function App() {
         </main>
 
         {!isAdminPath && (
-          <Footer siteContent={siteContent} />
+          <Footer
+            siteContent={siteContent}
+            onAdminClick={() => {
+              if (isAdminAuthenticated) navigate('/admin');
+              else setIsAdminLoginOpen(true);
+            }}
+          />
         )}
         {/* SUCCESS MODAL LAYER */}
         <OrderSuccessModal 
