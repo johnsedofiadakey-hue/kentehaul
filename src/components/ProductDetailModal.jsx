@@ -79,7 +79,9 @@ export default function ProductDetailModal({
 
     // Match the price logic used everywhere else (Shop grid, cart, checkout) so the
     // number shown here never disagrees with what the customer is charged.
-    const displayPrice = siteContent?.flashSaleEnabled ? product.price : (product.originalPrice || product.price);
+    // This component stays mounted with product=null whenever nothing is selected,
+    // so every read here must be null-safe.
+    const displayPrice = product && (siteContent?.flashSaleEnabled ? product.price : (product.originalPrice || product.price));
 
     const handleAddToCart = () => {
         const availableStock = product.stockQuantity ?? product.stock ?? 0;
