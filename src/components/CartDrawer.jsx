@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, X, Minus, Plus, Smartphone, User, MapPin, Mail, ArrowLeft, ArrowRight, CheckCircle, Package, Clock, CreditCard, Search } from 'lucide-react';
+import { ShoppingBag, X, Minus, Plus, Smartphone, User, MapPin, Mail, ArrowLeft, ArrowRight, Package, Clock, CreditCard, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PaystackButton } from './UIComponents';
 import PhoneInput from './PhoneInput';
@@ -24,7 +24,6 @@ export default function CartDrawer({
     const [deliveryMethod, setDeliveryMethod] = useState('seller_rider'); // 'customer_rider' | 'seller_rider' | 'pickup'
     const [shippingRegion, setShippingRegion] = useState('Accra');
     const [regionSearch, setRegionSearch] = useState('');
-    const [feeConfirmed, setFeeConfirmed] = useState(false);
     const [activeOrderId, setActiveOrderId] = useState(null);
     const [loadingStep, setLoadingStep] = useState(0);
     
@@ -59,10 +58,9 @@ export default function CartDrawer({
     const shippingFee = deliveryMethod === 'seller_rider' ? (selectedRegion?.fee || 0) : 0;
     const finalTotal = cartTotal + shippingFee;
 
-    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && 
+    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() &&
         (deliveryMethod === 'pickup' ? customerForm.pickupLocationId : customerForm.address.trim()) &&
-        (deliveryMethod !== 'customer_rider' || (customerForm.riderName.trim() && customerForm.riderPhone.trim())) &&
-        (deliveryMethod !== 'seller_rider' || feeConfirmed);
+        (deliveryMethod !== 'customer_rider' || (customerForm.riderName.trim() && customerForm.riderPhone.trim()));
     const cartCount = cart.reduce((a, b) => a + b.quantity, 0);
 
     const handleClose = () => {
@@ -410,7 +408,7 @@ export default function CartDrawer({
                                                     {visibleRegions.length > 0 ? visibleRegions.map(r => (
                                                         <button
                                                             key={r.region}
-                                                            onClick={() => { setShippingRegion(r.region); setFeeConfirmed(false); }}
+                                                            onClick={() => setShippingRegion(r.region)}
                                                             className={`py-3 px-4 text-left rounded-2xl border transition-all ${shippingRegion === r.region ? 'bg-white shadow-md border-gray-400' : 'bg-gray-50 border-transparent text-gray-400'}`}
                                                             style={{ borderLeft: shippingRegion === r.region ? `4px solid ${siteContent?.secondaryColor}` : '' }}
                                                         >
@@ -420,6 +418,23 @@ export default function CartDrawer({
                                                     )) : (
                                                         <p className="col-span-2 text-xs text-gray-400 font-bold py-4 text-center">No matching area. Try a different spelling.</p>
                                                     )}
+                                                </div>
+
+                                                {/* Price breakdown lives right where the region is picked, instead of behind
+                                                    a separate "verify the fee" screen — the total updates live as you pick. */}
+                                                <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                                    <div className="flex justify-between text-xs font-bold text-gray-500">
+                                                        <span>Subtotal</span>
+                                                        <span>₵{cartTotal.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-xs font-bold text-amber-600">
+                                                        <span>Delivery to {shippingRegion}</span>
+                                                        <span>+ ₵{shippingFee.toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="pt-2 border-t border-gray-200 flex justify-between font-black text-gray-900">
+                                                        <span>Total</span>
+                                                        <span className="text-lg">₵{finalTotal.toLocaleString()}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -449,56 +464,19 @@ export default function CartDrawer({
                                             </div>
                                         )}
 
-                                        {/* Delivery Summary Mini */}
-                                        <div className="bg-gray-50 p-4 rounded-3xl border border-gray-100">
-                                            <div className="flex justify-between items-center text-sm mb-1">
-                                                <span className="text-gray-500">Method</span>
-                                                <span className="font-bold capitalize">{deliveryMethod.replace('_', ' ')}</span>
-                                            </div>
-                                            <div className="flex justify-between items-center text-sm">
-                                                <span className="text-gray-500">Delivery Fee</span>
-                                                <span className={`${shippingFee === 0 ? 'text-green-600' : 'text-amber-600'} font-black`}>₵{shippingFee}</span>
-                                            </div>
-                                        </div>
-
-                                        {deliveryMethod === 'seller_rider' && (
-                                            <motion.div 
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className={`p-6 rounded-[32px] border-2 transition-all ${feeConfirmed ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200 shadow-lg'}`}
-                                            >
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${feeConfirmed ? 'bg-green-500 text-white' : 'bg-amber-500 text-white animate-pulse'}`}>
-                                                        {feeConfirmed ? <CheckCircle size={20} /> : <div className="font-black text-sm">!</div>}
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-black text-gray-900 uppercase tracking-wider">Verify Total Cost</p>
-                                                        <p className="text-[10px] text-gray-500 font-medium">Verify the total including delivery fee.</p>
-                                                    </div>
+                                        {/* Delivery Summary Mini — seller_rider shows its own full breakdown
+                                            above, right where the region is picked, so it doesn't need this too. */}
+                                        {deliveryMethod !== 'seller_rider' && (
+                                            <div className="bg-gray-50 p-4 rounded-3xl border border-gray-100">
+                                                <div className="flex justify-between items-center text-sm mb-1">
+                                                    <span className="text-gray-500">Method</span>
+                                                    <span className="font-bold capitalize">{deliveryMethod.replace('_', ' ')}</span>
                                                 </div>
-
-                                                <div className="space-y-2 mb-6 bg-white/50 p-4 rounded-2xl">
-                                                    <div className="flex justify-between text-xs font-bold text-gray-500">
-                                                        <span>Subtotal</span>
-                                                        <span>₵{cartTotal.toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="flex justify-between text-xs font-bold text-amber-600">
-                                                        <span>Delivery Fee</span>
-                                                        <span>+ ₵{shippingFee.toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="pt-2 border-t border-gray-100 flex justify-between font-black text-gray-900">
-                                                        <span>Final Total</span>
-                                                        <span className="text-lg">₵{finalTotal.toLocaleString()}</span>
-                                                    </div>
+                                                <div className="flex justify-between items-center text-sm">
+                                                    <span className="text-gray-500">Delivery Fee</span>
+                                                    <span className="text-green-600 font-black">₵{shippingFee}</span>
                                                 </div>
-
-                                                <button
-                                                    onClick={() => setFeeConfirmed(!feeConfirmed)}
-                                                    className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] transition-all flex items-center justify-center gap-2 ${feeConfirmed ? 'bg-green-600 text-white' : 'bg-gray-900 text-white hover:bg-black active:scale-95'}`}
-                                                >
-                                                    {feeConfirmed ? <><CheckCircle size={16} /> Fee Confirmed</> : 'I agree to the fee'}
-                                                </button>
-                                            </motion.div>
+                                            </div>
                                         )}
 
                                         <p className="text-xs font-black text-gray-400 uppercase tracking-wider pt-2">Your Details</p>

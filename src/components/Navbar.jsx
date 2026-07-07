@@ -144,84 +144,90 @@ export default function Navbar({
                                         }`}
                                 >
                                     Our Shop
-                                    <ChevronDown size={14} className={`transition-transform duration-500 ${shopDropdownOpen ? 'rotate-180 text-amber-500' : ''}`} />
+                                    <ChevronDown size={14} className={`transition-transform duration-300 ${shopDropdownOpen ? 'rotate-180 text-amber-500' : ''}`} />
                                 </button>
 
                                 {/* MEGA MENU CONTENT */}
+                                {/* Only the y-offset is animated on enter — opacity starts and stays at 1, so the
+                                    panel can never render as translucent even if a transition gets interrupted
+                                    mid-flight. Fading is reserved for the exit animation, where it's harmless. */}
                                 <AnimatePresence>
                                     {shopDropdownOpen && (
                                         <motion.div
-                                            initial={{ opacity: 0, y: 15 }}
+                                            onMouseEnter={openDropdown}
+                                            onMouseLeave={closeDropdown}
+                                            initial={{ opacity: 1, y: 12 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: 10 }}
-                                            className="fixed top-[110px] left-0 right-0 w-full bg-white shadow-[0_40px_100px_rgba(0,0,0,0.15)] border-t border-gray-50 overflow-hidden z-[100]"
+                                            exit={{ opacity: 0, y: 8 }}
+                                            transition={{ duration: 0.25, ease: 'easeOut' }}
+                                            className="fixed top-[110px] left-0 right-0 w-full bg-white shadow-[0_24px_60px_rgba(0,0,0,0.12)] border-t border-gray-100 overflow-hidden z-[100]"
                                         >
-                                            <div className="max-w-7xl mx-auto flex h-[480px]">
+                                            <div className="max-w-7xl mx-auto flex h-[440px]">
                                                 {/* Left Sidebar: Categories */}
-                                                <div className="w-[300px] border-r border-gray-100 p-8 flex flex-col bg-gray-50/30">
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[4px] mb-6">{siteContent?.navShopTitle || "Store Shop"}</p>
-                                                    <div className="space-y-1 overflow-y-auto flex-1 pr-2 custom-scrollbar">
+                                                <div className="w-[280px] border-r border-gray-100 p-6 flex flex-col bg-gray-50/50">
+                                                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[2px] mb-4 px-2">{siteContent?.navShopTitle || "Shop by category"}</p>
+                                                    <div className="space-y-0.5 overflow-y-auto flex-1 pr-2 custom-scrollbar">
                                                         {categories.map(cat => (
                                                             <button
                                                                 key={cat.id}
                                                                 onMouseEnter={() => setHoveredCat(cat.id)}
                                                                 onClick={() => { navigate(`/shop?category=${cat.id}`); closeMenus(); }}
-                                                                className={`w-full text-left px-5 py-4 rounded-2xl flex items-center justify-between transition-all group ${hoveredCat === cat.id
-                                                                    ? 'bg-white shadow-xl translate-x-3 scale-105'
-                                                                    : 'hover:bg-white/50 text-gray-400'
+                                                                className={`w-full text-left px-4 py-3 rounded-xl flex items-center justify-between transition-colors duration-150 ${hoveredCat === cat.id
+                                                                    ? 'bg-white shadow-sm text-gray-900'
+                                                                    : 'text-gray-500 hover:bg-white/60'
                                                                     }`}
                                                             >
-                                                                <span className={`font-black text-sm uppercase tracking-wider ${hoveredCat === cat.id ? 'text-gray-900' : ''}`}>
+                                                                <span className="font-semibold text-sm">
                                                                     {cat.name}
                                                                 </span>
-                                                                <ChevronDown size={14} className={`-rotate-90 transition-transform ${hoveredCat === cat.id ? 'text-amber-500 scale-125' : 'opacity-0'}`} />
+                                                                <ChevronDown size={13} className={`-rotate-90 transition-opacity ${hoveredCat === cat.id ? 'opacity-100 text-amber-500' : 'opacity-0'}`} />
                                                             </button>
                                                         ))}
                                                     </div>
-                                                    <div className="mt-8 pt-6 border-t border-gray-100">
+                                                    <div className="mt-6 pt-5 border-t border-gray-100">
                                                         <Link
                                                             to="/shop"
                                                             onClick={closeMenus}
-                                                            className="flex items-center justify-center gap-2 w-full py-4 text-xs font-black uppercase tracking-[3px] text-white rounded-2xl shadow-lg transition-transform active:scale-95"
+                                                            className="flex items-center justify-center gap-2 w-full py-3.5 text-xs font-bold text-white rounded-xl transition-opacity hover:opacity-90"
                                                             style={{ backgroundColor: siteContent?.primaryColor }}
                                                         >
-                                                            Shop All <ArrowRight size={14} />
+                                                            Shop all <ArrowRight size={14} />
                                                         </Link>
                                                     </div>
                                                 </div>
 
                                                 {/* Middle Section: Subcategories */}
-                                                <div className="flex-1 p-12 overflow-y-auto">
+                                                <div className="flex-1 p-10 overflow-y-auto">
                                                     {hoveredCat && (() => {
                                                         const cat = categories.find(c => c.id === hoveredCat);
                                                         if (!cat) return null;
                                                         return (
                                                             <div className="animate-fade-in">
-                                                                <h3 className="text-3xl font-black text-gray-900 mb-2 uppercase tracking-tight">{cat.name}</h3>
-                                                                <p className="text-gray-400 text-sm mb-10 font-bold max-w-md">{siteContent?.navShopSubtitle || `Discover the finest ${cat.name} patterns, curated with cultural precision and royal elegance.`}</p>
+                                                                <h3 className="text-2xl font-bold text-gray-900 mb-1.5">{cat.name}</h3>
+                                                                <p className="text-gray-400 text-sm mb-8 max-w-md">{siteContent?.navShopSubtitle || `Discover the finest ${cat.name} patterns, curated with cultural precision and royal elegance.`}</p>
 
-                                                                <div className="grid grid-cols-2 xl:grid-cols-3 gap-6">
+                                                                <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
                                                                     {cat.subcategories.map(sub => (
                                                                         <button
                                                                             key={sub}
                                                                             onClick={() => { navigate(`/shop?category=${cat.id}&sub=${sub}`); closeMenus(); }}
-                                                                            className="group text-left p-6 rounded-[32px] bg-gray-50 hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border border-transparent hover:border-gray-100"
+                                                                            className="group text-left p-5 rounded-2xl bg-gray-50 hover:bg-white hover:shadow-lg transition-all duration-200 border border-transparent hover:border-gray-100"
                                                                         >
-                                                                            <div className="flex items-center gap-3 mb-2">
-                                                                                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white shadow-sm" style={{ color: siteContent?.secondaryColor }}>
-                                                                                    <Star size={12} fill="currentColor" />
+                                                                            <div className="flex items-center gap-2.5 mb-2">
+                                                                                <div className="w-7 h-7 rounded-full flex items-center justify-center bg-white shadow-sm" style={{ color: siteContent?.secondaryColor }}>
+                                                                                    <Star size={11} fill="currentColor" />
                                                                                 </div>
-                                                                                <span className="font-black text-xs text-gray-400 uppercase tracking-widest opacity-60">Sub-category</span>
+                                                                                <span className="font-semibold text-[11px] text-gray-400 uppercase tracking-wide">Sub-category</span>
                                                                             </div>
-                                                                            <p className="font-black text-lg text-gray-800 group-hover:text-amber-600 transition-colors uppercase leading-none">{sub}</p>
-                                                                            <div className="mt-4 flex items-center gap-1 text-[10px] font-black uppercase text-gray-300 group-hover:text-gray-900 duration-300">
-                                                                                Explore <ArrowRight size={10} className="transform translate-x-0 group-hover:translate-x-1 duration-300" />
+                                                                            <p className="font-bold text-base text-gray-800 group-hover:text-amber-600 transition-colors leading-tight">{sub}</p>
+                                                                            <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-gray-300 group-hover:text-gray-700 transition-colors duration-200">
+                                                                                Explore <ArrowRight size={11} className="transform translate-x-0 group-hover:translate-x-1 transition-transform duration-200" />
                                                                             </div>
                                                                         </button>
                                                                     ))}
                                                                     {cat.subcategories.length === 0 && (
-                                                                        <div className="col-span-full py-10 text-center bg-gray-50/50 rounded-[40px] border-2 border-dashed border-gray-100">
-                                                                            <p className="text-gray-400 font-bold uppercase tracking-widest text-xs italic">Complete collection browse</p>
+                                                                        <div className="col-span-full py-8 text-center bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
+                                                                            <p className="text-gray-400 font-semibold text-sm">Complete collection browse</p>
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -231,17 +237,17 @@ export default function Navbar({
                                                 </div>
 
                                                 {/* Right Sidebar: Featured Content (Static Visual) */}
-                                                <div className="w-[320px] p-6 hidden xl:block">
-                                                    <div className="h-full rounded-[40px] relative overflow-hidden group shadow-2xl">
+                                                <div className="w-[280px] p-6 hidden xl:block">
+                                                    <div className="h-full rounded-3xl relative overflow-hidden group">
                                                         <img
                                                             src={siteContent?.heroImage || "https://images.unsplash.com/photo-1590666014404-5f50ba56008d?ixlib=rb-4.0.3&auto=format&fit=crop&q=80&w=600"}
-                                                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                                             alt="Featured"
                                                         />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/10 to-transparent flex flex-col justify-end p-8">
-                                                            <span className="text-amber-400 text-[10px] font-black uppercase tracking-[4px] mb-2 block">Premium Pick</span>
-                                                            <h4 className="text-white font-black text-2xl leading-tight mb-4 uppercase tracking-tighter">The Royal Queen Collection</h4>
-                                                            <Link to="/shop" onClick={closeMenus} className="bg-white text-gray-900 py-3 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest text-center hover:bg-amber-400 transition-colors duration-300">New Arrivals</Link>
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/10 to-transparent flex flex-col justify-end p-6">
+                                                            <span className="text-amber-400 text-[10px] font-bold uppercase tracking-[2px] mb-1.5 block">Premium pick</span>
+                                                            <h4 className="text-white font-bold text-lg leading-tight mb-3">The Royal Queen Collection</h4>
+                                                            <Link to="/shop" onClick={closeMenus} className="bg-white text-gray-900 py-2.5 px-5 rounded-xl text-[11px] font-bold text-center hover:bg-amber-400 transition-colors duration-200">New arrivals</Link>
                                                         </div>
                                                     </div>
                                                 </div>
