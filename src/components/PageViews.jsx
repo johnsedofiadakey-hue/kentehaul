@@ -277,11 +277,17 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
       )}
 
       {/* HERO SECTION */}
-      <div className="relative min-h-[85vh] flex items-center justify-center" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
+      {/* overflow-hidden clips the decorative glow blobs below — without it, their fixed
+          pixel widths (500-800px) push the page wider than the viewport, worst on mobile
+          where the container itself is far narrower than the blobs. */}
+      <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
         {siteContent?.heroImage ? (
           <div className="absolute inset-0 z-0">
-            <LazyImage src={siteContent?.heroImage} className="w-full h-full object-cover opacity-60" alt="Hero" priority />
-            <div className="absolute inset-0 bg-gradient-to-t via-transparent to-transparent" style={{ '--tw-gradient-from': siteContent?.primaryColor || '#5b0143', '--tw-gradient-to': 'transparent' }}></div>
+            {/* Opacity raised from 60 to 92 and cropped higher (object-position) so the actual
+                photo — a full smiling face and the kente pattern — reads clearly instead of
+                being flattened into a uniform maroon wash with only nose-to-chin visible. */}
+            <LazyImage src={siteContent?.heroImage} className="w-full h-full object-cover opacity-90 object-[center_20%]" alt="Hero" priority />
+            <div className="absolute inset-0 bg-gradient-to-t via-transparent to-transparent" style={{ '--tw-gradient-from': `${siteContent?.primaryColor || '#5b0143'}B3`, '--tw-gradient-to': 'transparent' }}></div>
           </div>
         ) : (
           <div className="absolute inset-0 z-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
