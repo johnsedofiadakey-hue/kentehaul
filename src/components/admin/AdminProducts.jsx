@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, CheckCircle, Loader2, Tag, AlertCircle, Clock, Star } from 'lucide-react';
+import { Edit, Trash2, CheckCircle, Loader2, Tag, AlertCircle, Clock, Star, ChevronDown, Settings2 } from 'lucide-react';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import { db } from '../../firebase';
 import { ImageUpload, useToast, Toast } from '../UIComponents';
@@ -24,6 +24,7 @@ export default function AdminProducts({
     // --- STATE: PRODUCTS ---
     const [editingProduct, setEditingProduct] = useState(null);
     const [productForm, setProductForm] = useState(INITIAL_PRODUCT_FORM);
+    const [showMoreOptions, setShowMoreOptions] = useState(false);
 
     // --- STATE: CATEGORY MANAGER MODAL ---
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -108,6 +109,7 @@ export default function AdminProducts({
             }
 
             setProductForm(INITIAL_PRODUCT_FORM);
+            setShowMoreOptions(false);
             showToast(editingProduct ? "Product updated!" : "Added to shop!");
         } catch (error) {
             console.error("Product Save Error:", error);
@@ -137,12 +139,16 @@ export default function AdminProducts({
             isFlashSale: p.isFlashSale ?? false,
             isFeatured: p.isFeatured ?? false
         });
+        // Auto-expand "More options" if this product already uses any of them,
+        // so editing doesn't hide settings the admin already configured.
+        setShowMoreOptions(Boolean(p.isFlashSale || p.isFeatured || p.isPreorder || p.subcategory || p.sku || p.description));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const cancelEdit = () => {
         setEditingProduct(null);
         setProductForm(INITIAL_PRODUCT_FORM);
+        setShowMoreOptions(false);
     };
 
     const selectedCategory = categories.find(c => c.id === productForm.category);
@@ -199,6 +205,35 @@ export default function AdminProducts({
                         </div>
                     </div>
 
+                    <div className="md:col-span-2 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Category <span className="text-red-400">*</span></label>
+                            <button type="button" onClick={() => openCategoryModal(null)} className="text-[10px] text-purple-600 font-black flex items-center gap-1 hover:underline">
+                                <Tag size={10} /> Manage Categories
+                            </button>
+                        </div>
+                        <select required className="w-full p-4 bg-gray-50 border rounded-2xl font-bold appearance-none" value={productForm.category} onChange={e => setProductForm({ ...productForm, category: e.target.value, subcategory: '' })}>
+                            <option value="">Select Category</option>
+                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                    </div>
+
+                    {/* Everything below is secondary — flash sale, featured, pre-order, SKU, subcategory,
+                        description. Collapsed by default so adding/editing a product only asks for what's
+                        required up front; auto-expands in startEditProduct if a product already uses any of these. */}
+                    <div className="md:col-span-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowMoreOptions(!showMoreOptions)}
+                            className="w-full flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition-all"
+                        >
+                            <span className="flex items-center gap-2"><Settings2 size={14} /> More Options <span className="text-gray-300 normal-case font-bold">(sale, featured, pre-order, SKU, subcategory, description)</span></span>
+                            <ChevronDown size={18} className={`transition-transform ${showMoreOptions ? 'rotate-180' : ''}`} />
+                        </button>
+                    </div>
+
+                    {showMoreOptions && (
+                        <>
                     <div className="md:col-span-2 bg-rose-50/50 p-6 rounded-[30px] border border-rose-100/50 flex items-center gap-4">
                         <button
                             type="button"
@@ -270,19 +305,6 @@ export default function AdminProducts({
 
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Category <span className="text-red-400">*</span></label>
-                            <button type="button" onClick={() => openCategoryModal(null)} className="text-[10px] text-purple-600 font-black flex items-center gap-1 hover:underline">
-                                <Tag size={10} /> Manage Categories
-                            </button>
-                        </div>
-                        <select required className="w-full p-4 bg-gray-50 border rounded-2xl font-bold appearance-none" value={productForm.category} onChange={e => setProductForm({ ...productForm, category: e.target.value, subcategory: '' })}>
-                            <option value="">Select Category</option>
-                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
                             <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Subcategory <span className="text-gray-300 normal-case">(optional)</span></label>
                             {selectedCategory && (
                                 <button type="button" onClick={() => openCategoryModal(selectedCategory.id)} className="text-[10px] text-purple-600 font-black flex items-center gap-1 hover:underline">
@@ -306,6 +328,8 @@ export default function AdminProducts({
                         <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Short Description <span className="text-gray-300 normal-case">(optional)</span></label>
                         <textarea placeholder="Quick overview for product details..." className="w-full p-5 bg-gray-50 border rounded-[30px] h-24 font-medium" value={productForm.description} onChange={e => setProductForm({ ...productForm, description: e.target.value })} />
                     </div>
+                        </>
+                    )}
 
                     <div className="md:col-span-2 flex flex-col md:flex-row gap-5 pt-4">
                         <button type="submit" disabled={loading} className="w-full md:flex-1 bg-gray-900 text-white py-5 rounded-[25px] font-black text-lg shadow-2xl hover:bg-black transition-all flex justify-center items-center gap-3 disabled:opacity-60">
