@@ -5,9 +5,95 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
+const SITE_URL = "https://kentehaul.com";
+
+/**
+ * Builds the branded order-confirmation email (logo, order details, item
+ * images, order number, and a magic link straight to that order's tracking
+ * page). Delivery happens via the "Trigger Email from Firestore" extension
+ * watching the `mail` collection, configured to send through Brevo SMTP —
+ * this function only needs to write the document, not talk to Brevo itself.
+ */
+function buildOrderConfirmationEmail(orderId, orderData, siteContent) {
+    const customer = orderData.customer || {};
+    const items = orderData.items || [];
+    const primary = siteContent?.primaryColor || "#5b0143";
+    const accent = siteContent?.secondaryColor || "#f97316";
+    const logo = siteContent?.logo;
+    const trackingUrl = `${SITE_URL}/track/${orderId}`;
+
+    const itemsHtml = items.map((item) => `
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 12px 0; width: 64px;">
+          ${item.image
+            ? `<img src="${item.image}" alt="${item.name || 'Product'}" width="56" height="56" style="width: 56px; height: 56px; object-fit: cover; border-radius: 12px; display: block;" />`
+            : `<div style="width: 56px; height: 56px; border-radius: 12px; background-color: ${primary}10;"></div>`}
+        </td>
+        <td style="padding: 12px 16px;">
+          <div style="font-weight: bold; color: ${primary}; font-size: 14px;">${item.name || "Item"}</div>
+          <div style="font-size: 11px; color: #666;">Qty: ${item.quantity || 1} × ₵${Number(item.price || 0).toLocaleString()}</div>
+          ${item.isPreorder ? `<div style="font-size: 11px; color: ${accent}; font-weight: bold; margin-top: 2px;">Pre-order: ~${item.preorderDays || 14} days</div>` : ""}
+        </td>
+        <td style="padding: 12px 0; text-align: right; font-weight: bold; color: #333; white-space: nowrap;">₵${(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</td>
+      </tr>
+    `).join("");
+
+    return `
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 30px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.05);">
+          <!-- Header -->
+          <div style="background-color: ${primary}; padding: 40px 30px; text-align: center; color: #ffffff;">
+            ${logo
+              ? `<img src="${logo}" alt="KenteHaul" style="height: 48px; margin-bottom: 16px;" />`
+              : `<h1 style="margin: 0 0 4px; font-size: 26px; letter-spacing: 4px; font-weight: 900; text-transform: uppercase;">KenteHaul</h1>`}
+            <p style="margin: 0; opacity: 0.85; font-size: 13px; font-weight: 300; text-transform: uppercase; letter-spacing: 2px;">Order Confirmed</p>
+          </div>
+
+          <!-- Content -->
+          <div style="padding: 40px 30px;">
+            <div style="margin-bottom: 30px; border-bottom: 2px solid ${primary}10; padding-bottom: 20px;">
+              <h2 style="margin: 0; font-size: 18px; color: ${primary}; font-weight: 900;">Order #${orderId}</h2>
+              <p style="font-size: 12px; color: #999; margin: 5px 0 0;">Placed on ${orderData.date || new Date().toLocaleDateString()}</p>
+            </div>
+
+            <p style="font-size: 14px; line-height: 1.6;">Dear ${customer.name || "Valued Customer"}, thank you for weaving your story with KenteHaul. Our master weavers are already preparing your pieces.</p>
+
+            <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+              ${itemsHtml}
+              <tr>
+                <td colspan="2" style="padding: 25px 0 5px; font-size: 13px; color: #666;">Shipping (${orderData.shippingRegion || customer.shippingRegion || "Accra"})</td>
+                <td style="padding: 25px 0 5px; text-align: right; font-weight: bold; color: #666;">₵${Number(orderData.shippingFee || customer.shippingFee || 0).toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td colspan="2" style="padding: 5px 0 30px; font-size: 22px; font-weight: 900; color: ${accent};">Total Amount</td>
+                <td style="padding: 5px 0 30px; text-align: right; font-size: 22px; font-weight: 900; color: ${accent};">₵${Number(orderData.total || 0).toLocaleString()}</td>
+              </tr>
+            </table>
+
+            <div style="background-color: ${primary}05; padding: 25px; border-radius: 20px; border: 1px solid ${primary}10;">
+              <h3 style="margin: 0 0 12px; font-size: 10px; color: ${primary}; text-transform: uppercase; letter-spacing: 2px; font-weight: 900;">Shipping Destination</h3>
+              <p style="margin: 0; font-size: 14px; font-weight: bold; color: #333;">${customer.name || ""}</p>
+              <p style="margin: 4px 0 0; font-size: 13px; color: #666; line-height: 1.5;">${customer.address || ""}</p>
+              <p style="margin: 10px 0 0; font-size: 12px; color: ${primary}; font-weight: bold; letter-spacing: 0.5px;">${customer.phone || ""}</p>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="background-color: #fafafa; padding: 40px 30px; text-align: center; border-top: 1px solid #f0f0f0;">
+            <p style="margin: 0 0 25px; font-size: 13px; color: #888; line-height: 1.6;">We'll notify you as your order moves through production and delivery. You can check live status anytime using the button below.</p>
+            <a href="${trackingUrl}" style="display: inline-block; background-color: ${primary}; color: #ffffff; padding: 16px 35px; border-radius: 15px; text-decoration: none; font-weight: 900; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; box-shadow: 0 10px 20px ${primary}30;">Track Order Status</a>
+            <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+              <p style="margin: 0; font-size: 10px; color: #bbb; letter-spacing: 1px; font-weight: bold; text-transform: uppercase;">KenteHaul | Authentic Ghanaian Heritage</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+}
+
 /**
  * Triggered when a new order is created.
- * Sends a WhatsApp/SMS notification to the owner and the customer.
+ * Sends the branded order-confirmation email and a WhatsApp/SMS notification.
  */
 exports.onOrderCreated = functions.firestore
     .document("orders/{orderId}")
@@ -26,6 +112,31 @@ exports.onOrderCreated = functions.firestore
         if (customer && customer.phone) {
             console.log(`Sending confirmation to customer: ${customer.phone}`);
             // await sendSMS(customer.phone, `KenteHaul: Order #${orderId} received! Track here: kentehaul.com/track/${orderId}`);
+        }
+
+        // 3. Email order confirmation (Brevo, via the Trigger Email extension)
+        // Runs server-side so every order gets exactly one confirmation email,
+        // including orders reconstructed from the Paystack webhook after a
+        // client-side crash — the client no longer sends this itself.
+        if (customer && customer.email) {
+            try {
+                const siteSnap = await db.collection("settings").doc("siteContent").get();
+                const siteContent = siteSnap.exists ? siteSnap.data() : {};
+                const html = buildOrderConfirmationEmail(orderId, orderData, siteContent);
+
+                await db.collection("mail").add({
+                    to: customer.email,
+                    message: {
+                        subject: `Order Confirmed - #${orderId}`,
+                        html
+                    }
+                });
+                console.log(`Queued confirmation email to ${customer.email} for order ${orderId}`);
+            } catch (err) {
+                console.error(`[EMAIL ERROR] Failed to queue confirmation for order ${orderId}:`, err);
+            }
+        } else {
+            console.warn(`Order ${orderId} has no customer email — skipping confirmation email.`);
         }
 
         return null;

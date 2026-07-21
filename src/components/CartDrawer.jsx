@@ -58,7 +58,8 @@ export default function CartDrawer({
     const shippingFee = deliveryMethod === 'seller_rider' ? (selectedRegion?.fee || 0) : 0;
     const finalTotal = cartTotal + shippingFee;
 
-    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() &&
+    const isValidEmail = /^\S+@\S+\.\S+$/.test(customerForm.email.trim());
+    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && isValidEmail &&
         (deliveryMethod === 'pickup' ? customerForm.pickupLocationId : customerForm.address.trim()) &&
         (deliveryMethod !== 'customer_rider' || (customerForm.riderName.trim() && customerForm.riderPhone.trim()));
     const cartCount = cart.reduce((a, b) => a + b.quantity, 0);
@@ -499,8 +500,9 @@ export default function CartDrawer({
                                         <div className="relative">
                                             <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                                             <input
+                                                required
                                                 type="email"
-                                                placeholder="Email (Optional)"
+                                                placeholder="Email * (for order confirmation)"
                                                 className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
                                                 value={customerForm.email}
                                                 onChange={e => setCustomerForm({ ...customerForm, email: e.target.value })}
@@ -543,7 +545,7 @@ export default function CartDrawer({
                                             />
                                         </div>
                                         {!isFormValid && (
-                                            <p className="text-xs text-amber-600 font-bold text-center">* Name, phone, and address are required to proceed.</p>
+                                            <p className="text-xs text-amber-600 font-bold text-center">* Name, phone, a valid email, and address are required to proceed.</p>
                                         )}
                                     </div>
                                 </div>
@@ -562,7 +564,7 @@ export default function CartDrawer({
                                                 secondaryColor={siteContent?.secondaryColor}
                                                 metadata={{
                                                     orderId: activeOrderId, 
-                                                    items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, quantity: item.quantity })),
+                                                    items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, quantity: item.quantity, image: item.image || '' })),
                                                     customer: {
                                                         ...customerForm,
                                                         deliveryMethod,

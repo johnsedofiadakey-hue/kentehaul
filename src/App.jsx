@@ -55,57 +55,10 @@ import SEO from './components/SEO';
 import ClientLoginModal from './components/ClientLoginModal';
 
 // --- UTILITIES ---
-const getEmailTemplate = (orderId, total, items, customer, content) => {
-  const itemsHtml = items.map(item => `
-    <tr>
-      <td style="padding: 12px; border-bottom: 1px solid #eee;">
-        <strong>${item.name}</strong> x ${item.quantity}
-        ${item.isPreorder ? `<br/><small style="color: #f97316;">(Pre-order: ${item.preorderDays || 14} days)</small>` : ''}
-      </td>
-      <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">₵${(item.price * (item.quantity || 1)).toLocaleString()}</td>
-    </tr>
-  `).join('');
-
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-      <div style="background-color: ${content.primaryColor || '#5b0143'}; color: white; padding: 40px; text-align: center; border-radius: 16px 16px 0 0;">
-        <h1 style="margin: 0; font-size: 24px; letter-spacing: 2px;">KENTEHAUL</h1>
-        <p style="margin: 10px 0 0; opacity: 0.8; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Royal Order Confirmation</p>
-      </div>
-      <div style="padding: 30px; border: 1px solid #eee; border-top: none; border-radius: 0 0 16px 16px;">
-        <h2 style="margin-top: 0;">Order #${orderId}</h2>
-        <p>Dear ${customer.name},</p>
-        <p>Your journey into heritage has begun. We have received your order and our master weavers are preparing your pieces.</p>
-        
-        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-          <thead>
-            <tr style="background-color: #f5f5f5;">
-               <th style="padding: 12px; text-align: left;">Item</th>
-               <th style="padding: 12px; text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td style="padding: 12px; font-weight: bold;">Grand Total</td>
-              <td style="padding: 12px; font-weight: bold; text-align: right; color: ${content.secondaryColor || '#f97316'};">₵${total.toLocaleString()}</td>
-            </tr>
-          </tfoot>
-        </table>
-
-        <div style="background-color: #fffbeb; border: 1px solid #fef3c7; padding: 20px; border-radius: 12px; margin: 20px 0;">
-          <p style="margin: 0; font-size: 12px; color: #92400e; font-weight: bold; text-transform: uppercase;">Tracking Your Order</p>
-          <p style="margin: 5px 0 0; font-size: 14px;">You can track your order live at: <a href="${window.location.origin}/track/${orderId}" style="color: #5b0143; text-decoration: none; font-weight: bold;">Track My Kente</a></p>
-        </div>
-
-        <p>If you have any questions, reach out to us on WhatsApp.</p>
-        <p>Best Regards,<br/><strong>Team KenteHaul</strong></p>
-      </div>
-    </div>
-  `;
-};
+// Order-confirmation emails are sent server-side (see functions/index.js,
+// onOrderCreated) so every order gets exactly one email regardless of which
+// checkout path created it, including orders reconstructed from the
+// Paystack webhook after a client-side crash.
 
 const AdminLoginRequired = ({ setIsAdminLoginOpen }) => (
   <div className="h-screen flex items-center justify-center bg-gray-50 p-6 text-center">
@@ -639,71 +592,6 @@ export default function App() {
   // ==========================================
   // 4. PERSISTENCE & HELPERS
   // ==========================================
-  
-  const getEmailTemplate = (orderId, total, items, customer, sc) => {
-    const primary = sc?.primaryColor || '#5b0143';
-    const accent = sc?.secondaryColor || '#f97316';
-    
-    const itemsHtml = items.map(item => `
-      <tr style="border-bottom: 1px solid #eee;">
-        <td style="padding: 10px 0;">
-          <div style="font-weight: bold; color: ${primary}; font-size: 14px;">${item.name}</div>
-          <div style="font-size: 11px; color: #666;">Qty: ${item.quantity} × ₵${item.price?.toLocaleString()}</div>
-        </td>
-        <td style="padding: 10px 0; text-align: right; font-weight: bold; color: #333;">₵${(item.price * item.quantity).toLocaleString()}</td>
-      </tr>
-    `).join('');
-
-    return `
-      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 30px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.05);">
-          <!-- Header -->
-          <div style="background-color: ${primary}; padding: 40px 30px; text-align: center; color: #ffffff;">
-            <h1 style="margin: 0; font-size: 26px; letter-spacing: 4px; font-weight: 900; text-transform: uppercase;">Order Confirmed</h1>
-            <p style="margin: 10px 0 0; opacity: 0.8; font-size: 13px; font-weight: 300;">Thank you for weaving your story with KenteHaul</p>
-          </div>
-          
-          <!-- Content -->
-          <div style="padding: 40px 30px;">
-            <div style="margin-bottom: 30px; border-bottom: 2px solid ${primary}10; padding-bottom: 20px; display: flex; justify-content: space-between; align-items: top;">
-              <div>
-                <h2 style="margin: 0; font-size: 18px; color: ${primary}; font-weight: 900;">Order #${orderId}</h2>
-                <p style="font-size: 12px; color: #999; margin: 5px 0 0;">Placed on ${new Date().toLocaleDateString()}</p>
-              </div>
-            </div>
-            
-            <table style="width: 100%; border-collapse: collapse;">
-              ${itemsHtml}
-              <tr>
-                <td style="padding: 25px 0 5px; font-size: 13px; color: #666;">Shipping (${customer.shippingRegion || 'Accra'})</td>
-                <td style="padding: 25px 0 5px; text-align: right; font-weight: bold; color: #666;">₵${(customer.shippingFee || 0).toLocaleString()}</td>
-              </tr>
-              <tr>
-                <td style="padding: 5px 0 30px; font-size: 22px; font-weight: 900; color: ${accent};">Total Amount</td>
-                <td style="padding: 5px 0 30px; text-align: right; font-size: 22px; font-weight: 900; color: ${accent};">₵${total.toLocaleString()}</td>
-              </tr>
-            </table>
-            
-            <div style="background-color: ${primary}05; padding: 25px; border-radius: 20px; border: 1px solid ${primary}10;">
-              <h3 style="margin: 0 0 12px; font-size: 10px; color: ${primary}; text-transform: uppercase; letter-spacing: 2px; font-weight: 900;">Shipping Destination:</h3>
-              <p style="margin: 0; font-size: 14px; font-weight: bold; color: #333;">${customer.name}</p>
-              <p style="margin: 4px 0 0; font-size: 13px; color: #666; line-height: 1.5;">${customer.address}</p>
-              <p style="margin: 10px 0 0; font-size: 12px; color: ${primary}; font-weight: bold; letter-spacing: 0.5px;">${customer.phone}</p>
-            </div>
-          </div>
-          
-          <!-- Footer -->
-          <div style="background-color: #fafafa; padding: 40px 30px; text-align: center; border-top: 1px solid #f0f0f0;">
-             <p style="margin: 0 0 25px; font-size: 13px; color: #888; line-height: 1.6;">Our master weavers are already preparing your authentic Ghanaian pieces. We will notify you once your royalty is out for delivery.</p>
-            <a href="${window.location.origin}/track/${orderId}" style="display: inline-block; background-color: ${primary}; color: #ffffff; padding: 16px 35px; border-radius: 15px; text-decoration: none; font-weight: 900; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; box-shadow: 0 10px 20px ${primary}30;">Track Order Status</a>
-            <div style="margin-top: 40px; border-top: 1px solid #eee; pt: 30px;">
-                <p style="margin: 20px 0 0; font-size: 10px; color: #bbb; letter-spacing: 1px; font-weight: bold; text-transform: uppercase;">KenteHaul | Authentic Heritage</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  };
 
   // Save Cart to LocalStorage whenever it changes
   useEffect(() => {
@@ -936,14 +824,9 @@ export default function App() {
             }
             await backgroundBatch.commit();
 
-            // Email side-effect
-            if (customerDetails.email) {
-                const emailHtml = getEmailTemplate(orderId, totalAmount, cartItems, customerDetails, siteContent);
-                await addDoc(collection(db, "mail"), {
-                    to: customerDetails.email,
-                    message: { subject: `Order Received - #${orderId}`, html: emailHtml }
-                });
-            }
+            // Order confirmation email is sent server-side by the onOrderCreated
+            // Cloud Function once this setDoc above lands, so every order gets
+            // exactly one email regardless of checkout path.
         } catch (bgErr) {
             console.warn("[BG-SYNC] Order background sync failed:", bgErr);
         }
@@ -1107,13 +990,8 @@ export default function App() {
           
           await backgroundBatch.commit();
 
-          if (customerForm.email) {
-            const orderSummaryHtml = getEmailTemplate(orderId, totalAmount, cartItems, customerForm, siteContent);
-            await addDoc(collection(db, "mail"), {
-              to: customerForm.email,
-              message: { subject: `Payment Confirmed - #${orderId}`, html: orderSummaryHtml }
-            });
-          }
+          // Order confirmation email is sent server-side by the onOrderCreated
+          // Cloud Function once this setDoc above lands.
         } catch (bgError) {
           console.warn("[BG-SYNC] Failed silently in background:", bgError);
         }
