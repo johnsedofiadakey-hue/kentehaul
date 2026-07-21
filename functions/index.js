@@ -6,6 +6,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const SITE_URL = "https://kentehaul.com";
+const ADMIN_NOTIFICATION_EMAIL = "kentehaul@gmail.com";
 
 /**
  * Builds the branded order-confirmation email (logo, order details, item
@@ -92,8 +93,61 @@ function buildOrderConfirmationEmail(orderId, orderData, siteContent) {
 }
 
 /**
+ * Builds the internal "new order" notification sent to the store owner
+ * (kentehaul@gmail.com) — order details, customer contact info, and items,
+ * so the owner never has to check the admin panel to know a sale happened.
+ */
+function buildAdminOrderNotificationEmail(orderId, orderData, siteContent) {
+    const customer = orderData.customer || {};
+    const items = orderData.items || [];
+    const primary = siteContent?.primaryColor || "#5b0143";
+
+    const itemsHtml = items.map((item) => `
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 10px 0; font-size: 13px;">
+          ${item.name || "Item"} × ${item.quantity || 1}
+          ${item.isPreorder ? `<br/><span style="color: #f97316; font-size: 11px;">Pre-order: ~${item.preorderDays || 14} days</span>` : ""}
+        </td>
+        <td style="padding: 10px 0; text-align: right; font-size: 13px; font-weight: bold;">₵${(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</td>
+      </tr>
+    `).join("");
+
+    return `
+      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.05);">
+          <div style="background-color: ${primary}; padding: 25px 30px; color: #ffffff;">
+            <h1 style="margin: 0; font-size: 18px; letter-spacing: 1px;">New Order Received</h1>
+            <p style="margin: 6px 0 0; opacity: 0.85; font-size: 13px;">Order #${orderId} · ${orderData.method || "Web"}</p>
+          </div>
+          <div style="padding: 30px;">
+            <h3 style="margin: 0 0 10px; font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px;">Customer</h3>
+            <p style="margin: 0; font-size: 14px; font-weight: bold;">${customer.name || "Unknown"}</p>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #666;">${customer.phone || ""} ${customer.email ? `· ${customer.email}` : ""}</p>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #666;">${customer.address || ""}</p>
+            <p style="margin: 10px 0 0; font-size: 12px; color: ${primary}; font-weight: bold;">Delivery: ${orderData.deliveryMethod || "seller_rider"} · ${orderData.shippingRegion || customer.shippingRegion || "Accra"}</p>
+
+            <h3 style="margin: 25px 0 10px; font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px;">Items</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              ${itemsHtml}
+              <tr>
+                <td style="padding: 12px 0 0; font-weight: 900; font-size: 16px;">Total</td>
+                <td style="padding: 12px 0 0; text-align: right; font-weight: 900; font-size: 16px; color: ${primary};">₵${Number(orderData.total || 0).toLocaleString()}</td>
+              </tr>
+            </table>
+
+            <a href="${SITE_URL}/admin" style="display: inline-block; margin-top: 25px; background-color: ${primary}; color: #ffffff; padding: 14px 28px; border-radius: 12px; text-decoration: none; font-weight: 900; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;">Open Admin Panel</a>
+            <p style="margin: 15px 0 0; font-size: 11px; color: #999;">Search "${orderId}" in Order Management to find it.</p>
+          </div>
+        </div>
+      </div>
+    `;
+}
+
+/**
  * Triggered when a new order is created.
- * Sends the branded order-confirmation email and a WhatsApp/SMS notification.
+ * Sends the branded order-confirmation email to the customer, a "new order"
+ * notification email to the store owner, and (placeholder) a WhatsApp/SMS
+ * notification.
  */
 exports.onOrderCreated = functions.firestore
     .document("orders/{orderId}")
@@ -104,26 +158,25 @@ exports.onOrderCreated = functions.firestore
 
         console.log(`New Order Found: ${orderId}`);
 
-        // 1. Notify Admin (WhatsApp/Email)
-        // In a real implementation, you would call a WhatsApp API (like Twilio or Hubtel) here.
-        // Example: await twilio.messages.create({ ... })
-
-        // 2. Notify Customer (SMS/WhatsApp)
+        // Notify Customer (SMS/WhatsApp) — placeholder, not yet implemented.
         if (customer && customer.phone) {
             console.log(`Sending confirmation to customer: ${customer.phone}`);
             // await sendSMS(customer.phone, `KenteHaul: Order #${orderId} received! Track here: kentehaul.com/track/${orderId}`);
         }
 
-        // 3. Email order confirmation (Brevo, via the Trigger Email extension)
-        // Runs server-side so every order gets exactly one confirmation email,
-        // including orders reconstructed from the Paystack webhook after a
-        // client-side crash — the client no longer sends this itself.
+        // Both emails below go through the same "Trigger Email from Firestore"
+        // extension (the `mail` collection), configured to send via Brevo SMTP —
+        // this function only needs to write the documents, not talk to Brevo itself.
+        const siteSnap = await db.collection("settings").doc("siteContent").get();
+        const siteContent = siteSnap.exists ? siteSnap.data() : {};
+
+        // Email order confirmation to the customer. Runs server-side so every
+        // order gets exactly one confirmation email, including orders
+        // reconstructed from the Paystack webhook after a client-side crash —
+        // the client no longer sends this itself.
         if (customer && customer.email) {
             try {
-                const siteSnap = await db.collection("settings").doc("siteContent").get();
-                const siteContent = siteSnap.exists ? siteSnap.data() : {};
                 const html = buildOrderConfirmationEmail(orderId, orderData, siteContent);
-
                 await db.collection("mail").add({
                     to: customer.email,
                     message: {
@@ -133,10 +186,25 @@ exports.onOrderCreated = functions.firestore
                 });
                 console.log(`Queued confirmation email to ${customer.email} for order ${orderId}`);
             } catch (err) {
-                console.error(`[EMAIL ERROR] Failed to queue confirmation for order ${orderId}:`, err);
+                console.error(`[EMAIL ERROR] Failed to queue customer confirmation for order ${orderId}:`, err);
             }
         } else {
-            console.warn(`Order ${orderId} has no customer email — skipping confirmation email.`);
+            console.warn(`Order ${orderId} has no customer email — skipping customer confirmation email.`);
+        }
+
+        // Notify the store owner that a new order came in.
+        try {
+            const adminHtml = buildAdminOrderNotificationEmail(orderId, orderData, siteContent);
+            await db.collection("mail").add({
+                to: ADMIN_NOTIFICATION_EMAIL,
+                message: {
+                    subject: `New Order - #${orderId} (₵${Number(orderData.total || 0).toLocaleString()})`,
+                    html: adminHtml
+                }
+            });
+            console.log(`Queued admin notification for order ${orderId}`);
+        } catch (err) {
+            console.error(`[EMAIL ERROR] Failed to queue admin notification for order ${orderId}:`, err);
         }
 
         return null;
