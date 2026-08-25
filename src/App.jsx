@@ -1,4 +1,5 @@
-import React, { useState, useEffect, Suspense, lazy, useRef } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useRef, useMemo, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import { Routes, Route, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import OrderSuccessModal from './components/OrderSuccessModal';
@@ -16,8 +17,7 @@ import {
   orderBy,
   writeBatch,
   increment,
-  serverTimestamp,
-  addDoc
+  serverTimestamp
 } from "firebase/firestore";
 import debounce from 'lodash.debounce';
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -36,6 +36,8 @@ import {
 // --- IMPORTING COMPONENTS (LAZY LOADED) ---
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import BottomNav from './components/BottomNav';
+import StickyCartBar from './components/StickyCartBar';
 import ScrollToTop from './components/ScrollToTop';
 const Home = lazy(() => import('./components/PageViews').then(module => ({ default: module.Home })));
 const Heritage = lazy(() => import('./components/PageViews').then(module => ({ default: module.Heritage })));
@@ -105,7 +107,7 @@ export default function App() {
   useEffect(() => {
     let safetyTimer;
     if (isProcessing) {
-        console.info("[SAFETY] Global processing monitor active...");
+        
         safetyTimer = setTimeout(() => {
             console.warn("[SAFETY] Processing timeout (15s). Releasing UI.");
             setIsProcessing(false);
@@ -137,6 +139,7 @@ export default function App() {
     }
   });
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [gallery, setGallery] = useState([]);
@@ -311,48 +314,21 @@ export default function App() {
     }
   }, []);
 
-  // --- ACTIVITY LOGGING HELPER ---
-  const logActivity = async (type, data) => {
-    try {
-      await addDoc(collection(db, "activity_log"), {
-        type,
-        clientId,
-        ...data,
-        timestamp: serverTimestamp()
-      });
-    } catch (e) {
-      // Fail silently for user, but track for BI
-      console.warn("BI Activity Sync failed:", e);
-    }
-  };
-
-  // Track Site Visits (Session-based)
+  // Track Site Visits via GA (session-based, no Firestore write)
   useEffect(() => {
+    if (!analytics) return;
     const sessionKey = 'kente_visit_tracked';
     if (!sessionStorage.getItem(sessionKey)) {
-      const ua = navigator.userAgent;
-      let device = 'Desktop';
-      if (/Android/i.test(ua)) device = 'Android';
-      else if (/iPhone|iPad|iPod/i.test(ua)) device = 'iOS';
-
-      logActivity('site_visit', {
-        device,
-        userAgent: ua,
-        referrer: document.referrer || 'Direct',
-        resolution: `${window.innerWidth}x${window.innerHeight}`,
-        language: navigator.language
-      });
+      logEvent(analytics, 'session_start');
       sessionStorage.setItem(sessionKey, 'true');
     }
   }, []);
 
-  // Track Product Views
+  // Track Product Views via GA
   useEffect(() => {
-    if (selectedProduct) {
-      logActivity('view_item', { 
-        productId: selectedProduct.id, 
-        productName: selectedProduct.name,
-        category: selectedProduct.category || 'Uncategorized'
+    if (selectedProduct && analytics) {
+      logEvent(analytics, 'view_item', {
+        items: [{ item_id: selectedProduct.id, item_name: selectedProduct.name, item_category: selectedProduct.category || 'Uncategorized' }]
       });
     }
   }, [selectedProduct]);
@@ -438,6 +414,13 @@ export default function App() {
       }
     });
 
+    // A2. Listen to Categories (shared once here, passed to Shop — avoids per-mount listeners)
+    const unsubCategories = onSnapshot(doc(db, "settings", "categories"), (snap) => {
+      if (snap.exists() && snap.data().list?.length > 0) {
+        setCategories(snap.data().list);
+      }
+    });
+
     // B. Listen to Products (CRITICAL: DATA TYPE SANITIZATION)
     const unsubProducts = onSnapshot(query(collection(db, "products"), limit(120)), (snapshot) => {
       const sanitizedProducts = snapshot.docs.map(doc => {
@@ -493,9 +476,8 @@ export default function App() {
     return () => {
       clearTimeout(timeoutId);
       unsubContent();
+      unsubCategories();
       unsubProducts();
-      // unsubGallery(); // Now static
-      // unsubFeedback(); // Now static
       unsubAuth();
     };
   }, []);
@@ -550,7 +532,7 @@ export default function App() {
             const token = await getToken(messaging, { vapidKey });
             
             if (token && token !== siteContent?.adminFcmToken) {
-              console.log("FCM Token registered/updated:", token);
+              
               // Store token in settings/siteContent so the admin can receive alerts
               await updateDoc(doc(db, "settings", "siteContent"), {
                 adminFcmToken: token,
@@ -573,7 +555,7 @@ export default function App() {
 
     // Listen for foreground messages
     const unsubMessaging = onMessage(messaging, (payload) => {
-      console.log("Foreground message received:", payload);
+      
       // Show browser notification if permitted
       if (Notification.permission === 'granted') {
         new Notification(payload.notification.title, {
@@ -599,25 +581,27 @@ export default function App() {
   }, [cart]);
 
   // --- CART PRICE SYNC ---
-  // Ensure prices in the cart match the verified 'products' list from Firestore
+  // Runs only when products snapshot updates. Uses setCart(prev => ...) to avoid
+  // adding `cart` to the dependency array, which would create an infinite loop.
   useEffect(() => {
-    if (products.length === 0 || cart.length === 0) return;
-
-    let priceChanged = false;
-    const updatedCart = cart.map(item => {
-      const liveProd = products.find(p => p.id === item.id);
-      if (liveProd && Number(liveProd.price) !== Number(item.price)) {
-        priceChanged = true;
-        return { ...item, price: Number(liveProd.price) };
+    if (products.length === 0) return;
+    setCart(prev => {
+      if (prev.length === 0) return prev;
+      let changed = false;
+      const next = prev.map(item => {
+        const liveProd = products.find(p => p.id === item.id);
+        if (liveProd && Number(liveProd.price) !== Number(item.price)) {
+          changed = true;
+          return { ...item, price: Number(liveProd.price) };
+        }
+        return item;
+      });
+      if (changed) {
+        setTimeout(() => alert("Note: One or more items in your bag had a price update to match our current stock value."), 0);
       }
-      return item;
+      return changed ? next : prev;
     });
-
-    if (priceChanged) {
-      setCart(updatedCart);
-      alert("Note: One or more items in your bag had a price update to match our current stock value.");
-    }
-  }, [products, cart]);
+  }, [products]);
 
   // CRM Helper: Removed in favor of Atomic Batches in checkout handlers
 
@@ -682,20 +666,20 @@ export default function App() {
     }));
   };
 
-  const cartTotal = cart.reduce((total, item) => {
+  const cartTotal = useMemo(() => cart.reduce((total, item) => {
     const price = siteContent?.flashSaleEnabled ? item.price : (item.originalPrice || item.price);
     return total + (price * item.quantity);
-  }, 0);
+  }, 0), [cart, siteContent?.flashSaleEnabled]);
 
   // --- ATOMIC CHECKOUT LOGIC (Robust Firestore Writes) ---
 
   const onWhatsAppCheckout = async (customerDetails) => {
     setIsProcessing(true);
     const orderId = generateOrderId(); // Unified Production ID
-    console.log("Starting WhatsApp Checkout:", { orderId, customerDetails, cart });
+    // checkout start
     
     // Safety net: always clear processing after 20s
-    console.info("[CHECKOUT] Starting processing flow...");
+    
     const safetyTimer = setTimeout(() => {
       console.warn("[CHECKOUT] Safety timer triggered. Releasing UI.");
       setIsProcessing(false);
@@ -774,7 +758,7 @@ export default function App() {
       const whatsappPhone = (siteContent?.contactPhone || '').replace(/[^0-9]/g, '');
 
       // 2. IMMEDIATE UI RELEASE
-      console.info("[CHECKOUT] Order constructed. Releasing UI immediately for user comfort.");
+      
       // 2. IMMEDIATE SUCCESS TRIGGER
       setSuccessOrderData({ 
           id: orderId, 
@@ -848,24 +832,18 @@ export default function App() {
     setWishlist(prev => {
       if (!product || !product.id) return prev;
       const exists = prev.some(p => p.id === product.id);
-      
-      // Log Heart Activity
-      logActivity(exists ? 'unheart_item' : 'heart_item', {
-        productId: product.id,
-        productName: product.name
-      });
-
-      if (exists) {
-        return prev.filter(p => p.id !== product.id);
-      } else {
-        return [...prev, product];
+      if (analytics) {
+        logEvent(analytics, exists ? 'remove_from_wishlist' : 'add_to_wishlist', {
+          items: [{ item_id: product.id, item_name: product.name }]
+        });
       }
+      return exists ? prev.filter(p => p.id !== product.id) : [...prev, product];
     });
   };
 
   const handlePaystackSuccess = async (reference, customerForm) => {
     setIsProcessing(true);
-    console.log("Paystack Success - Syncing to Database:", { reference, customerForm });
+    
 
     // Safety net: always clear processing after 45s (Auth can take time)
     const safetyTimer = setTimeout(() => {
@@ -934,7 +912,7 @@ export default function App() {
       setIsCartOpen(false);
       setIsProcessing(false);
       
-      console.log("[DEBUG] Atomic handover complete. Order:", orderId);
+      
 
       // ==========================================
       // 2. BACKGROUND ARCHIVAL (Fire and Forget)
@@ -962,7 +940,7 @@ export default function App() {
           const orderSnap = await getDoc(orderRef);
           
           if (orderSnap.exists()) {
-              console.info("[CLIENT] Order already exists. Webhook likely processed it first.");
+              
               return;
           }
 
@@ -1176,12 +1154,20 @@ export default function App() {
           siteContent={siteContent}
         />
 
-        <main className="flex-grow">
+        <main className="flex-grow pb-20 md:pb-0">
           <Suspense fallback={<div className="h-screen flex items-center justify-center"><div className="animate-pulse text-xl font-light">Loading Kente Heritage...</div></div>}>
+            <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+            >
             <Routes>
               <Route path="/" element={<Home siteContent={siteContent} gallery={gallery} feedbacks={feedbacks} products={products} addToCart={addToCart} />} />
               <Route path="/heritage" element={<Heritage siteContent={siteContent} />} />
-              <Route path="/shop" element={<Shop products={products} currentCategory={currentCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} handleSingleBuy={handleSingleBuy} setSelectedProduct={setSelectedProduct} siteContent={siteContent} wishlist={wishlist} toggleWishlist={toggleWishlist} />} />
+              <Route path="/shop" element={<Shop products={products} categories={categories} currentCategory={currentCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} handleSingleBuy={handleSingleBuy} setSelectedProduct={setSelectedProduct} siteContent={siteContent} wishlist={wishlist} toggleWishlist={toggleWishlist} />} />
               <Route path="/institute" element={<Institute siteContent={siteContent} products={products} />} />
               <Route path="/contact" element={<Contact siteContent={siteContent} />} />
               <Route path="/track/:orderId" element={<TrackingPage siteContent={siteContent} />} />
@@ -1195,16 +1181,35 @@ export default function App() {
               ) : <AdminLoginRequired setIsAdminLoginOpen={setIsAdminLoginOpen} />} />
               <Route path="*" element={<NotFound siteContent={siteContent} />} />
             </Routes>
+            </motion.div>
+            </AnimatePresence>
           </Suspense>
         </main>
 
         {!isAdminPath && (
           <Footer
             siteContent={siteContent}
+            setIsTrackingOpen={setIsTrackingOpen}
             onAdminClick={() => {
               if (isAdminAuthenticated) navigate('/admin');
               else setIsAdminLoginOpen(true);
             }}
+          />
+        )}
+        {!isAdminPath && (
+          <StickyCartBar
+            cart={cart}
+            cartTotal={cartTotal}
+            siteContent={siteContent}
+            setIsCartOpen={setIsCartOpen}
+          />
+        )}
+        {!isAdminPath && (
+          <BottomNav
+            cart={cart}
+            siteContent={siteContent}
+            setIsCartOpen={setIsCartOpen}
+            setIsTrackingOpen={setIsTrackingOpen}
           />
         )}
         {/* SUCCESS MODAL LAYER */}

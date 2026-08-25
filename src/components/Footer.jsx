@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, Smartphone } from 'lucide-react';
-import { TikTokIcon } from './UIComponents'; // Importing from our UI file
-import { SOCIAL_LINKS } from '../data/constants'; // Importing from constants
+import { TikTokIcon } from './UIComponents';
+import { SOCIAL_LINKS } from '../data/constants';
 
-export default function Footer({ siteContent, onNavClick, onAdminClick }) {
+export default function Footer({ siteContent, setIsTrackingOpen, onAdminClick }) {
   return (
-    <footer className="text-white py-16 border-t border-white/10 mt-auto" style={{ backgroundColor: siteContent?.primaryColor }}>
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-20 text-sm">
+    <footer className="text-white py-16 border-t border-white/10 mt-auto pb-28 md:pb-16" style={{ backgroundColor: siteContent?.primaryColor }}>
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-5 gap-10 md:gap-16 text-sm">
 
         {/* Brand Column */}
         <div className="col-span-2 md:col-span-1 border-b md:border-none pb-8 md:pb-0">
@@ -40,47 +40,63 @@ export default function Footer({ siteContent, onNavClick, onAdminClick }) {
           </ul>
         </div>
 
+        {/* Help Column */}
+        <div>
+          <h4 className="text-white font-black text-xs uppercase tracking-[3px] mb-6 opacity-40">Help</h4>
+          <ul className="space-y-3">
+            <li>
+              <button
+                onClick={() => setIsTrackingOpen && setIsTrackingOpen(true)}
+                className="hover:opacity-80 transition font-bold text-left text-white"
+              >
+                Track My Order
+              </button>
+            </li>
+            <li>
+              <a href={`https://wa.me/${(siteContent?.contactPhone || '233540249684').replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="hover:opacity-80 transition block font-bold">
+                Contact Us
+              </a>
+            </li>
+            <li><Link to="/refund-policy" className="hover:opacity-80 transition block font-bold">Returns & Refunds</Link></li>
+          </ul>
+        </div>
+
         {/* Legal Column */}
         <div>
           <h4 className="text-white font-black text-xs uppercase tracking-[3px] mb-6 opacity-40">Legal</h4>
           <ul className="space-y-3">
-            <li><Link to="/privacy-policy" className="hover:opacity-80 transition block font-bold">Privacy Policy</Link></li>
-            <li><Link to="/terms-conditions" className="hover:opacity-80 transition block font-bold">Terms & Conditions</Link></li>
+            <li><Link to="/privacy" className="hover:opacity-80 transition block font-bold">Privacy Policy</Link></li>
+            <li><Link to="/terms" className="hover:opacity-80 transition block font-bold">Terms of Service</Link></li>
             <li><Link to="/refund-policy" className="hover:opacity-80 transition block font-bold">Refund Policy</Link></li>
-            <li><button className="hover:opacity-100 cursor-pointer transition text-white/30 hover:text-white text-[10px] uppercase tracking-widest mt-4 block" onClick={onAdminClick}>Manager Access</button></li>
+            <li>
+              <button onClick={onAdminClick} className="hover:opacity-80 transition font-bold text-white/40 text-xs text-left">
+                Manager Access
+              </button>
+            </li>
           </ul>
         </div>
 
         {/* Connect Column */}
         <div>
           <h4 className="text-white font-black text-xs uppercase tracking-[3px] mb-6 opacity-40">Connect</h4>
-          <div className="flex gap-4">
-            {(siteContent?.instagramLink || SOCIAL_LINKS.instagram) && (
-              <a href={siteContent?.instagramLink || SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-pink-500 hover:text-white transition cursor-pointer">
-                <Instagram size={20} />
-              </a>
-            )}
-            {SOCIAL_LINKS.tiktok && (
-              <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-black hover:text-white transition cursor-pointer">
-                <TikTokIcon size={20} />
-              </a>
-            )}
-             {(siteContent?.contactPhone || SOCIAL_LINKS.whatsapp) && (
-              <a href={`https://wa.me/${(siteContent?.contactPhone || SOCIAL_LINKS.whatsapp).replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-green-600 hover:text-white transition cursor-pointer">
-                <Smartphone size={20} />
-              </a>
-            )}
-            {siteContent?.facebookLink && (
-              <a href={siteContent?.facebookLink} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition cursor-pointer">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
-              </a>
-            )}
+          <div className="flex flex-col gap-4">
+            <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:opacity-80 transition font-bold">
+              <Instagram size={16} /> Instagram
+            </a>
+            <a href={SOCIAL_LINKS.tiktok} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:opacity-80 transition font-bold">
+              <TikTokIcon size={16} /> TikTok
+            </a>
+            <a href={SOCIAL_LINKS.whatsapp} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:opacity-80 transition font-bold">
+              <Smartphone size={16} /> WhatsApp
+            </a>
           </div>
         </div>
+
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 mt-16 pt-8 border-t border-white/10 text-center opacity-60">
-        &copy; {siteContent?.footerText || "2026 KenteHaul Ghana"}. Designed with pride.
+      <div className="max-w-7xl mx-auto px-6 mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p className="text-white/30 text-xs">© {new Date().getFullYear()} KenteHaul. All rights reserved.</p>
+        <p className="text-white/20 text-xs">Made with ♥ in Ghana</p>
       </div>
     </footer>
   );

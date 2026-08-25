@@ -704,6 +704,50 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                         Sign up at kwikdelivery.com → Dashboard → API Keys. Required for "Book Rider via Kwik" in order management.
                     </p>
                 </div>
+
+                {/* Arkesel SMS */}
+                <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-500 flex items-center gap-2">
+                        <Key size={12} /> Arkesel API Key (SMS)
+                        {savingPrivate.arkeselApiKey && <RefreshCw size={10} className="animate-spin text-blue-500" />}
+                        {savedPrivate.arkeselApiKey && !savingPrivate.arkeselApiKey && (
+                            <span className="text-[9px] text-green-500 font-black">SAVED</span>
+                        )}
+                    </label>
+                    <input
+                        type="password"
+                        placeholder="Arkesel API key"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono outline-none focus:ring-2 focus:ring-violet-500/20"
+                        value={privateSettings.arkeselApiKey || ''}
+                        onChange={e => setPrivateSettings(prev => ({ ...prev, arkeselApiKey: e.target.value }))}
+                        onBlur={e => savePrivateField('arkeselApiKey', e.target.value)}
+                    />
+                    <p className="text-[10px] text-gray-400 font-bold ml-1">
+                        Get from arkesel.com → API Settings. Enables SMS order confirmations and status updates.
+                    </p>
+                </div>
+
+                {/* Admin Phone for SMS alerts */}
+                <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-500 flex items-center gap-2">
+                        <Key size={12} /> Admin Phone (for SMS order alerts)
+                        {savingPrivate.adminPhone && <RefreshCw size={10} className="animate-spin text-blue-500" />}
+                        {savedPrivate.adminPhone && !savingPrivate.adminPhone && (
+                            <span className="text-[9px] text-green-500 font-black">SAVED</span>
+                        )}
+                    </label>
+                    <input
+                        type="tel"
+                        placeholder="+233540000000"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono outline-none focus:ring-2 focus:ring-violet-500/20"
+                        value={privateSettings.adminPhone || ''}
+                        onChange={e => setPrivateSettings(prev => ({ ...prev, adminPhone: e.target.value }))}
+                        onBlur={e => savePrivateField('adminPhone', e.target.value)}
+                    />
+                    <p className="text-[10px] text-gray-400 font-bold ml-1">
+                        Store owner phone to receive an SMS for every new order (E.164 format: +233...).
+                    </p>
+                </div>
             </div>
         </div>
     );

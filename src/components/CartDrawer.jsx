@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingBag, X, Minus, Plus, Smartphone, User, MapPin, Mail, ArrowLeft, ArrowRight, Package, Clock, CreditCard, Search } from 'lucide-react';
+import { ShoppingBag, X, Minus, Plus, Smartphone, User, MapPin, Mail, ArrowLeft, ArrowRight, Package, Clock, Search, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PaystackButton } from './UIComponents';
 import PhoneInput from './PhoneInput';
 import { generateOrderId } from '../data/constants';
 
+const LS_KEY = 'kh_customer';
+
+function loadCustomer() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; }
+}
+function saveCustomer(data) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ name: data.name, phone: data.phone, email: data.email })); } catch {}
+}
+
+// steps: 'cart' → 'you' → 'deliver'
 export default function CartDrawer({
     isOpen,
     onClose,
@@ -19,89 +28,107 @@ export default function CartDrawer({
     isProcessing,
     onForceClearProcessing
 }) {
-    const [step, setStep] = useState('cart'); // 'cart' | 'details'
-    const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', riderName: '', riderPhone: '', riderCompany: '', pickupLocationId: '' });
-    const [deliveryMethod, setDeliveryMethod] = useState('seller_rider'); // 'customer_rider' | 'seller_rider' | 'pickup'
+    const [step, setStep] = useState('cart');
+    const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', landmark: '', riderName: '', riderPhone: '', riderCompany: '', pickupLocationId: '' });
+    const [deliveryMethod, setDeliveryMethod] = useState('seller_rider');
     const [shippingRegion, setShippingRegion] = useState('Accra');
     const [regionSearch, setRegionSearch] = useState('');
     const [activeOrderId, setActiveOrderId] = useState(null);
     const [loadingStep, setLoadingStep] = useState(0);
-    
+
+    // Pre-fill from localStorage when drawer opens
+    useEffect(() => {
+        if (isOpen) {
+            const saved = loadCustomer();
+            if (saved.name || saved.phone || saved.email) {
+                setCustomerForm(prev => ({ ...prev, name: saved.name || '', phone: saved.phone || '', email: saved.email || '' }));
+            }
+        }
+    }, [isOpen]);
+
     useEffect(() => {
         if (isProcessing) {
-            const interval = setInterval(() => {
-                setLoadingStep(prev => (prev + 1) % 3);
-            }, 1500);
+            const interval = setInterval(() => setLoadingStep(prev => (prev + 1) % 3), 1500);
             return () => clearInterval(interval);
         }
     }, [isProcessing]);
+
     const shippingRegions = siteContent?.deliveryRegions || [
         { region: 'Accra', fee: 30 },
         { region: 'Other Ghana', fee: 70 },
         { region: 'International', fee: 250 }
     ];
-
-    // Sort A-Z for scannability, but keep "Outside Accra/Ghana" catch-all entries pinned at the bottom
-    // where customers expect them, instead of scattered wherever they happen to sort alphabetically.
     const sortedRegions = [...shippingRegions].sort((a, b) => {
-        const aOutside = /^outside/i.test(a.region);
-        const bOutside = /^outside/i.test(b.region);
-        if (aOutside !== bOutside) return aOutside ? 1 : -1;
+        const aO = /^outside/i.test(a.region), bO = /^outside/i.test(b.region);
+        if (aO !== bO) return aO ? 1 : -1;
         return a.region.localeCompare(b.region);
     });
     const visibleRegions = regionSearch.trim()
         ? sortedRegions.filter(r => r.region.toLowerCase().includes(regionSearch.trim().toLowerCase()))
         : sortedRegions;
 
-    // Find current shipping fee based on selected region name
     const selectedRegion = shippingRegions.find(r => r.region === shippingRegion) || shippingRegions[0];
     const shippingFee = deliveryMethod === 'seller_rider' ? (selectedRegion?.fee || 0) : 0;
     const finalTotal = cartTotal + shippingFee;
+    const cartCount = cart.reduce((a, b) => a + b.quantity, 0);
 
     const isValidEmail = /^\S+@\S+\.\S+$/.test(customerForm.email.trim());
-    const isFormValid = customerForm.name.trim() && customerForm.phone.trim() && isValidEmail &&
+    const isYouValid = customerForm.name.trim() && customerForm.phone.trim() && isValidEmail;
+    const isDeliverValid = isYouValid &&
         (deliveryMethod === 'pickup' ? customerForm.pickupLocationId : customerForm.address.trim()) &&
         (deliveryMethod !== 'customer_rider' || (customerForm.riderName.trim() && customerForm.riderPhone.trim()));
-    const cartCount = cart.reduce((a, b) => a + b.quantity, 0);
+
+    const primary = siteContent?.primaryColor || '#5b0143';
+    const secondary = siteContent?.secondaryColor || '#f97316';
+
+    const STEPS = ['cart', 'you', 'deliver'];
+    const stepIndex = STEPS.indexOf(step);
 
     const handleClose = () => {
         onClose();
         setTimeout(() => setStep('cart'), 400);
     };
 
+    const goToYou = () => {
+        if (!activeOrderId) setActiveOrderId(generateOrderId());
+        setStep('you');
+    };
+
+    const goToDeliver = () => {
+        saveCustomer(customerForm);
+        setStep('deliver');
+    };
+
     const handleWhatsApp = async () => {
-        if (isFormValid) {
-            const trackingId = `WA-${Date.now()}`;
-            try {
-                // AWAIT the parent's checkout logic. 
-                // The parent (App.jsx) will handle closing this drawer and showing the success modal.
-                await onWhatsAppCheckout({ ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal, orderId: activeOrderId || generateOrderId() });
-            } catch (err) {
-                console.error("WhatsApp Checkout Flow Error:", err);
-            }
+        if (!isDeliverValid) return;
+        saveCustomer(customerForm);
+        try {
+            await onWhatsAppCheckout({ ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal, orderId: activeOrderId || generateOrderId() });
+        } catch (err) {
+            console.error('WhatsApp Checkout Error:', err);
         }
     };
 
     const handlePaystack = async (ref) => {
+        saveCustomer(customerForm);
         try {
-            await onPaystackSuccess(ref, { 
-                ...customerForm, 
-                items: cart, 
-                deliveryMethod, 
-                shippingRegion, 
-                shippingFee, 
-                finalTotal,
-                orderId: activeOrderId // Explicitly pass the pre-generated ID
-            });
+            await onPaystackSuccess(ref, { ...customerForm, items: cart, deliveryMethod, shippingRegion, shippingFee, finalTotal, orderId: activeOrderId });
         } catch (err) {
-            console.error("Paystack Checkout Flow Error:", err);
+            console.error('Paystack Checkout Error:', err);
         }
     };
 
-    const handleSuccessClose = () => {
-        handleClose();
-        setStep('cart');
-    };
+    const StepDots = () => (
+        <div className="flex gap-1.5 mt-2">
+            {STEPS.map((s, i) => (
+                <div
+                    key={s}
+                    className={`h-1 rounded-full transition-all duration-300 ${i <= stepIndex ? 'flex-[2]' : 'flex-1 bg-gray-200'}`}
+                    style={{ backgroundColor: i <= stepIndex ? (i === 2 ? secondary : primary) : '' }}
+                />
+            ))}
+        </div>
+    );
 
     return (
         <AnimatePresence>
@@ -116,10 +143,8 @@ export default function CartDrawer({
                     {/* PROCESSING OVERLAY */}
                     <AnimatePresence>
                         {isProcessing && (
-                            <motion.div 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
+                            <motion.div
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                 className="fixed inset-0 bg-white/80 backdrop-blur-xl z-[400] flex flex-col items-center justify-center p-8 text-center"
                             >
                                 <div className="relative mb-8">
@@ -128,56 +153,43 @@ export default function CartDrawer({
                                         <ShoppingBag size={24} className="text-amber-500 animate-pulse" />
                                     </div>
                                 </div>
-                                 <h3 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">Processing Order</h3>
-                                
-                                <div className="h-6 overflow-hidden mb-10 text-center">
+                                <h3 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">Processing Order</h3>
+                                <div className="h-6 overflow-hidden mb-10">
                                     <AnimatePresence mode="wait">
-                                        <motion.p 
+                                        <motion.p
                                             key={loadingStep}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -10 }}
+                                            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
                                             transition={{ duration: 0.3 }}
                                             className="text-gray-500 font-extrabold uppercase text-[10px] tracking-[2px]"
                                         >
-                                            {loadingStep === 0 && "Connecting..."}
-                                            {loadingStep === 1 && "Checking items..."}
-                                            {loadingStep === 2 && "Preparing your order..."}
+                                            {loadingStep === 0 && 'Connecting...'}
+                                            {loadingStep === 1 && 'Checking items...'}
+                                            {loadingStep === 2 && 'Preparing your order...'}
                                         </motion.p>
                                     </AnimatePresence>
                                 </div>
-
-                                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest max-w-xs mb-8 italic">Preparing your order.</p>
-                                
                                 {siteContent?.contactPhone && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 3 }}
-                                        className="bg-amber-50 p-6 rounded-[32px] border border-amber-100 shadow-sm flex flex-col items-center max-w-xs space-y-4"
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 3 }}
+                                        className="bg-amber-50 p-6 rounded-[32px] border border-amber-100 shadow-sm flex flex-col items-center max-w-xs space-y-3"
                                     >
                                         <div className="flex items-center gap-2">
                                             <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
                                             <p className="text-[10px] font-black text-amber-900 uppercase tracking-widest">Taking a while?</p>
                                         </div>
-                                        <div className="w-full flex flex-col gap-2">
-                                            <a 
-                                               href={`https://wa.me/${siteContent?.contactPhone.replace(/[^0-9]/g, '')}?text=My order is taking a moment to process. Can you please check the status for me?`}
-                                               className="w-full px-6 py-4 bg-white text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-[2px] border border-amber-200 shadow-sm active:scale-95 transition-all text-center"
-                                            >
-                                                Chat on WhatsApp
-                                            </a>
-                                            
-                                            <motion.button
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                transition={{ delay: 4 }}
-                                                onClick={onForceClearProcessing}
-                                                className="w-full px-6 py-3 bg-amber-200 text-amber-900 rounded-2xl font-black text-[9px] uppercase tracking-[2px] active:scale-95 transition-all"
-                                            >
-                                                Show my Order
-                                            </motion.button>
-                                        </div>
+                                        <a
+                                            href={`https://wa.me/${siteContent.contactPhone.replace(/[^0-9]/g, '')}?text=My order is taking a moment to process. Can you please check the status?`}
+                                            className="w-full px-6 py-4 bg-white text-gray-900 rounded-2xl font-black text-[10px] uppercase tracking-[2px] border border-amber-200 shadow-sm text-center"
+                                        >
+                                            Chat on WhatsApp
+                                        </a>
+                                        <motion.button
+                                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 4 }}
+                                            onClick={onForceClearProcessing}
+                                            className="w-full px-6 py-3 bg-amber-200 text-amber-900 rounded-2xl font-black text-[9px] uppercase tracking-[2px] active:scale-95 transition-all"
+                                        >
+                                            Show my Order
+                                        </motion.button>
                                     </motion.div>
                                 )}
                             </motion.div>
@@ -191,35 +203,25 @@ export default function CartDrawer({
                     >
                         {/* HEADER */}
                         <div className="p-5 border-b flex items-center gap-4 bg-white">
-                            {step === 'details' && (
-                                <button onClick={() => setStep('cart')} className="p-2 hover:bg-gray-100 rounded-xl transition-all active:scale-90">
+                            {step !== 'cart' && (
+                                <button onClick={() => setStep(step === 'deliver' ? 'you' : 'cart')} className="p-2 hover:bg-gray-100 rounded-xl transition-all active:scale-90">
                                     <ArrowLeft size={20} />
                                 </button>
                             )}
                             <div className="flex-1">
-                                <h2 className="text-xl font-black flex items-center gap-2" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
-                                    {step === 'cart' && <><ShoppingBag size={20} /> Your Bag {cartCount > 0 && <span className="text-sm font-bold text-gray-400">({cartCount} items)</span>}</>}
-                                    {step === 'details' && '📦 Delivery Details'}
+                                <h2 className="text-xl font-black flex items-center gap-2" style={{ color: primary }}>
+                                    {step === 'cart' && <><ShoppingBag size={20} /> Your Bag {cartCount > 0 && <span className="text-sm font-bold text-gray-400">({cartCount})</span>}</>}
+                                    {step === 'you' && '👋 Your Info'}
+                                    {step === 'deliver' && '🚚 Delivery'}
                                 </h2>
-                                {step === 'cart' && cart.length > 0 && (
-                                    <div className="flex gap-2 mt-1">
-                                        <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }} />
-                                        <div className="flex-1 h-1 rounded-full bg-gray-200" />
-                                    </div>
-                                )}
-                                {step === 'details' && (
-                                    <div className="flex gap-2 mt-1">
-                                        <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }} />
-                                        <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: siteContent?.secondaryColor || '#f97316' }} />
-                                    </div>
-                                )}
+                                {cart.length > 0 && <StepDots />}
                             </div>
                             <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-xl transition-all active:scale-90">
                                 <X size={20} />
                             </button>
                         </div>
 
-                        {/* STEP 1: CART ITEMS */}
+                        {/* STEP 1: CART */}
                         {step === 'cart' && (
                             <>
                                 <div className="flex-grow overflow-y-auto">
@@ -228,11 +230,7 @@ export default function CartDrawer({
                                             <ShoppingBag size={64} className="text-gray-200 mb-4" />
                                             <h3 className="font-black text-xl text-gray-300 mb-2">Your bag is empty</h3>
                                             <p className="text-gray-400 text-sm">Browse the shop and add items you love.</p>
-                                            <button
-                                                onClick={handleClose}
-                                                className="mt-6 px-8 py-3 rounded-2xl font-bold text-white text-sm"
-                                                style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
-                                            >
+                                            <button onClick={handleClose} className="mt-6 px-8 py-3 rounded-2xl font-bold text-white text-sm" style={{ backgroundColor: primary }}>
                                                 Start Shopping
                                             </button>
                                         </div>
@@ -240,8 +238,7 @@ export default function CartDrawer({
                                         <div className="p-5 space-y-3">
                                             {cart.map(item => (
                                                 <motion.div
-                                                    key={item.id}
-                                                    layout
+                                                    key={item.id} layout
                                                     initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                                     exit={{ opacity: 0, scale: 0.95, x: -20 }}
@@ -249,13 +246,10 @@ export default function CartDrawer({
                                                     className="flex gap-4 items-center bg-white p-4 rounded-[24px] border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
                                                 >
                                                     <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-200">
-                                                        {item.image ? (
-                                                            <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                                                <Package size={20} />
-                                                            </div>
-                                                        )}
+                                                        {item.image
+                                                            ? <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
+                                                            : <div className="w-full h-full flex items-center justify-center text-gray-300"><Package size={20} /></div>
+                                                        }
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <h4 className="font-bold text-sm text-gray-900 truncate">{item.name}</h4>
@@ -268,13 +262,11 @@ export default function CartDrawer({
                                                             )}
                                                         </div>
                                                         <div className="flex items-baseline gap-2">
-                                                            <p className="font-black text-sm mt-0.5" style={{ color: siteContent?.secondaryColor }}>
+                                                            <p className="font-black text-sm mt-0.5" style={{ color: secondary }}>
                                                                 ₵{((siteContent?.flashSaleEnabled ? item.price : (item.originalPrice || item.price)) * item.quantity).toLocaleString()}
                                                             </p>
-                                                            {siteContent?.flashSaleEnabled && (item.originalPrice > item.price) && (
-                                                                <p className="text-xs text-gray-400 line-through">
-                                                                    ₵{(item.originalPrice * item.quantity).toLocaleString()}
-                                                                </p>
+                                                            {siteContent?.flashSaleEnabled && item.originalPrice > item.price && (
+                                                                <p className="text-xs text-gray-400 line-through">₵{(item.originalPrice * item.quantity).toLocaleString()}</p>
                                                             )}
                                                         </div>
                                                     </div>
@@ -297,291 +289,251 @@ export default function CartDrawer({
                                         </div>
                                     )}
                                 </div>
-
                                 {cart.length > 0 && (
-                                    <div className="p-5 border-t bg-white safe-bottom">
-                                        {/* Order summary */}
+                                    <div className="p-5 border-t bg-white">
                                         <div className="flex justify-between items-center mb-1">
                                             <span className="text-sm text-gray-500">Subtotal ({cartCount} items)</span>
                                             <span className="font-black text-lg">₵{cartTotal.toLocaleString()}</span>
                                         </div>
-                                        <p className="text-xs text-gray-400 mb-4">Delivery fee calculated at next step</p>
-                                        <motion.button 
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={() => {
-                                                setStep('details');
-                                                if (!activeOrderId) setActiveOrderId(generateOrderId());
-                                            }}
+                                        <p className="text-xs text-gray-400 mb-4">+ Delivery fee (next step)</p>
+                                        <motion.button
+                                            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                                            onClick={goToYou}
                                             className="w-full py-5 bg-gray-900 text-white rounded-[24px] font-black text-sm uppercase tracking-[2px] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3"
                                         >
-                                            Proceed to Checkout <ArrowRight size={18} />
+                                            Checkout <ArrowRight size={18} />
                                         </motion.button>
                                     </div>
                                 )}
                             </>
                         )}
 
-                        {/* STEP 2: CUSTOMER DETAILS */}
-                        {step === 'details' && (
+                        {/* STEP 2: YOUR INFO */}
+                        {step === 'you' && (
                             <>
                                 <div className="flex-grow overflow-y-auto p-5 space-y-4">
-                                    {/* Order summary mini */}
-                                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                        <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-3">Order Summary</p>
-                                        {cart.map(item => (
-                                            <div key={item.id} className="flex justify-between items-center text-sm mb-2">
-                                                <span className="text-gray-600 truncate flex-1 mr-2">{item.name} <span className="text-gray-400">×{item.quantity}</span></span>
-                                                <div className="flex items-baseline gap-2 flex-shrink-0">
-                                                    <span className="font-bold">₵{((siteContent?.flashSaleEnabled ? item.price : (item.originalPrice || item.price)) * item.quantity).toLocaleString()}</span>
-                                                    {siteContent?.flashSaleEnabled && (item.originalPrice > item.price) && (
-                                                        <span className="text-xs text-gray-400 line-through">₵{(item.originalPrice * item.quantity).toLocaleString()}</span>
-                                                    )}
-                                                </div>
+                                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-2">
+                                        <p className="text-xs text-gray-400 font-bold">
+                                            {cart.length} item{cart.length > 1 ? 's' : ''} · ₵{cartTotal.toLocaleString()} + delivery
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Who are we delivering to?</p>
+                                        <div className="space-y-3">
+                                            <div className="relative">
+                                                <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Full Name *"
+                                                    className="w-full pl-11 pr-4 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
+                                                    value={customerForm.name}
+                                                    onChange={e => setCustomerForm({ ...customerForm, name: e.target.value })}
+                                                />
                                             </div>
-                                        ))}
-                                        <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                                            <div className="flex justify-between items-center text-sm text-gray-500">
-                                                <span>Subtotal</span>
-                                                <span>₵{cartTotal.toLocaleString()}</span>
+                                            <PhoneInput
+                                                placeholder="Phone Number *"
+                                                value={customerForm.phone}
+                                                onChange={val => setCustomerForm({ ...customerForm, phone: val })}
+                                            />
+                                            <div className="relative">
+                                                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                                <input
+                                                    type="email"
+                                                    placeholder="Email * (order confirmation)"
+                                                    className="w-full pl-11 pr-4 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
+                                                    value={customerForm.email}
+                                                    onChange={e => setCustomerForm({ ...customerForm, email: e.target.value })}
+                                                />
                                             </div>
-                                            <div className="flex justify-between items-center text-sm text-gray-500">
-                                                <span>Shipping ({deliveryMethod === 'seller_rider' ? shippingRegion : (deliveryMethod === 'pickup' ? 'Pickup' : 'Own Rider')})</span>
-                                                <span className={shippingFee === 0 ? 'text-green-600 font-bold' : ''}>
-                                                    {shippingFee === 0 ? 'Free' : `₵${shippingFee.toLocaleString()}`}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between font-black text-lg pt-2">
-                                                <span>Total</span>
-                                                <span style={{ color: siteContent?.secondaryColor }}>₵{finalTotal.toLocaleString()}</span>
-                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mt-3 leading-relaxed">
+                                            We'll send your order confirmation and tracking link to your email. No spam, ever.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="p-5 border-t bg-white">
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                                        onClick={goToDeliver}
+                                        disabled={!isYouValid}
+                                        className="w-full py-5 rounded-[24px] font-black text-sm uppercase tracking-[2px] shadow-xl transition-all flex items-center justify-center gap-3 disabled:opacity-40 disabled:pointer-events-none text-white"
+                                        style={{ backgroundColor: primary }}
+                                    >
+                                        Set Delivery <ArrowRight size={18} />
+                                    </motion.button>
+                                </div>
+                            </>
+                        )}
+
+                        {/* STEP 3: DELIVERY + PAY */}
+                        {step === 'deliver' && (
+                            <>
+                                <div className="flex-grow overflow-y-auto p-5 space-y-5">
+                                    {/* How? */}
+                                    <div>
+                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">How do you want to receive your order?</p>
+                                        <div className="space-y-2">
+                                            {[
+                                                { id: 'seller_rider', title: 'Send me a rider', desc: 'We arrange a rider to deliver to your address.' },
+                                                { id: 'customer_rider', title: 'I\'ll send my own rider', desc: 'Provide rider info so we can release the order.' },
+                                                { id: 'pickup', title: 'Pickup from Store', desc: 'Collect directly from our workshop.' },
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.id}
+                                                    onClick={() => setDeliveryMethod(opt.id)}
+                                                    className={`w-full py-4 px-5 text-left rounded-2xl border transition-all ${deliveryMethod === opt.id ? 'bg-white shadow-md border-l-4' : 'bg-gray-50 border-transparent text-gray-400'}`}
+                                                    style={{ borderLeftColor: deliveryMethod === opt.id ? secondary : '' }}
+                                                >
+                                                    <p className="font-black text-sm text-gray-900">{opt.title}</p>
+                                                    <p className="text-[10px] text-gray-500">{opt.desc}</p>
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
 
-                                    {/* Form fields */}
-                                    <div className="space-y-6">
-                                        <div className="space-y-3">
-                                            <p className="text-xs font-black text-gray-400 uppercase tracking-wider">How do you want to receive your order?</p>
-                                            <div className="grid grid-cols-1 gap-2">
-                                                <button
-                                                    onClick={() => { setDeliveryMethod('seller_rider'); setFeeConfirmed(false); }}
-                                                    className={`py-4 px-5 text-left rounded-3xl border transition-all ${deliveryMethod === 'seller_rider' ? 'bg-white shadow-md border-gray-400 border-l-[6px]' : 'bg-gray-50 border-transparent text-gray-400'}`}
-                                                    style={{ borderLeftColor: deliveryMethod === 'seller_rider' ? siteContent?.secondaryColor : '' }}
-                                                >
-                                                    <p className="font-black text-sm text-gray-900">Order a ride for me</p>
-                                                    <p className="text-[10px] text-gray-500">We will arrange a rider to deliver to your address.</p>
-                                                </button>
-                                                <button
-                                                    onClick={() => { setDeliveryMethod('customer_rider'); setFeeConfirmed(true); }}
-                                                    className={`py-4 px-5 text-left rounded-3xl border transition-all ${deliveryMethod === 'customer_rider' ? 'bg-white shadow-md border-gray-400 border-l-[6px]' : 'bg-gray-50 border-transparent text-gray-400'}`}
-                                                    style={{ borderLeftColor: deliveryMethod === 'customer_rider' ? siteContent?.primaryColor : '' }}
-                                                >
-                                                    <p className="font-black text-sm text-gray-900">I will send my own rider</p>
-                                                    <p className="text-[10px] text-gray-500">Provide rider details so we can release the order.</p>
-                                                </button>
-                                                <button
-                                                    onClick={() => { setDeliveryMethod('pickup'); setFeeConfirmed(true); }}
-                                                    className={`py-4 px-5 text-left rounded-3xl border transition-all ${deliveryMethod === 'pickup' ? 'bg-white shadow-md border-gray-400 border-l-[6px]' : 'bg-gray-50 border-transparent text-gray-400'}`}
-                                                    style={{ borderLeftColor: deliveryMethod === 'pickup' ? '#22c55e' : '' }}
-                                                >
-                                                    <p className="font-black text-sm text-gray-900">Pickup from Store</p>
-                                                    <p className="text-[10px] text-gray-500">Collect your order directly from our workshop.</p>
-                                                </button>
+                                    {/* Region picker */}
+                                    {deliveryMethod === 'seller_rider' && (
+                                        <div>
+                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Delivery Region</p>
+                                            {shippingRegions.length > 8 && (
+                                                <div className="relative mb-2">
+                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                                                    <input
+                                                        type="text" value={regionSearch} onChange={e => setRegionSearch(e.target.value)}
+                                                        placeholder="Search your area..."
+                                                        className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold outline-none"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                                                {visibleRegions.map(r => (
+                                                    <button
+                                                        key={r.region}
+                                                        onClick={() => setShippingRegion(r.region)}
+                                                        className={`py-3 px-4 text-left rounded-2xl border transition-all ${shippingRegion === r.region ? 'bg-white shadow-md border-l-4' : 'bg-gray-50 border-transparent text-gray-400'}`}
+                                                        style={{ borderLeftColor: shippingRegion === r.region ? secondary : '' }}
+                                                    >
+                                                        <div className="text-[10px] font-black uppercase tracking-wider">{r.region}</div>
+                                                        <div className="text-xs font-black" style={{ color: shippingRegion === r.region ? primary : '' }}>₵{r.fee}</div>
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
+                                    )}
 
-                                        {deliveryMethod === 'seller_rider' && (
-                                            <div className="space-y-3 animate-fade-in">
-                                                <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Select Delivery Region</p>
-                                                {shippingRegions.length > 8 && (
-                                                    <div className="relative">
-                                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
-                                                        <input
-                                                            type="text"
-                                                            value={regionSearch}
-                                                            onChange={e => setRegionSearch(e.target.value)}
-                                                            placeholder="Search your area..."
-                                                            className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold outline-none focus:ring-1 focus:ring-amber-500/30"
-                                                        />
-                                                    </div>
-                                                )}
-                                                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-                                                    {visibleRegions.length > 0 ? visibleRegions.map(r => (
-                                                        <button
-                                                            key={r.region}
-                                                            onClick={() => setShippingRegion(r.region)}
-                                                            className={`py-3 px-4 text-left rounded-2xl border transition-all ${shippingRegion === r.region ? 'bg-white shadow-md border-gray-400' : 'bg-gray-50 border-transparent text-gray-400'}`}
-                                                            style={{ borderLeft: shippingRegion === r.region ? `4px solid ${siteContent?.secondaryColor}` : '' }}
-                                                        >
-                                                            <div className="text-[10px] font-black uppercase tracking-wider">{r.region}</div>
-                                                            <div className="text-xs font-black" style={{ color: shippingRegion === r.region ? siteContent?.primaryColor : '' }}>₵{r.fee}</div>
-                                                        </button>
-                                                    )) : (
-                                                        <p className="col-span-2 text-xs text-gray-400 font-bold py-4 text-center">No matching area. Try a different spelling.</p>
-                                                    )}
-                                                </div>
+                                    {/* Own rider details */}
+                                    {deliveryMethod === 'customer_rider' && (
+                                        <div className="space-y-3">
+                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Rider Details</p>
+                                            <input
+                                                type="text" placeholder="Rider Name *"
+                                                className="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
+                                                value={customerForm.riderName}
+                                                onChange={e => setCustomerForm({ ...customerForm, riderName: e.target.value })}
+                                            />
+                                            <PhoneInput
+                                                placeholder="Rider Phone *"
+                                                value={customerForm.riderPhone}
+                                                onChange={val => setCustomerForm({ ...customerForm, riderPhone: val })}
+                                            />
+                                            <input
+                                                type="text" placeholder="Dispatch Company (Optional)"
+                                                className="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
+                                                value={customerForm.riderCompany}
+                                                onChange={e => setCustomerForm({ ...customerForm, riderCompany: e.target.value })}
+                                            />
+                                        </div>
+                                    )}
 
-                                                {/* Price breakdown lives right where the region is picked, instead of behind
-                                                    a separate "verify the fee" screen — the total updates live as you pick. */}
-                                                <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                                    <div className="flex justify-between text-xs font-bold text-gray-500">
-                                                        <span>Subtotal</span>
-                                                        <span>₵{cartTotal.toLocaleString()}</span>
+                                    {/* Pickup location */}
+                                    {deliveryMethod === 'pickup' && (
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Select Pickup Point</p>
+                                            {(siteContent?.pickupLocations || [{ name: 'KenteHaul Workshop', address: 'Accra, Ghana', mapsLink: '' }]).map((loc, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => setCustomerForm({ ...customerForm, pickupLocationId: loc.name })}
+                                                    className={`w-full py-4 px-5 text-left rounded-2xl border transition-all ${customerForm.pickupLocationId === loc.name ? 'bg-white shadow-md border-l-4' : 'bg-gray-50 border-transparent text-gray-400'}`}
+                                                    style={{ borderLeftColor: customerForm.pickupLocationId === loc.name ? '#22c55e' : '' }}
+                                                >
+                                                    <div className="flex justify-between items-center">
+                                                        <p className="font-black text-sm text-gray-900">{loc.name}</p>
+                                                        {loc.mapsLink && (
+                                                            <a href={loc.mapsLink} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-2 bg-gray-100 rounded-full text-gray-400 hover:text-blue-500 transition-colors">
+                                                                <MapPin size={12} />
+                                                            </a>
+                                                        )}
                                                     </div>
-                                                    <div className="flex justify-between text-xs font-bold text-amber-600">
-                                                        <span>Delivery to {shippingRegion}</span>
-                                                        <span>+ ₵{shippingFee.toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="pt-2 border-t border-gray-200 flex justify-between font-black text-gray-900">
-                                                        <span>Total</span>
-                                                        <span className="text-lg">₵{finalTotal.toLocaleString()}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
+                                                    <p className="text-[10px] text-gray-500 mt-0.5">{loc.address}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
 
-                                        {deliveryMethod === 'customer_rider' && (
-                                            <div className="space-y-3 animate-fade-in">
-                                                <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Rider Details</p>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Rider Name *"
-                                                    className="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
-                                                    value={customerForm.riderName}
-                                                    onChange={e => setCustomerForm({ ...customerForm, riderName: e.target.value })}
-                                                />
-                                                <PhoneInput
-                                                    placeholder="Rider Phone *"
-                                                    value={customerForm.riderPhone}
-                                                    onChange={val => setCustomerForm({ ...customerForm, riderPhone: val })}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Dispatch Company (Optional)"
-                                                    className="w-full px-5 py-4 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
-                                                    value={customerForm.riderCompany}
-                                                    onChange={e => setCustomerForm({ ...customerForm, riderCompany: e.target.value })}
+                                    {/* Address */}
+                                    {deliveryMethod !== 'pickup' && (
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Delivery Address</p>
+                                            <div className="relative">
+                                                <MapPin size={16} className="absolute left-4 top-4 text-gray-400" />
+                                                <textarea
+                                                    placeholder="Area / Street Address * (e.g. Osu, Ring Road)"
+                                                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm h-20 resize-none"
+                                                    value={customerForm.address}
+                                                    onChange={e => setCustomerForm({ ...customerForm, address: e.target.value })}
                                                 />
                                             </div>
-                                        )}
-
-                                        {/* Delivery Summary Mini — seller_rider shows its own full breakdown
-                                            above, right where the region is picked, so it doesn't need this too. */}
-                                        {deliveryMethod !== 'seller_rider' && (
-                                            <div className="bg-gray-50 p-4 rounded-3xl border border-gray-100">
-                                                <div className="flex justify-between items-center text-sm mb-1">
-                                                    <span className="text-gray-500">Method</span>
-                                                    <span className="font-bold capitalize">{deliveryMethod.replace('_', ' ')}</span>
-                                                </div>
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-gray-500">Delivery Fee</span>
-                                                    <span className="text-green-600 font-black">₵{shippingFee}</span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <p className="text-xs font-black text-gray-400 uppercase tracking-wider pt-2">Your Details</p>
-
-                                        <div className="relative">
-                                            <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                                             <input
                                                 type="text"
-                                                placeholder="Full Name *"
-                                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
-                                                value={customerForm.name}
-                                                onChange={e => setCustomerForm({ ...customerForm, name: e.target.value })}
+                                                placeholder="Landmark (optional — e.g. Near Shell station)"
+                                                className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
+                                                value={customerForm.landmark}
+                                                onChange={e => setCustomerForm({ ...customerForm, landmark: e.target.value })}
                                             />
                                         </div>
-                                        <PhoneInput
-                                            placeholder="Phone Number * (for delivery)"
-                                            value={customerForm.phone}
-                                            onChange={val => setCustomerForm({ ...customerForm, phone: val })}
-                                        />
-                                        <div className="relative">
-                                            <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                            <input
-                                                required
-                                                type="email"
-                                                placeholder="Email * (for order confirmation)"
-                                                className="w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm"
-                                                value={customerForm.email}
-                                                onChange={e => setCustomerForm({ ...customerForm, email: e.target.value })}
-                                            />
-                                        </div>
-                                        {deliveryMethod === 'pickup' && (
-                                            <div className="space-y-3 animate-fade-in">
-                                                <p className="text-xs font-black text-gray-400 uppercase tracking-wider">Select Pickup Workshop</p>
-                                                <div className="grid grid-cols-1 gap-2">
-                                                    {(siteContent?.pickupLocations || [{ name: 'KenteHaul Workshop', address: 'Accra, Ghana', mapsLink: '' }]).map((loc, idx) => (
-                                                        <button
-                                                            key={idx}
-                                                            onClick={() => setCustomerForm({ ...customerForm, pickupLocationId: loc.name })}
-                                                            className={`py-4 px-5 text-left rounded-3xl border transition-all ${customerForm.pickupLocationId === loc.name ? 'bg-white shadow-md border-gray-400 border-l-[6px]' : 'bg-gray-50 border-transparent text-gray-400'}`}
-                                                            style={{ borderLeftColor: customerForm.pickupLocationId === loc.name ? '#22c55e' : '' }}
-                                                        >
-                                                            <div className="flex justify-between items-center">
-                                                                <p className="font-black text-sm text-gray-900">{loc.name}</p>
-                                                                {loc.mapsLink && (
-                                                                    <a href={loc.mapsLink} target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-100 rounded-full text-gray-400 hover:text-blue-500 transition-colors">
-                                                                        <MapPin size={12} />
-                                                                    </a>
-                                                                )}
-                                                            </div>
-                                                            <p className="text-[10px] text-gray-500 mt-1">{loc.address}</p>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
+                                    )}
 
-                                        <div className="relative">
-                                            <MapPin size={16} className="absolute left-4 top-4 text-gray-400" />
-                                            <textarea
-                                                placeholder={deliveryMethod === 'pickup' ? 'Selected Pickup Point' : 'Delivery Address * (e.g. Osu, Accra or full street address)'}
-                                                className={`w-full pl-11 pr-4 py-3.5 bg-gray-50 rounded-2xl border border-gray-200 focus:border-gray-400 outline-none transition font-medium text-sm h-24 resize-none ${deliveryMethod === 'pickup' ? 'opacity-60 grayscale cursor-not-allowed' : ''}`}
-                                                value={deliveryMethod === 'pickup' ? (customerForm.pickupLocationId ? `${customerForm.pickupLocationId}\n${siteContent?.pickupLocations?.find(l => l.name === customerForm.pickupLocationId)?.address || ''}` : 'Please select a location above') : customerForm.address}
-                                                onChange={e => deliveryMethod !== 'pickup' && setCustomerForm({ ...customerForm, address: e.target.value })}
-                                                readOnly={deliveryMethod === 'pickup'}
-                                            />
+                                    {/* Total */}
+                                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-2">
+                                        <div className="flex justify-between text-xs text-gray-500">
+                                            <span>Subtotal</span><span>₵{cartTotal.toLocaleString()}</span>
                                         </div>
-                                        {!isFormValid && (
-                                            <p className="text-xs text-amber-600 font-bold text-center">* Name, phone, a valid email, and address are required to proceed.</p>
-                                        )}
+                                        <div className="flex justify-between text-xs text-amber-600 font-bold">
+                                            <span>Delivery ({deliveryMethod === 'seller_rider' ? shippingRegion : deliveryMethod === 'pickup' ? 'Pickup' : 'Own Rider'})</span>
+                                            <span>{shippingFee === 0 ? 'Free' : `+ ₵${shippingFee.toLocaleString()}`}</span>
+                                        </div>
+                                        <div className="flex justify-between font-black text-base pt-2 border-t border-gray-200">
+                                            <span>Total</span>
+                                            <span style={{ color: secondary }}>₵{finalTotal.toLocaleString()}</span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="p-5 border-t bg-white safe-bottom space-y-3">
-                                    {/* Paystack */}
+                                <div className="p-5 border-t bg-white space-y-3">
                                     {siteContent?.paystackEnabled !== false && (
-                                        <div className={!isFormValid ? 'opacity-40 pointer-events-none' : ''}>
+                                        <div className={!isDeliverValid ? 'opacity-40 pointer-events-none' : ''}>
                                             <PaystackButton
                                                 amount={finalTotal}
-                                                email={customerForm.email || "guest@kentehaul.com"}
+                                                email={customerForm.email || 'guest@kentehaul.com'}
                                                 publicKey={siteContent?.paystackPublicKey}
                                                 onSuccess={handlePaystack}
-                                                onClose={() => { }}
-                                                primaryColor={siteContent?.primaryColor}
-                                                secondaryColor={siteContent?.secondaryColor}
+                                                onClose={() => {}}
+                                                primaryColor={primary}
+                                                secondaryColor={secondary}
                                                 metadata={{
-                                                    orderId: activeOrderId, 
-                                                    items: cart.map(item => ({ id: item.id, name: item.name, price: item.price, quantity: item.quantity, image: item.image || '' })),
-                                                    customer: {
-                                                        ...customerForm,
-                                                        deliveryMethod,
-                                                        shippingRegion,
-                                                        shippingFee,
-                                                        finalTotal
-                                                    },
+                                                    orderId: activeOrderId,
+                                                    items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image || '' })),
+                                                    customer: { ...customerForm, deliveryMethod, shippingRegion, shippingFee, finalTotal },
                                                     source: 'web_cart'
                                                 }}
                                             />
                                         </div>
                                     )}
-                                    {/* WhatsApp */}
                                     {siteContent?.whatsappEnabled !== false && (
                                         <button
                                             onClick={handleWhatsApp}
-                                            disabled={!isFormValid}
+                                            disabled={!isDeliverValid}
                                             className="shimmer-premium w-full bg-green-500 text-white py-5 rounded-[24px] font-black text-sm uppercase tracking-[2px] hover:bg-green-600 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-40 disabled:pointer-events-none shadow-[0_15px_30px_rgba(34,197,94,0.2)]"
                                         >
                                             <Smartphone size={20} className="animate-pulse" /> Confirm on WhatsApp
@@ -593,8 +545,6 @@ export default function CartDrawer({
                                 </div>
                             </>
                         )}
-
-                        {/* STEP 3: SUCCESS (REMOVED - HANDLED BY GLOBAL MODAL) */}
                     </motion.div>
                 </>
             )}

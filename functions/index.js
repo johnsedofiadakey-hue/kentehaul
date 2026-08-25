@@ -8,6 +8,41 @@ const db = admin.firestore();
 
 const SITE_URL = "https://kentehaul.com";
 const ADMIN_NOTIFICATION_EMAIL = "kentehaul@gmail.com";
+const ARKESEL_SENDER = "kentehaul";
+
+/**
+ * Send SMS via Arkesel v2 API.
+ * apiKey comes from settings/private.arkeselApiKey (never client-visible).
+ * recipients: array of E.164-ish phone strings.
+ */
+function arkeselSend(apiKey, recipients, message) {
+    return new Promise((resolve, reject) => {
+        const payload = JSON.stringify({
+            sender: ARKESEL_SENDER,
+            message,
+            recipients: recipients.map(r => r.replace(/[^0-9+]/g, "")),
+        });
+        const req = https.request({
+            hostname: "sms.arkesel.com",
+            path: "/api/v2/sms/send",
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "api-key": apiKey,
+            },
+        }, (res) => {
+            let raw = "";
+            res.on("data", chunk => raw += chunk);
+            res.on("end", () => {
+                try { resolve({ status: res.statusCode, body: JSON.parse(raw) }); }
+                catch { resolve({ status: res.statusCode, body: raw }); }
+            });
+        });
+        req.on("error", reject);
+        req.write(payload);
+        req.end();
+    });
+}
 
 /**
  * Builds the branded order-confirmation email (logo, order details, item
@@ -102,42 +137,81 @@ function buildAdminOrderNotificationEmail(orderId, orderData, siteContent) {
     const customer = orderData.customer || {};
     const items = orderData.items || [];
     const primary = siteContent?.primaryColor || "#5b0143";
+    const accent = siteContent?.secondaryColor || "#f97316";
+    const logo = siteContent?.logo || null;
+    const deliveryLabel = {
+        seller_rider: "🛵 KenteHaul arranges rider",
+        customer_rider: "🏍 Customer sends own rider",
+        pickup: "🏪 Pickup from store",
+    }[orderData.deliveryMethod || customer.deliveryMethod] || "Delivery";
 
     const itemsHtml = items.map((item) => `
-      <tr style="border-bottom: 1px solid #eee;">
-        <td style="padding: 10px 0; font-size: 13px;">
-          ${item.name || "Item"} × ${item.quantity || 1}
-          ${item.isPreorder ? `<br/><span style="color: #f97316; font-size: 11px;">Pre-order: ~${item.preorderDays || 14} days</span>` : ""}
+      <tr style="border-bottom: 1px solid #f0f0f0;">
+        <td style="padding: 14px 0; width: 72px; vertical-align: top;">
+          ${item.image
+            ? `<img src="${item.image}" alt="${item.name || "Product"}" width="60" height="60" style="width:60px;height:60px;object-fit:cover;border-radius:12px;display:block;border:1px solid #eee;" />`
+            : `<div style="width:60px;height:60px;border-radius:12px;background:${primary}15;display:flex;align-items:center;justify-content:center;font-size:22px;">🧵</div>`}
         </td>
-        <td style="padding: 10px 0; text-align: right; font-size: 13px; font-weight: bold;">₵${(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</td>
+        <td style="padding: 14px 12px; vertical-align: top;">
+          <div style="font-weight:900;color:#111;font-size:14px;margin-bottom:3px;">${item.name || "Item"}</div>
+          <div style="font-size:12px;color:#888;">Qty: ${item.quantity || 1} × ₵${Number(item.price || 0).toLocaleString()}</div>
+          ${item.isPreorder ? `<div style="margin-top:4px;font-size:11px;color:${accent};font-weight:900;background:${accent}15;display:inline-block;padding:2px 8px;border-radius:20px;">Pre-order ~${item.preorderDays || 14} days</div>` : ""}
+        </td>
+        <td style="padding: 14px 0; text-align: right; vertical-align: top; font-weight:900; font-size:14px; white-space:nowrap;">₵${(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString()}</td>
       </tr>
     `).join("");
 
     return `
-      <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.05);">
-          <div style="background-color: ${primary}; padding: 25px 30px; color: #ffffff;">
-            <h1 style="margin: 0; font-size: 18px; letter-spacing: 1px;">New Order Received</h1>
-            <p style="margin: 6px 0 0; opacity: 0.85; font-size: 13px;">Order #${orderId} · ${orderData.method || "Web"}</p>
-          </div>
-          <div style="padding: 30px;">
-            <h3 style="margin: 0 0 10px; font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px;">Customer</h3>
-            <p style="margin: 0; font-size: 14px; font-weight: bold;">${customer.name || "Unknown"}</p>
-            <p style="margin: 4px 0 0; font-size: 13px; color: #666;">${customer.phone || ""} ${customer.email ? `· ${customer.email}` : ""}</p>
-            <p style="margin: 4px 0 0; font-size: 13px; color: #666;">${customer.address || ""}</p>
-            <p style="margin: 10px 0 0; font-size: 12px; color: ${primary}; font-weight: bold;">Delivery: ${orderData.deliveryMethod || "seller_rider"} · ${orderData.shippingRegion || customer.shippingRegion || "Accra"}</p>
+      <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#f5f5f5;padding:40px 20px;color:#333;">
+        <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.08);">
 
-            <h3 style="margin: 25px 0 10px; font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px;">Items</h3>
-            <table style="width: 100%; border-collapse: collapse;">
+          <!-- Header -->
+          <div style="background:${primary};padding:28px 32px;color:#fff;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              ${logo ? `<img src="${logo}" alt="KenteHaul" style="height:40px;margin-bottom:10px;display:block;" />` : `<div style="font-size:20px;font-weight:900;letter-spacing:3px;margin-bottom:8px;">KENTEHAUL</div>`}
+              <div style="font-size:18px;font-weight:900;">🛍 New Order!</div>
+              <div style="opacity:0.8;font-size:12px;margin-top:4px;">Order #${orderId} · ${new Date().toLocaleDateString("en-GH", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })}</div>
+            </div>
+            <div style="background:${accent};border-radius:16px;padding:12px 18px;text-align:center;">
+              <div style="font-size:22px;font-weight:900;color:#fff;">₵${Number(orderData.total || 0).toLocaleString()}</div>
+              <div style="font-size:10px;color:#fff;opacity:0.9;text-transform:uppercase;letter-spacing:1px;">Total</div>
+            </div>
+          </div>
+
+          <div style="padding:32px;">
+
+            <!-- Customer block -->
+            <div style="background:#f9f9f9;border-radius:16px;padding:20px 24px;margin-bottom:24px;border-left:4px solid ${primary};">
+              <div style="font-size:10px;font-weight:900;color:#aaa;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;">Customer</div>
+              <div style="font-size:16px;font-weight:900;color:#111;">${customer.name || "Unknown"}</div>
+              ${customer.phone ? `<div style="margin-top:4px;"><a href="tel:${customer.phone}" style="font-size:13px;color:${primary};font-weight:bold;text-decoration:none;">📞 ${customer.phone}</a></div>` : ""}
+              ${customer.email ? `<div style="margin-top:2px;"><a href="mailto:${customer.email}" style="font-size:13px;color:#666;text-decoration:none;">✉ ${customer.email}</a></div>` : ""}
+              ${customer.address ? `<div style="margin-top:6px;font-size:13px;color:#555;">📍 ${customer.address}${customer.landmark ? ` (near ${customer.landmark})` : ""}</div>` : ""}
+              <div style="margin-top:8px;font-size:12px;color:${accent};font-weight:900;">${deliveryLabel} · ${orderData.shippingRegion || customer.shippingRegion || "Accra"}</div>
+              ${customer.riderName ? `<div style="margin-top:4px;font-size:12px;color:#888;">Rider: ${customer.riderName} ${customer.riderPhone ? `(${customer.riderPhone})` : ""}</div>` : ""}
+            </div>
+
+            <!-- Items -->
+            <div style="font-size:10px;font-weight:900;color:#aaa;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">Items Ordered</div>
+            <table style="width:100%;border-collapse:collapse;">
               ${itemsHtml}
               <tr>
-                <td style="padding: 12px 0 0; font-weight: 900; font-size: 16px;">Total</td>
-                <td style="padding: 12px 0 0; text-align: right; font-weight: 900; font-size: 16px; color: ${primary};">₵${Number(orderData.total || 0).toLocaleString()}</td>
+                <td colspan="2" style="padding:16px 0 4px;font-size:12px;color:#aaa;border-top:2px solid #f0f0f0;">Shipping (${orderData.shippingRegion || customer.shippingRegion || "Accra"})</td>
+                <td style="padding:16px 0 4px;text-align:right;font-size:12px;color:#aaa;border-top:2px solid #f0f0f0;">₵${Number(orderData.shippingFee || customer.shippingFee || 0).toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td colspan="2" style="padding:8px 0;font-size:18px;font-weight:900;color:#111;">Total Payable</td>
+                <td style="padding:8px 0;text-align:right;font-size:20px;font-weight:900;color:${accent};">₵${Number(orderData.total || 0).toLocaleString()}</td>
               </tr>
             </table>
 
-            <a href="${SITE_URL}/admin" style="display: inline-block; margin-top: 25px; background-color: ${primary}; color: #ffffff; padding: 14px 28px; border-radius: 12px; text-decoration: none; font-weight: 900; font-size: 12px; letter-spacing: 1px; text-transform: uppercase;">Open Admin Panel</a>
-            <p style="margin: 15px 0 0; font-size: 11px; color: #999;">Search "${orderId}" in Order Management to find it.</p>
+            <!-- CTA -->
+            <div style="text-align:center;margin-top:32px;">
+              <a href="${SITE_URL}/admin" style="display:inline-block;background:${primary};color:#fff;padding:16px 40px;border-radius:14px;text-decoration:none;font-weight:900;font-size:13px;letter-spacing:2px;text-transform:uppercase;box-shadow:0 10px 30px ${primary}40;">
+                Fulfil This Order →
+              </a>
+              <div style="margin-top:12px;font-size:11px;color:#bbb;">Open Orders → search <strong>#${orderId}</strong></div>
+            </div>
           </div>
         </div>
       </div>
@@ -159,10 +233,28 @@ exports.onOrderCreated = functions.firestore
 
         console.log(`New Order Found: ${orderId}`);
 
-        // Notify Customer (SMS/WhatsApp) — placeholder, not yet implemented.
-        if (customer && customer.phone) {
-            console.log(`Sending confirmation to customer: ${customer.phone}`);
-            // await sendSMS(customer.phone, `KenteHaul: Order #${orderId} received! Track here: kentehaul.com/track/${orderId}`);
+        // SMS via Arkesel — customer + admin
+        const privateSnap = await db.collection("settings").doc("private").get();
+        const privateData = privateSnap.exists ? privateSnap.data() : {};
+        const arkeselKey = privateData.arkeselApiKey || null;
+
+        if (arkeselKey) {
+            const adminPhone = privateData.adminPhone || null;
+            const customerMsg = `KenteHaul: Hi ${(customer && customer.name) ? customer.name.split(" ")[0] : "there"}! Your order #${orderId} (₵${Number(orderData.total || 0).toLocaleString()}) is confirmed. Track it here: ${SITE_URL}/track/${orderId}`;
+            const adminMsg = `NEW ORDER #${orderId} | ₵${Number(orderData.total || 0).toLocaleString()} | ${(customer && customer.name) || "Unknown"} | ${(customer && customer.phone) || ""} | ${SITE_URL}/admin`;
+            const smsTargets = [];
+            if (customer && customer.phone) smsTargets.push({ phone: customer.phone, msg: customerMsg });
+            if (adminPhone) smsTargets.push({ phone: adminPhone, msg: adminMsg });
+            for (const t of smsTargets) {
+                try {
+                    const r = await arkeselSend(arkeselKey, [t.phone], t.msg);
+                    console.log(`Arkesel SMS to ${t.phone}: status ${r.status}`);
+                } catch (err) {
+                    console.error(`Arkesel SMS error to ${t.phone}:`, err.message);
+                }
+            }
+        } else {
+            console.log("Arkesel key not configured — skipping SMS.");
         }
 
         // Both emails below go through the same "Trigger Email from Firestore"
@@ -225,18 +317,98 @@ exports.onOrderStatusChanged = functions.firestore
         if (after.status !== before.status) {
             console.log(`Order ${orderId} status changed to: ${after.status}`);
 
-            // Notify Customer of Status Change
-            if (after.customer && after.customer.phone) {
-                const message = `KenteHaul Update: Your order #${orderId} is now ${after.status}. Track: kentehaul.com/track/${orderId}`;
-                // await sendSMS(after.customer.phone, message);
-            }
+            const customer = after.customer || {};
+            const NOTIFY_STATUSES = ["Rider Assigned", "Out for Delivery", "Delivered", "Processing"];
 
-            // If Rider is assigned, notify the customer with rider details
-            if (after.status === 'Rider Assigned' && after.rider) {
-                const riderMsg = `KenteHaul: Rider ${after.rider.name} (${after.rider.phone}) has been assigned to your order #${orderId}.`;
-                // await sendWhatsApp(after.customer.phone, riderMsg);
-            }
-        }
+            if (NOTIFY_STATUSES.includes(after.status)) {
+                const [siteSnap, privSnap] = await Promise.all([
+                    db.collection("settings").doc("siteContent").get(),
+                    db.collection("settings").doc("private").get(),
+                ]);
+                const siteContent = siteSnap.exists ? siteSnap.data() : {};
+                const privData = privSnap.exists ? privSnap.data() : {};
+                const arkeselKey = privData.arkeselApiKey || null;
+
+                // SMS update to customer
+                if (arkeselKey && customer.phone) {
+                    let smsText = `KenteHaul: Order #${orderId} is now "${after.status}". Track: ${SITE_URL}/track/${orderId}`;
+                    if (after.status === "Rider Assigned") {
+                        const rider = after.rider || after.delivery || {};
+                        smsText = rider.name
+                            ? `KenteHaul: Rider ${rider.name}${rider.phone ? ` (${rider.phone})` : ""} is on the way for order #${orderId}. Track: ${SITE_URL}/track/${orderId}`
+                            : `KenteHaul: A rider has been assigned for order #${orderId}. Track: ${SITE_URL}/track/${orderId}`;
+                    } else if (after.status === "Delivered") {
+                        smsText = `KenteHaul: Order #${orderId} delivered! We hope you love your kente. Thank you! 🎉`;
+                    }
+                    try {
+                        await arkeselSend(arkeselKey, [customer.phone], smsText);
+                    } catch (err) {
+                        console.error(`Arkesel SMS error (status change) to ${customer.phone}:`, err.message);
+                    }
+                }
+
+                if (customer.email) {
+                const primary = siteContent.primaryColor || "#5b0143";
+                const accent = siteContent.secondaryColor || "#f97316";
+                const logo = siteContent.logo || null;
+                const trackingUrl = `${SITE_URL}/track/${orderId}`;
+
+                let statusNote = "";
+                let emoji = "📦";
+                if (after.status === "Rider Assigned") {
+                    emoji = "🛵";
+                    const rider = after.rider || after.delivery || {};
+                    statusNote = rider.name
+                        ? `<p style="font-size:14px;color:#333;margin:16px 0;">Your rider <strong>${rider.name}</strong> has been assigned and will be picking up your order soon.</p>${rider.phone ? `<p style="font-size:13px;color:#666;">Rider phone: <a href="tel:${rider.phone}" style="color:${primary};font-weight:bold;">${rider.phone}</a></p>` : ""}`
+                        : `<p style="font-size:14px;color:#333;margin:16px 0;">A rider has been assigned to your order and will deliver soon.</p>`;
+                } else if (after.status === "Out for Delivery") {
+                    emoji = "🚀";
+                    statusNote = `<p style="font-size:14px;color:#333;margin:16px 0;">Your order is now <strong>out for delivery</strong>. Expect it shortly!</p>`;
+                } else if (after.status === "Delivered") {
+                    emoji = "✅";
+                    statusNote = `<p style="font-size:14px;color:#333;margin:16px 0;">Your order has been <strong>delivered</strong>! We hope you love your kente pieces. Thank you for choosing KenteHaul.</p>`;
+                } else if (after.status === "Processing") {
+                    emoji = "🧵";
+                    statusNote = `<p style="font-size:14px;color:#333;margin:16px 0;">Our master weavers are now working on your order. We'll notify you once it's ready for delivery.</p>`;
+                }
+
+                const html = `
+                  <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background-color:#f9f9f9;padding:40px 20px;color:#333;">
+                    <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:30px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.05);">
+                      <div style="background-color:${primary};padding:40px 30px;text-align:center;color:#fff;">
+                        ${logo ? `<img src="${logo}" alt="KenteHaul" style="height:48px;margin-bottom:16px;" />` : `<h1 style="margin:0 0 4px;font-size:26px;letter-spacing:4px;font-weight:900;text-transform:uppercase;">KenteHaul</h1>`}
+                        <p style="margin:0;opacity:0.85;font-size:13px;font-weight:300;text-transform:uppercase;letter-spacing:2px;">${emoji} Order Update</p>
+                      </div>
+                      <div style="padding:40px 30px;">
+                        <h2 style="margin:0 0 8px;font-size:20px;color:${primary};font-weight:900;">Order #${orderId}</h2>
+                        <div style="display:inline-block;background:${accent}15;border:1px solid ${accent}30;border-radius:12px;padding:8px 18px;margin:12px 0;">
+                          <span style="font-size:13px;font-weight:900;color:${accent};">${after.status}</span>
+                        </div>
+                        <p style="font-size:14px;color:#333;margin:12px 0;">Hi ${customer.name || "there"},</p>
+                        ${statusNote}
+                        <div style="margin:30px 0;text-align:center;">
+                          <a href="${trackingUrl}" style="display:inline-block;background:${primary};color:#fff;padding:16px 35px;border-radius:15px;text-decoration:none;font-weight:900;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Track Your Order</a>
+                        </div>
+                      </div>
+                      <div style="background:#fafafa;padding:30px;text-align:center;border-top:1px solid #f0f0f0;">
+                        <p style="margin:0;font-size:10px;color:#bbb;letter-spacing:1px;font-weight:bold;text-transform:uppercase;">KenteHaul | Authentic Ghanaian Heritage</p>
+                      </div>
+                    </div>
+                  </div>
+                `;
+
+                await db.collection("mail").add({
+                    to: [customer.email],
+                    message: {
+                        subject: `${emoji} Order Update — ${after.status} | #${orderId}`,
+                        html,
+                    },
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                console.log(`Status update email sent to ${customer.email} for status: ${after.status}`);
+                } // end if customer.email
+            } // end if NOTIFY_STATUSES
+        } // end if status changed
 
         return null;
     });

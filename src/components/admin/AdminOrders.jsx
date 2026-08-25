@@ -21,6 +21,8 @@ export default function AdminOrders({
     const [assigningRiderOrder, setAssigningRiderOrder] = useState(null);
     const [riderForm, setRiderForm] = useState({ name: '', phone: '', vehicle: 'Motorbike', plate: '', company: '' });
 
+    const [expandedOrderId, setExpandedOrderId] = useState(null);
+
     // Kwik delivery booking state
     const [kwik, setKwik] = useState({ orderId: null, loading: false, quote: null, confirming: false, result: null, error: null });
 

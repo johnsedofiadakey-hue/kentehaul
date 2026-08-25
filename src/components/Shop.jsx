@@ -2,8 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useSearchParams } from 'react-router-dom';
 import { Search, ShoppingBag, Smartphone, Eye, ChevronDown, X, SlidersHorizontal, ArrowRight, Grid3X3, List, Filter, LayoutGrid, Heart, Share2 } from 'lucide-react';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
 import { SHOP_CATEGORIES } from '../data/constants';
 import { LazyImage } from './UIComponents';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,6 +9,7 @@ import SEO from './SEO';
 
 export default function Shop({
   products,
+  categories: categoriesProp,
   currentCategory,
   searchQuery,
   setSearchQuery,
@@ -21,23 +20,14 @@ export default function Shop({
   wishlist = [],
   toggleWishlist
 }) {
-  // Dynamic categories from Firestore
-  const [categories, setCategories] = useState(SHOP_CATEGORIES);
+  // Categories come from App.jsx's shared listener — no per-mount Firestore read needed
+  const categories = (categoriesProp && categoriesProp.length > 0) ? categoriesProp : SHOP_CATEGORIES;
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeCategory, setActiveCategory] = useState(searchParams.get('category') || currentCategory || null);
   const [activeSubcategory, setActiveSubcategory] = useState(searchParams.get('sub') || null);
   const [sortBy, setSortBy] = useState('default');
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'large'
-
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "categories"), (snap) => {
-      if (snap.exists() && snap.data().list?.length > 0) {
-        setCategories(snap.data().list);
-      }
-    });
-    return () => unsub();
-  }, []);
 
   // Sync with external category prop or URL params
   useEffect(() => {
@@ -482,6 +472,18 @@ export default function Shop({
 
             {/* PRODUCT GRID */}
             <div className={`flex-1 grid gap-3 sm:gap-8 ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+              {/* Skeleton loading — shown while products haven't loaded yet */}
+              {products.length === 0 && Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex flex-col animate-pulse">
+                  <div className="aspect-[4/5] rounded-[24px] md:rounded-[40px] bg-gray-100 shimmer" />
+                  <div className="pt-4 px-2 space-y-2">
+                    <div className="h-2.5 bg-gray-100 rounded-full w-1/3 shimmer" />
+                    <div className="h-4 bg-gray-100 rounded-full w-3/4 shimmer" />
+                    <div className="h-4 bg-gray-100 rounded-full w-1/2 shimmer" />
+                    <div className="h-10 bg-gray-100 rounded-2xl mt-4 shimmer" />
+                  </div>
+                </div>
+              ))}
               <AnimatePresence mode='popLayout'>
                 {filteredProducts.map((p, idx) => (
                   <motion.div
@@ -517,12 +519,24 @@ export default function Shop({
                         </div>
                       )}
 
-                      {/* Hover Overlay Info */}
-                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-700 translate-y-8 group-hover:translate-y-0">
-                        <div className="bg-white/95 backdrop-blur-md px-6 py-3 md:px-8 md:py-4 rounded-full shadow-2xl flex items-center gap-2 md:gap-3 transform active:scale-95 transition-transform">
-                          <Eye size={16} className="text-amber-500" />
-                          <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-gray-900">View Details</span>
-                        </div>
+                      {/* Hover Overlay — Quick Add + View Details */}
+                      <div className="absolute inset-0 z-20 flex flex-col items-end justify-end p-4 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0 gap-2">
+                        {p.stockQuantity > 0 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                            className="w-full bg-white/95 backdrop-blur-md py-3 px-5 rounded-2xl shadow-2xl flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-white"
+                          >
+                            <ShoppingBag size={14} className="text-amber-500" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">Quick Add</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setSelectedProduct(p)}
+                          className="w-full bg-black/60 backdrop-blur-md py-3 px-5 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all hover:bg-black/80"
+                        >
+                          <Eye size={14} className="text-white" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-white">View Details</span>
+                        </button>
                       </div>
 
                       {/* Status Badges (Horizontal Glassmorphism) */}

@@ -336,16 +336,58 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
           >
             <Link
               to="/shop"
-              className="group text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all transform hover:-translate-y-2 inline-flex items-center justify-center relative overflow-hidden active:scale-95"
+              className="group text-white px-6 py-4 sm:px-10 sm:py-5 rounded-2xl font-black text-xs uppercase tracking-[3px] sm:tracking-[4px] hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all transform hover:-translate-y-2 inline-flex items-center justify-center relative overflow-hidden active:scale-95"
               style={{ backgroundColor: siteContent?.secondaryColor || '#f97316' }}
             >
-              <span className="relative z-10 flex items-center gap-2">Our Shop <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
+              <span className="relative z-10 flex items-center gap-2">Shop Now <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
             </Link>
-            
-            <Link to="/heritage" className="bg-white/5 backdrop-blur-2xl text-white border border-white/20 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] hover:bg-white/10 transition-all transform hover:-translate-y-2 inline-flex items-center justify-center active:scale-95 shadow-xl">
+
+            <Link to="/heritage" className="hidden sm:inline-flex bg-white/5 backdrop-blur-2xl text-white border border-white/20 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] hover:bg-white/10 transition-all transform hover:-translate-y-2 items-center justify-center active:scale-95 shadow-xl">
               Our Legacy
             </Link>
           </motion.div>
+        </div>
+      </div>
+
+      {/* KENTE PATTERN DIVIDER */}
+      <div className="w-full overflow-hidden leading-none" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
+        <svg viewBox="0 0 1200 32" preserveAspectRatio="none" className="w-full h-8" fill="currentColor" aria-hidden="true">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <g key={i} transform={`translate(${i * 60}, 0)`}>
+              <rect x="0" y="0" width="20" height="16" opacity="0.15" />
+              <rect x="20" y="0" width="20" height="16" opacity="0.08" />
+              <rect x="10" y="16" width="20" height="16" opacity="0.12" />
+              <rect x="30" y="16" width="20" height="16" opacity="0.06" />
+              <rect x="5" y="8" width="10" height="10" opacity="0.25" />
+              <rect x="35" y="8" width="10" height="10" opacity="0.2" />
+            </g>
+          ))}
+        </svg>
+      </div>
+
+      {/* SOCIAL PROOF TICKER */}
+      <div className="bg-gray-950 py-4 overflow-hidden">
+        <div className="flex gap-0 animate-marquee whitespace-nowrap" style={{ animationDuration: '30s' }}>
+          {[
+            '⭐⭐⭐⭐⭐  "The quality is absolutely stunning" — Abena K.',
+            '🇬🇭  "Fast delivery, beautiful packaging" — Kwame A.',
+            '✨  "Wore it to my sister\'s wedding, got so many compliments!" — Ama F.',
+            '🎁  "Perfect gift, arrived before Christmas" — Nana O.',
+            '🧵  "Authentic weaving — you can feel the craftsmanship" — Kofi M.',
+            '⭐⭐⭐⭐⭐  "Will definitely order again" — Akosua D.',
+            '🚀  "Order came the same day in Accra!" — Yaw B.',
+            '💛  "Love the kente patterns, exactly as shown" — Efua T.',
+          ].concat([
+            '⭐⭐⭐⭐⭐  "The quality is absolutely stunning" — Abena K.',
+            '🇬🇭  "Fast delivery, beautiful packaging" — Kwame A.',
+            '✨  "Wore it to my sister\'s wedding, got so many compliments!" — Ama F.',
+            '🎁  "Perfect gift, arrived before Christmas" — Nana O.',
+          ]).map((review, i) => (
+            <span key={i} className="inline-flex items-center gap-4 text-white/60 text-xs font-bold uppercase tracking-[2px] px-8">
+              {review}
+              <span className="text-white/20 mx-2">|</span>
+            </span>
+          ))}
         </div>
       </div>
 
