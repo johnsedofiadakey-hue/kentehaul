@@ -354,9 +354,16 @@ export default function AdminProducts({
                     {products.map(p => (
                         <div key={p.id} className="border border-gray-100 rounded-3xl p-5 space-y-3">
                             <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <p className="font-black text-gray-800">{p.name}</p>
-                                    <p className="text-xs font-black text-gray-500">{categories.find(c => c.id === p.category)?.name || p.category || '—'}{p.subcategory ? ` · ${p.subcategory}` : ''}</p>
+                                <div className="flex items-center gap-3">
+                                    {p.image ? (
+                                        <img src={p.image} alt={p.name} className="w-14 h-14 rounded-2xl object-cover flex-shrink-0 border border-gray-100" />
+                                    ) : (
+                                        <div className="w-14 h-14 rounded-2xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-300 text-xs font-black">No img</div>
+                                    )}
+                                    <div>
+                                        <p className="font-black text-gray-800">{p.name}</p>
+                                        <p className="text-xs font-black text-gray-500">{categories.find(c => c.id === p.category)?.name || p.category || '—'}{p.subcategory ? ` · ${p.subcategory}` : ''}</p>
+                                    </div>
                                 </div>
                                 <p className="font-black text-gray-600 whitespace-nowrap">₵{p.price}</p>
                             </div>
@@ -385,7 +392,16 @@ export default function AdminProducts({
                         <tbody className="divide-y divide-gray-50">
                             {products.map(p => (
                                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="p-5 font-black text-gray-800">{p.name}</td>
+                                    <td className="p-5">
+                                        <div className="flex items-center gap-3">
+                                            {p.image ? (
+                                                <img src={p.image} alt={p.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-gray-100" />
+                                            ) : (
+                                                <div className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-300 text-[10px] font-black">No img</div>
+                                            )}
+                                            <span className="font-black text-gray-800">{p.name}</span>
+                                        </div>
+                                    </td>
                                     <td className="p-5">
                                         <div className="flex flex-col gap-0.5">
                                             <span className="text-xs font-black text-gray-700">{categories.find(c => c.id === p.category)?.name || p.category || '—'}</span>
