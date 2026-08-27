@@ -8,7 +8,7 @@
     
     <script>
       (function() {
-        var V = '2026.05.08.V2';
+        var V = '2026.08.27.LOADER.V4';
         if (localStorage.getItem('kh_deploy_v') !== V) {
           localStorage.clear();
           localStorage.setItem('kh_deploy_v', V);
@@ -30,19 +30,36 @@
     <style>
       /* Shell Styles to prevent "Ghost Theme" flicker */
       html, body {
-        background-color: #0f172a; /* Slate 900 - Dark Neutral */
+        background-color: #211b17;
         margin: 0;
         padding: 0;
       }
-      #root:empty {
-        background-color: #0f172a;
+      #root {
         width: 100vw;
-        height: 100vh;
+        min-height: 100vh;
+      }
+      .kh-shell-loader {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        background: #f4f0eb url("/kentehaul-loading-poster.jpg") center / contain no-repeat;
+        color: #211b17;
+      }
+      .kh-shell-loader video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="kh-shell-loader" aria-label="KenteHaul is loading">
+        <video src="/kentehaul-loading-video.mp4?v=20260827-visible-start" poster="/kentehaul-loading-poster.jpg" autoplay muted loop playsinline preload="auto"></video>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

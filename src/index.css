@@ -188,42 +188,30 @@
 }
 
 /* ============================================================
-   LOADING SCREEN — Video background + animated wordmark
+   LOADING SCREEN — Animated wordmark
    ============================================================ */
 
 .kh-loader-screen {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  overflow: hidden;
-  background: #211b17 url("/kentehaul-loading-poster.jpg") center / cover no-repeat;
+  background: #211b17;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
-.kh-loader-video {
+/* Subtle radial glow behind the wordmark */
+.kh-loader-screen::before {
+  content: "";
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0;
+  background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(184,138,43,0.12) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-/* Dark gradient so wordmark always reads over any video content */
-.kh-loader-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background:
-    linear-gradient(to bottom, rgba(33,27,23,0.55) 0%, rgba(33,27,23,0.25) 40%, rgba(33,27,23,0.72) 100%);
-}
-
-/* Centered wordmark block */
 .kh-loader-content {
-  position: relative;
-  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -231,81 +219,104 @@
   gap: 0;
 }
 
-/* "GHANAIAN HERITAGE HOUSE" eyebrow — tracks in first */
+/* Eyebrow */
 .kh-loader-eyebrow {
   font-family: Inter, system-ui, sans-serif;
-  font-size: clamp(9px, 2vw, 11px);
+  font-size: clamp(9px, 2vw, 10px);
   font-weight: 700;
-  letter-spacing: 0.38em;
+  letter-spacing: 0.4em;
   text-transform: uppercase;
   color: #d9b05d;
-  margin: 0 0 18px;
+  margin: 0 0 24px;
   opacity: 0;
-  transform: translateY(14px);
-  animation: khWordIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+  transform: translateY(12px);
+  animation: khLetterIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
 }
 
-/* Wordmark row */
+/* Wordmark — letters sit inline */
 .kh-loader-wordmark {
-  margin: 0;
-  line-height: 0.88;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: row;
+  align-items: baseline;
   gap: 0;
-  font-family: "Cormorant Garamond", "Iowan Old Style", Georgia, "Times New Roman", serif;
-}
-
-/* Each word slides up and fades in independently */
-.kh-loader-word {
-  display: block;
-  color: #fff8ed;
-  font-size: clamp(4.5rem, 18vw, 11rem);
+  font-family: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  font-size: clamp(3.5rem, 13vw, 9rem);
   font-weight: 600;
-  letter-spacing: 0.12em;
+  line-height: 1;
+  letter-spacing: 0.05em;
+}
+
+/* Individual letter */
+.kh-loader-letter {
+  display: inline-block;
   opacity: 0;
-  transform: translateY(32px);
+  transform: translateY(40px);
+  animation: khLetterIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* KENTE appears first */
-.kh-loader-word--kente {
-  animation: khWordIn 1s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards;
+.kh-loader-letter--cream { color: #fff8ed; }
+.kh-loader-letter--gold  { color: #d9b05d; }
+
+/* Kente-striped progress bar */
+.kh-loader-bar-track {
+  width: clamp(160px, 40vw, 320px);
+  height: 3px;
+  background: rgba(248, 241, 230, 0.1);
+  margin: 32px 0 0;
+  border-radius: 99px;
+  overflow: hidden;
+  opacity: 0;
+  animation: khLetterIn 0.6s ease 0.9s forwards;
 }
 
-/* HAUL follows 200ms later */
-.kh-loader-word--haul {
-  color: #d9b05d;
-  animation: khWordIn 1s cubic-bezier(0.22, 1, 0.36, 1) 0.72s forwards;
+.kh-loader-bar-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #b88a2b, #d9b05d, #a24f32, #2f5d50, #d9b05d);
+  background-size: 200% 100%;
+  animation: khBarFill 6s cubic-bezier(0.4, 0, 0.2, 1) 1s forwards,
+             khBarShimmer 1.8s linear 1s infinite;
 }
 
-/* Tagline beneath */
+/* Tagline */
 .kh-loader-tagline {
   font-family: Inter, system-ui, sans-serif;
-  font-size: clamp(9px, 2vw, 11px);
+  font-size: clamp(9px, 2vw, 10px);
   font-weight: 700;
-  letter-spacing: 0.32em;
+  letter-spacing: 0.36em;
   text-transform: uppercase;
-  color: rgba(248, 241, 230, 0.55);
-  margin: 28px 0 0;
+  color: rgba(248, 241, 230, 0.4);
+  margin: 20px 0 0;
   opacity: 0;
-  transform: translateY(10px);
-  animation: khWordIn 0.9s cubic-bezier(0.22, 1, 0.36, 1) 1.1s forwards;
+  transform: translateY(8px);
+  animation: khLetterIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) 1s forwards;
 }
 
-@keyframes khWordIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes khLetterIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes khBarFill {
+  to { width: 100%; }
+}
+
+@keyframes khBarShimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .kh-loader-eyebrow,
-  .kh-loader-word,
+  .kh-loader-letter,
+  .kh-loader-bar-track,
+  .kh-loader-bar-fill,
   .kh-loader-tagline {
     animation: none;
     opacity: 1;
     transform: none;
+    width: 100%;
   }
 }
 

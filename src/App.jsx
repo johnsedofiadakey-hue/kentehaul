@@ -1053,27 +1053,19 @@ export default function App() {
   if (shouldShowLoader) {
     return (
       <div className="kh-loader-screen" aria-label="KenteHaul is loading">
-        {/* Full-screen video background */}
-        <video
-          ref={loaderVideoRef}
-          className="kh-loader-video"
-          src={LOADER_VIDEO_SRC}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          poster="/kentehaul-loading-poster.jpg"
-        />
-        {/* Gradient overlay so text reads clearly */}
-        <div className="kh-loader-overlay" />
-        {/* Animated wordmark */}
         <div className="kh-loader-content">
           <p className="kh-loader-eyebrow">Ghanaian Heritage House</p>
-          <h1 className="kh-loader-wordmark">
-            <span className="kh-loader-word kh-loader-word--kente">KENTE</span>
-            <span className="kh-loader-word kh-loader-word--haul">HAUL</span>
-          </h1>
+          <div className="kh-loader-wordmark" aria-label="KenteHaul">
+            {'KENTE'.split('').map((letter, i) => (
+              <span key={`k${i}`} className="kh-loader-letter kh-loader-letter--cream" style={{ animationDelay: `${0.06 * i}s` }}>{letter}</span>
+            ))}
+            {'HAUL'.split('').map((letter, i) => (
+              <span key={`h${i}`} className="kh-loader-letter kh-loader-letter--gold" style={{ animationDelay: `${0.3 + 0.06 * i}s` }}>{letter}</span>
+            ))}
+          </div>
+          <div className="kh-loader-bar-track">
+            <span className="kh-loader-bar-fill" />
+          </div>
           <p className="kh-loader-tagline">Weaving your experience</p>
         </div>
       </div>
