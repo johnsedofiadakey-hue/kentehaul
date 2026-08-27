@@ -39,7 +39,7 @@ import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
 import StickyCartBar from './components/StickyCartBar';
 import ScrollToTop from './components/ScrollToTop';
-const Home = lazy(() => import('./components/PageViews').then(module => ({ default: module.Home })));
+const Home = lazy(() => import('./components/PremiumHome'));
 const Heritage = lazy(() => import('./components/PageViews').then(module => ({ default: module.Heritage })));
 const Institute = lazy(() => import('./components/PageViews').then(module => ({ default: module.Institute })));
 const Contact = lazy(() => import('./components/PageViews').then(module => ({ default: module.Contact })));
@@ -55,6 +55,10 @@ import TrackingPage from './components/TrackingPage';
 import LegalView from './components/LegalView';
 import SEO from './components/SEO';
 import ClientLoginModal from './components/ClientLoginModal';
+
+const DEPLOY_VERSION = '2026.08.27.LOADER.V4';
+const LOADER_MIN_DURATION_MS = 7200;
+const LOADER_VIDEO_SRC = '/kentehaul-loading-video.mp4?v=20260827-visible-start';
 
 // --- UTILITIES ---
 // Order-confirmation emails are sent server-side (see functions/index.js,
@@ -118,7 +122,7 @@ export default function App() {
   }, [isProcessing]);
   const [siteContent, setSiteContent] = useState(() => {
     try {
-      const deployV = '2026.04.21.V1';
+      const deployV = DEPLOY_VERSION;
       const cachedV = localStorage.getItem('kh_deploy_v');
       const cached = localStorage.getItem('kente_theme');
       
@@ -138,6 +142,10 @@ export default function App() {
       return INITIAL_CONTENT;
     }
   });
+  const [isInitialLoaderVisible, setIsInitialLoaderVisible] = useState(true);
+  const [isLoaderVideoPlaying, setIsLoaderVideoPlaying] = useState(false);
+  const shouldShowLoader = !siteContent || isInitialLoaderVisible;
+  const loaderVideoRef = useRef(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -189,6 +197,46 @@ export default function App() {
       fbq('init', pixelId); fbq('track', 'PageView');
     }
   }, [siteContent?.googleAnalyticsId, siteContent?.facebookPixelId]);
+
+  useEffect(() => {
+    const loaderTimer = setTimeout(() => setIsInitialLoaderVisible(false), LOADER_MIN_DURATION_MS);
+    return () => clearTimeout(loaderTimer);
+  }, []);
+
+  useEffect(() => {
+    if (!shouldShowLoader || !loaderVideoRef.current) return undefined;
+
+    const video = loaderVideoRef.current;
+    const playLoaderVideo = () => {
+      video.muted = true;
+      video.playsInline = true;
+      const attempt = video.play();
+      if (attempt?.catch) attempt.catch(() => {});
+    };
+    const markPlaying = () => setIsLoaderVideoPlaying(true);
+    const markWaiting = () => setIsLoaderVideoPlaying(false);
+
+    playLoaderVideo();
+    video.addEventListener('loadeddata', playLoaderVideo);
+    video.addEventListener('playing', markPlaying);
+    video.addEventListener('timeupdate', markPlaying);
+    video.addEventListener('pause', markWaiting);
+    video.addEventListener('stalled', markWaiting);
+    video.addEventListener('waiting', markWaiting);
+    document.addEventListener('visibilitychange', playLoaderVideo);
+    const retryTimer = window.setInterval(playLoaderVideo, 900);
+
+    return () => {
+      video.removeEventListener('loadeddata', playLoaderVideo);
+      video.removeEventListener('playing', markPlaying);
+      video.removeEventListener('timeupdate', markPlaying);
+      video.removeEventListener('pause', markWaiting);
+      video.removeEventListener('stalled', markWaiting);
+      video.removeEventListener('waiting', markWaiting);
+      document.removeEventListener('visibilitychange', playLoaderVideo);
+      window.clearInterval(retryTimer);
+    };
+  }, [shouldShowLoader]);
 
 
   // ==========================================
@@ -406,7 +454,7 @@ export default function App() {
         setSiteContent(themeData);
         // Cache theme in localStorage to prevent FOUC on next load
         localStorage.setItem('kente_theme', JSON.stringify(themeData));
-        localStorage.setItem('kh_deploy_v', '2026.04.21.V1'); // Fix: Save version to make cache valid!
+        localStorage.setItem('kh_deploy_v', DEPLOY_VERSION); // Keep cache version aligned with index.html.
       } else {
         // Use default constants if database is empty
         setSiteContent(INITIAL_CONTENT);
@@ -1002,23 +1050,32 @@ export default function App() {
 
   const isAdminPath = location.pathname.startsWith('/admin');
 
-  if (!siteContent) {
+  if (shouldShowLoader) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-white">
-        <div className="relative w-16 h-16 mb-6">
-          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-amber-500 border-r-amber-500 animate-kh-ring" />
-          <div
-            className="absolute inset-2 rounded-xl flex items-center justify-center text-white font-black text-xl animate-kh-pulse"
-            style={{ backgroundColor: '#5b0143' }}
-          >
-            K
-          </div>
+      <div className="kh-loader-screen" aria-label="KenteHaul is loading">
+        {/* Full-screen video background */}
+        <video
+          ref={loaderVideoRef}
+          className="kh-loader-video"
+          src={LOADER_VIDEO_SRC}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          poster="/kentehaul-loading-poster.jpg"
+        />
+        {/* Gradient overlay so text reads clearly */}
+        <div className="kh-loader-overlay" />
+        {/* Animated wordmark */}
+        <div className="kh-loader-content">
+          <p className="kh-loader-eyebrow">Ghanaian Heritage House</p>
+          <h1 className="kh-loader-wordmark">
+            <span className="kh-loader-word kh-loader-word--kente">KENTE</span>
+            <span className="kh-loader-word kh-loader-word--haul">HAUL</span>
+          </h1>
+          <p className="kh-loader-tagline">Weaving your experience</p>
         </div>
-        <p className="font-black text-lg tracking-tight animate-fade-in">
-          <span style={{ color: '#5b0143' }}>KENTE</span>
-          <span className="font-light italic" style={{ color: '#f97316' }}>HAUL</span>
-        </p>
-        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[3px] mt-3">Weaving your experience</p>
       </div>
     );
   }
@@ -1228,5 +1285,3 @@ export default function App() {
     </ErrorBoundary>
   );
 }
-
-
