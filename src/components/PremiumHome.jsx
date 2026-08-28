@@ -137,7 +137,7 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
   );
 
   const heroImage = siteContent?.heroImage || gallery[0]?.image || stockedProducts[0]?.image || '';
-  const storyImage = siteContent?.craftImage || gallery[0]?.image || heroImage || featuredProducts[0]?.image || '';
+  const storyImage = siteContent?.craftImage || 'https://images.pexels.com/photos/36773397/pexels-photo-36773397.jpeg?w=1200&q=85&auto=compress&cs=tinysrgb' || gallery[0]?.image || heroImage || featuredProducts[0]?.image || '';
   const galleryItems = gallery.length > 0
     ? gallery
     : featuredProducts.filter((product) => product.image).map((product) => ({
