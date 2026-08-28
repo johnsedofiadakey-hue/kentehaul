@@ -764,39 +764,334 @@ export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart
 };
 
 // --- HERITAGE PAGE COMPONENT ---
-export const Heritage = ({ siteContent }) => (
-  <div className="animate-fade-in bg-white min-h-screen">
-    <SEO 
-      title="Our Heritage & History"
-      description="Learn about the centuries-old tradition of Kente weaving and the master artisans behind KenteHaul."
-      ogTitle="The Legend of Kente | KenteHaul Heritage"
-      ogDescription="Explore the meanings of colors and patterns in Ghanaian Kente cloth."
-      canonicalPath="/heritage"
-    />
-    <div className="py-20 px-6 text-center text-white relative overflow-hidden" style={{ backgroundColor: siteContent?.secondaryColor || '#f97316' }}>
-      <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-      <h1 className="text-5xl font-serif font-bold relative z-10">{siteContent?.heritageTitle}</h1>
-    </div>
-    <div className="max-w-3xl mx-auto py-16 px-6">
-      <div className="prose prose-lg mx-auto text-gray-700 leading-loose first-letter:text-5xl first-letter:font-bold first-letter:mr-3 first-letter:float-left">
-        {siteContent?.heritageText ? (
-          <FormattedText text={siteContent?.heritageText} />
-        ) : (
-          <p className="text-gray-400 italic">Heritage story coming soon...</p>
-        )}
-      </div>
-      <div className="mt-12 flex justify-center">
-        <Link
-          to="/shop"
-          className="text-white px-8 py-4 rounded-full font-bold shadow-xl hover:opacity-90 transition inline-flex items-center justify-center"
-          style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
+const KENTE_COLORS = [
+  { color: '#d9b05d', name: 'Gold', meaning: 'Royalty, wealth, and high status. Worn by kings and elders to mark authority.' },
+  { color: '#243f2c', name: 'Green', meaning: 'Growth, renewal, and the vitality of the land. A symbol of harvest and new beginnings.' },
+  { color: '#a24f32', name: 'Red', meaning: 'Sacrifice, strength, and the blood of ancestors. A call to courage and remembrance.' },
+  { color: '#211b17', name: 'Black', meaning: 'Spiritual maturity, aging, and the wisdom carried through generations.' },
+];
+
+const WEAVING_STEPS = [
+  {
+    step: '01',
+    title: 'The Thread Begins',
+    caption: 'Raw cotton and silk threads are hand-dyed in village pots, each colour mixed to exact cultural codes passed down through family lines.',
+    defaultImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=80',
+  },
+  {
+    step: '02',
+    title: 'Building the Loom',
+    caption: 'The horizontal strip loom — unchanged for centuries — is strung with warp threads. A master weaver sets the tension by hand, reading the cloth before it exists.',
+    defaultImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1200&q=80',
+  },
+  {
+    step: '03',
+    title: 'Hands at the Shuttle',
+    caption: 'The weaver pulls the shuttle across in rhythmic beats. Every row is a decision — pattern, color, intention. No machine can replicate this pace.',
+    defaultImage: 'https://images.unsplash.com/photo-1572635148818-ef6fd45eb394?w=1200&q=80',
+  },
+  {
+    step: '04',
+    title: 'The Pattern Emerges',
+    caption: 'Strip by strip — each four inches wide — the pattern locks into place. The cloth tells its story only once all strips are joined.',
+    defaultImage: 'https://images.unsplash.com/photo-1523464862212-d6631d073194?w=1200&q=80',
+  },
+  {
+    step: '05',
+    title: 'The Finished Cloth',
+    caption: 'Sewn together into a full length, the kente cloth is ready. What you hold is not fabric — it is biography, ceremony, and identity woven as one.',
+    defaultImage: 'https://images.unsplash.com/photo-1589825743127-df25a4bdc01b?w=1200&q=80',
+  },
+];
+
+export const Heritage = ({ siteContent }) => {
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  // Auto-advance slideshow
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide(prev => (prev + 1) % WEAVING_STEPS.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
+
+  const heroImage = siteContent?.heritageHeroImage ||
+    'https://images.unsplash.com/photo-1580828343064-fde4fc206bc6?w=1600&q=85';
+
+  return (
+    <div className="bg-[#f8f1e6] min-h-screen">
+      <SEO
+        title="Our Heritage & History"
+        description="Learn about the centuries-old tradition of Kente weaving and the master artisans behind KenteHaul."
+        ogTitle="The Legend of Kente | KenteHaul Heritage"
+        ogDescription="Explore the meanings of colors and patterns in Ghanaian Kente cloth."
+        canonicalPath="/heritage"
+      />
+
+      {/* ── Hero ── */}
+      <div className="relative h-[75vh] min-h-[480px] overflow-hidden">
+        <motion.div
+          className="absolute inset-0"
+          initial={{ scale: 1.08 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          Own a Piece of History
-        </Link>
+          <img
+            src={heroImage}
+            alt="Kente Heritage"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#211b17]/60 via-[#211b17]/30 to-[#211b17]/70" />
+        </motion.div>
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 z-10">
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="text-[#d9b05d] font-black text-[10px] uppercase tracking-[0.5em] mb-6"
+          >
+            Ghanaian Heritage House
+          </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, y: 32 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            className="font-serif text-5xl md:text-7xl lg:text-8xl font-bold text-[#fff8ed] leading-[0.95] tracking-tight max-w-4xl"
+          >
+            {siteContent?.heritageTitle || 'The Legend of Kente'}
+          </motion.h1>
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 1.1, duration: 0.8 }}
+            className="mt-8 w-16 h-0.5 bg-[#d9b05d] origin-left"
+          />
+        </div>
       </div>
+
+      {/* ── Story / Heritage Text ── */}
+      <section className="py-24 px-6">
+        <div className="max-w-2xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#b88a2b] mb-8">Our Story</p>
+            <div className="font-serif text-lg md:text-xl text-[#211b17] leading-[1.85]
+              [&>div>p:first-child]:first-letter:text-6xl
+              [&>div>p:first-child]:first-letter:font-bold
+              [&>div>p:first-child]:first-letter:float-left
+              [&>div>p:first-child]:first-letter:mr-3
+              [&>div>p:first-child]:first-letter:leading-none
+              [&>div>p:first-child]:first-letter:text-[#b88a2b]">
+              {siteContent?.heritageText ? (
+                <FormattedText text={siteContent.heritageText} />
+              ) : (
+                <p className="text-[#5f554d] italic">Heritage story coming soon…</p>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── Kente Color Meanings ── */}
+      <section className="bg-[#211b17] py-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-14"
+          >
+            <p className="text-[#d9b05d] font-black text-[10px] uppercase tracking-[0.4em] mb-4">A Language in Color</p>
+            <h2 className="font-serif text-4xl md:text-5xl font-bold text-[#fff8ed] leading-tight">
+              Every Thread Carries Meaning
+            </h2>
+          </motion.div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {KENTE_COLORS.map((c, i) => (
+              <motion.div
+                key={c.name}
+                initial={{ opacity: 0, y: 32 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.7 }}
+                className="group bg-[#2a211c] rounded-2xl p-6 hover:bg-[#32261f] transition-colors duration-300"
+              >
+                <div
+                  className="w-10 h-10 rounded-full mb-5 group-hover:scale-110 transition-transform duration-300"
+                  style={{ backgroundColor: c.color }}
+                />
+                <p className="font-black text-[#fff8ed] uppercase tracking-widest text-xs mb-3">{c.name}</p>
+                <p className="text-[#5f554d] text-sm leading-relaxed">{c.meaning}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Weaving Process Slideshow ── */}
+      <section className="py-24 px-6 bg-[#fffaf1] overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-14"
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#a24f32] mb-4">How Kente Is Born</p>
+            <h2 className="font-serif text-4xl md:text-6xl font-bold text-[#211b17] leading-tight max-w-2xl">
+              From Village Loom to Your Hands
+            </h2>
+          </motion.div>
+
+          <div className="grid lg:grid-cols-[1fr_420px] gap-8 items-start">
+            {/* Main image */}
+            <div className="relative aspect-[16/10] rounded-2xl overflow-hidden bg-[#efe2cf]">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={activeSlide}
+                  src={siteContent?.[`weavingSlide${activeSlide + 1}`] || WEAVING_STEPS[activeSlide].defaultImage}
+                  alt={WEAVING_STEPS[activeSlide].title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  initial={{ opacity: 0, scale: 1.04 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                />
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#211b17]/60 to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeSlide}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <span className="font-black text-[#d9b05d] text-[10px] uppercase tracking-[0.4em]">
+                      Step {WEAVING_STEPS[activeSlide].step}
+                    </span>
+                    <h3 className="font-serif text-2xl font-bold text-[#fff8ed] mt-1">
+                      {WEAVING_STEPS[activeSlide].title}
+                    </h3>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+              {/* Slide dots */}
+              <div className="absolute top-5 right-5 flex gap-2">
+                {WEAVING_STEPS.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveSlide(i)}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${i === activeSlide ? 'bg-[#d9b05d] w-6' : 'bg-white/40'}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Step list */}
+            <div className="space-y-3">
+              {WEAVING_STEPS.map((step, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveSlide(i)}
+                  className={`w-full text-left p-5 rounded-xl border transition-all duration-300 ${
+                    i === activeSlide
+                      ? 'border-[#b88a2b] bg-[#fff8ed] shadow-md'
+                      : 'border-[#211b17]/10 bg-white hover:border-[#b88a2b]/40'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <span className={`font-serif text-2xl font-bold shrink-0 transition-colors duration-300 ${i === activeSlide ? 'text-[#b88a2b]' : 'text-[#211b17]/20'}`}>
+                      {step.step}
+                    </span>
+                    <div>
+                      <p className={`font-black text-sm mb-1 transition-colors duration-300 ${i === activeSlide ? 'text-[#211b17]' : 'text-[#5f554d]'}`}>
+                        {step.title}
+                      </p>
+                      {i === activeSlide && (
+                        <motion.p
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="text-xs text-[#5f554d] leading-relaxed"
+                        >
+                          {step.caption}
+                        </motion.p>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Prev/Next controls */}
+          <div className="flex items-center gap-4 mt-8">
+            <button
+              onClick={() => setActiveSlide(prev => (prev - 1 + WEAVING_STEPS.length) % WEAVING_STEPS.length)}
+              className="w-12 h-12 rounded-full border border-[#211b17]/20 flex items-center justify-center hover:bg-[#211b17] hover:text-white hover:border-[#211b17] transition-all duration-300"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={() => setActiveSlide(prev => (prev + 1) % WEAVING_STEPS.length)}
+              className="w-12 h-12 rounded-full border border-[#211b17]/20 flex items-center justify-center hover:bg-[#211b17] hover:text-white hover:border-[#211b17] transition-all duration-300"
+            >
+              <ChevronRight size={20} />
+            </button>
+            <span className="text-[11px] font-black text-[#5f554d] uppercase tracking-widest ml-2">
+              {activeSlide + 1} / {WEAVING_STEPS.length}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA Banner ── */}
+      <section className="relative py-28 px-6 overflow-hidden" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
+        <div className="absolute inset-0 opacity-[0.06]"
+          style={{ backgroundImage: 'repeating-linear-gradient(90deg, #fff8ed 0px, #fff8ed 4px, transparent 4px, transparent 18px), repeating-linear-gradient(0deg, #fff8ed 0px, #fff8ed 4px, transparent 4px, transparent 18px)' }}
+        />
+        <div className="relative z-10 max-w-3xl mx-auto text-center">
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-[#d9b05d] font-black text-[10px] uppercase tracking-[0.5em] mb-6"
+          >
+            Wear the Story
+          </motion.p>
+          <motion.h2
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="font-serif text-5xl md:text-6xl font-bold text-[#fff8ed] leading-tight mb-10"
+          >
+            Own a Piece of History
+          </motion.h2>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            <Link
+              to="/shop"
+              className="inline-flex items-center gap-3 bg-[#d9b05d] text-[#211b17] font-black text-sm uppercase tracking-[0.2em] px-10 py-5 rounded-full hover:bg-[#fff8ed] transition-colors duration-300"
+            >
+              Shop the Collection <ArrowRight size={18} />
+            </Link>
+          </motion.div>
+        </div>
+      </section>
     </div>
-  </div>
-);
+  );
+};
 
 // --- INSTITUTE PAGE COMPONENT ---
 export const Institute = ({ siteContent, products }) => (

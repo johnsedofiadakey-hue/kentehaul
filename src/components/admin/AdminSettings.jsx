@@ -426,7 +426,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                 <SectionHeader icon={Sliders} title="Visual Assets & Headlines" colorClass="text-blue-400" />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                    {['logo', 'heroImage'].map(field => (
+                    {['logo', 'heroImage', 'craftImage', 'heritageHeroImage'].map(field => (
                         <div key={field}>
                             <div className="flex items-center justify-between mb-3">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-[4px]">{field.replace(/([A-Z])/g, ' $1')}</label>
@@ -436,7 +436,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                                 image={siteContent[field]}
                                 onUpload={img => handleImageUpload(field, img)}
                                 label={`Upload ${field}`}
-                                height={field === 'logo' ? "h-32" : "h-56"}
+                                height={field === 'logo' ? "h-32" : "h-48"}
                                 primaryColor={siteContent?.primaryColor}
                             />
                         </div>
@@ -504,13 +504,78 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                             onChange={e => updateField('heritageTitle', e.target.value)} 
                             onBlur={e => saveField('heritageTitle', e.target.value, siteContent)} 
                         />
-                        <textarea 
-                            className="w-full p-6 bg-gray-50 rounded-[30px] h-48 font-medium text-sm leading-relaxed outline-none focus:ring-2 focus:ring-amber-100 resize-none" 
-                            placeholder="Complete brand narrative..." 
-                            value={siteContent?.heritageText || ''} 
-                            onChange={e => updateField('heritageText', e.target.value)} 
-                            onBlur={e => saveField('heritageText', e.target.value, siteContent)} 
+                        <textarea
+                            className="w-full p-6 bg-gray-50 rounded-[30px] h-48 font-medium text-sm leading-relaxed outline-none focus:ring-2 focus:ring-amber-100 resize-none"
+                            placeholder="Complete brand narrative..."
+                            value={siteContent?.heritageText || ''}
+                            onChange={e => updateField('heritageText', e.target.value)}
+                            onBlur={e => saveField('heritageText', e.target.value, siteContent)}
                         />
+                    </div>
+
+                    {/* Heritage Page Images */}
+                    <div className="pt-10 border-t border-gray-100 space-y-8">
+                        <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest block">Heritage Page Images</label>
+
+                        {/* Hero Image */}
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Heritage Hero Image</label>
+                                <SaveIndicator field="heritageHeroImage" saving={saving} saved={saved} />
+                            </div>
+                            <ImageUpload
+                                image={siteContent?.heritageHeroImage}
+                                onUpload={img => handleImageUpload('heritageHeroImage', img)}
+                                label="Upload Heritage Hero"
+                                height="h-48"
+                                primaryColor={siteContent?.primaryColor}
+                            />
+                        </div>
+
+                        {/* Craft Section Image (Home page) */}
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Craftsmanship Section Image</label>
+                                <SaveIndicator field="craftImage" saving={saving} saved={saved} />
+                            </div>
+                            <p className="text-[10px] text-gray-400 mb-3">The photo shown in the Craftsmanship section on the homepage. Use a Kente weaver / loom photo.</p>
+                            <ImageUpload
+                                image={siteContent?.craftImage}
+                                onUpload={img => handleImageUpload('craftImage', img)}
+                                label="Upload Craft Photo"
+                                height="h-56"
+                                primaryColor={siteContent?.primaryColor}
+                            />
+                        </div>
+
+                        {/* Weaving Slideshow Images */}
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-3">Kente Weaving Process Slides (Heritage Page)</label>
+                            <p className="text-[10px] text-gray-400 mb-6">5 photos telling the story of how Kente is made — from thread to finished cloth. Each is optional; defaults are used if empty.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {[
+                                    { field: 'weavingSlide1', label: 'Step 1 — The Thread Begins' },
+                                    { field: 'weavingSlide2', label: 'Step 2 — Building the Loom' },
+                                    { field: 'weavingSlide3', label: 'Step 3 — Hands at the Shuttle' },
+                                    { field: 'weavingSlide4', label: 'Step 4 — The Pattern Emerges' },
+                                    { field: 'weavingSlide5', label: 'Step 5 — The Finished Cloth' },
+                                ].map(({ field, label }) => (
+                                    <div key={field}>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</label>
+                                            <SaveIndicator field={field} saving={saving} saved={saved} />
+                                        </div>
+                                        <ImageUpload
+                                            image={siteContent?.[field]}
+                                            onUpload={img => handleImageUpload(field, img)}
+                                            label={`Upload ${label}`}
+                                            height="h-36"
+                                            primaryColor={siteContent?.primaryColor}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Partnership Section */}
