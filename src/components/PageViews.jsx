@@ -776,31 +776,31 @@ const WEAVING_STEPS = [
     step: '01',
     title: 'The Thread Begins',
     caption: 'Raw cotton and silk threads are hand-dyed in village pots, each colour mixed to exact cultural codes passed down through family lines.',
-    defaultImage: 'https://images.pexels.com/photos/24738158/pexels-photo-24738158.jpeg?w=1280&q=85&auto=compress&cs=tinysrgb',
+    defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step1.jpg',
   },
   {
     step: '02',
     title: 'Building the Loom',
     caption: 'The horizontal strip loom — unchanged for centuries — is strung with warp threads. A master weaver sets the tension by hand, reading the cloth before it exists.',
-    defaultImage: 'https://images.pexels.com/photos/17649771/pexels-photo-17649771.jpeg?w=1280&q=85&auto=compress&cs=tinysrgb',
+    defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step2.jpg',
   },
   {
     step: '03',
     title: 'Hands at the Shuttle',
     caption: 'The weaver pulls the shuttle across in rhythmic beats. Every row is a decision — pattern, color, intention. No machine can replicate this pace.',
-    defaultImage: 'https://images.pexels.com/photos/30988134/pexels-photo-30988134.jpeg?w=1280&q=85&auto=compress&cs=tinysrgb',
+    defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step3.jpg',
   },
   {
     step: '04',
     title: 'The Pattern Emerges',
     caption: 'Strip by strip — each four inches wide — the pattern locks into place. The cloth tells its story only once all strips are joined.',
-    defaultImage: 'https://images.pexels.com/photos/33697673/pexels-photo-33697673.jpeg?w=1280&q=85&auto=compress&cs=tinysrgb',
+    defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step4.jpg',
   },
   {
     step: '05',
     title: 'The Finished Cloth',
     caption: 'Sewn together into a full length, the kente cloth is ready. What you hold is not fabric — it is biography, ceremony, and identity woven as one.',
-    defaultImage: 'https://images.pexels.com/photos/13998586/pexels-photo-13998586.jpeg?w=1280&q=85&auto=compress&cs=tinysrgb',
+    defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step5.jpg',
   },
 ];
 
@@ -816,7 +816,7 @@ export const Heritage = ({ siteContent }) => {
   }, []);
 
   const heroImage = siteContent?.heritageHeroImage ||
-    'https://images.pexels.com/photos/30929474/pexels-photo-30929474.jpeg?w=1600&q=85&auto=compress&cs=tinysrgb';
+    'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/heritage_hero.jpg';
 
   return (
     <div className="bg-[#f8f1e6] min-h-screen">
