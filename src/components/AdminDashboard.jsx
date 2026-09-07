@@ -20,7 +20,8 @@ import AdminPartnerships from './admin/AdminPartnerships';
 import AdminWishlists from './admin/AdminWishlists';
 import AdminAnalytics from './admin/AdminAnalytics';
 import AdminProduction from './admin/AdminProduction';
-import { Heart, BarChart3, Wrench } from 'lucide-react';
+import AdminInventory from './admin/AdminInventory';
+import { Heart, BarChart3, Wrench, Boxes } from 'lucide-react';
 
 // Shared Global Components
 import InvoiceModal from './InvoiceModal'; // For viewing invoices
@@ -30,6 +31,7 @@ const sideMenu = [
   { id: 'orders', icon: Package, label: 'Order Management' },
   { id: 'customers', icon: Users, label: 'Customers' },
   { id: 'products', icon: Edit, label: 'Our Products' },
+  { id: 'inventory', icon: Boxes, label: 'Inventory' },
   { id: 'gallery', icon: Camera, label: 'Brand Gallery' },
   { id: 'testimonials', icon: MessageCircle, label: 'Client Stories' },
   { id: 'logistics', icon: Truck, label: 'Delivery & Logistics' },
@@ -224,6 +226,10 @@ export default function AdminDashboard({
             />
           )}
 
+          {adminTab === 'inventory' && (
+            <AdminInventory key="admin-inventory" products={products} />
+          )}
+
           {adminTab === 'gallery' && (
             <AdminGallery key="admin-gallery" gallery={gallery} siteContent={siteContent} />
           )}
@@ -254,6 +260,7 @@ export default function AdminDashboard({
               key="admin-settings"
               siteContent={siteContent}
               setSiteContent={setSiteContent}
+              customers={customers}
             />
           )}
 

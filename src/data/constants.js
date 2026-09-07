@@ -43,6 +43,21 @@ export const INITIAL_CONTENT = {
   // Brand Assets
   logo: null,
 
+  // Loading Screen (shown before the app mounts)
+  loaderEyebrow: "Ghanaian Heritage House",
+  loaderTagline: "Weaving your story",
+
+  // Homepage section copy (eyebrow + headline + body trios) — these were hardcoded
+  // strings in PremiumHome.jsx before Sep 2026, editable only by a developer.
+  homeCollectionsEyebrow: "Shop by collection",
+  homeCollectionsHeadline: "Heritage categories, edited like a wardrobe.",
+  homeCollectionsBody: "Browse by purpose, from full ceremonial cloth to sashes and corporate pieces. The cards are intentionally image-led so the existing product photography remains the storefront anchor.",
+  homeSaleEyebrow: "Limited offering",
+  homeSaleHeadline: "Current sale pieces, still presented with restraint.",
+  homeCraftEyebrow: "Craftsmanship",
+  homeCraftHeadline: "A quieter page, built around the weight of the cloth.",
+  homeGalleryHeadline: "Large moments for texture, drape, and ceremony.",
+
   // Home Page Data
   heroTitle: "Weave Your Story",
   heroSubtitle: "Authentic Ghanaian Kente and Smocks. Bold colors, royal patterns, and modern style delivered to your doorstep.",
@@ -76,7 +91,10 @@ export const INITIAL_CONTENT = {
   ],
 
   // Payment Config
-  paystackPublicKey: "pk_live_adc0c246926e6638234258b6c5393c1b9f48dd1f",
+  // Intentionally empty. The real key lives in Firestore `settings/siteContent`.
+  // Hardcoding the live key here made local and staging builds transact against
+  // production whenever the settings fetch failed and this fallback kicked in.
+  paystackPublicKey: "",
   paystackEnabled: true,
   whatsappEnabled: true,
   vapidKey: "BN2rEFZO8KuagTFO09EPUklifvzEK6NGO31ujUAvWJq_t8lDu82Lsv6f8s0mKM3YsxOnd_oLoVQxEpXaTbt3n6A",
@@ -157,7 +175,11 @@ export const hashPassword = async (password) => {
 // ORDER ID GENERATION - Production-grade readable format
 // ============================================================
 export const generateOrderId = () => {
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  return `KH${rand}`;
-  // Example: KH4821
+  // `KH` + 4 digits gave only 9,000 possible IDs, so collisions were a matter of
+  // time on a live store — and a collision means two customers share a tracking URL.
+  // Base-36 timestamp (monotonic, so IDs sort chronologically) + random suffix.
+  const stamp = Date.now().toString(36).toUpperCase().slice(-5);
+  const rand = Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, '0');
+  return `KH${stamp}${rand}`;
+  // Example: KHXK2FA3
 };

@@ -3,9 +3,10 @@ import {
     FileText, Palette, Sliders, CheckCircle, RefreshCw, Eye, Save, Plus,
     Trash2, Truck, Shield, Clock, Activity, Globe, Mail, Smartphone, Zap, Key, MapPin
 } from 'lucide-react';
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, getDocs, query, limit as fbLimit } from "firebase/firestore";
 import { db } from '../../firebase';
 import { ImageUpload } from '../UIComponents';
+import useSaleWindow, { formatTimeLeft, localInputToUtcIso, utcIsoToLocalInput, localZoneLabel } from '../../hooks/useSaleWindow';
 
 // ==========================================
 // --- STABLE INTERNAL COMPONENTS (OUTSIDE) ---
@@ -64,13 +65,96 @@ const TemplateGuide = ({ placeholders }) => (
     </div>
 );
 
+// WhatsApp has no bulk-send API here (that needs Meta Business approval), so this
+// is a deliberate, one-at-a-time tool rather than an automatic blast: it builds the
+// message once, then opens a pre-filled wa.me chat per customer for the admin to
+// review and hit send on. Kept separate from the automatic email above because it
+// reaches past customers who ordered before — not people who explicitly opted in.
+const WhatsAppBroadcastPanel = ({ siteContent, customers }) => {
+    const defaultMsg = `${siteContent?.flashSaleTitle || "Our sale"} is now live on KenteHaul!${siteContent?.flashSaleTeaser ? ` ${siteContent.flashSaleTeaser}.` : ''} Shop now: https://kentehaul.com/shop?category=sales`;
+    const [message, setMessage] = useState(defaultMsg);
+    const [copied, setCopied] = useState(false);
+
+    // Re-sync the draft when the sale copy changes, but only until the admin starts
+    // typing their own edit — otherwise every keystroke on Sale Title would stomp it.
+    const [touched, setTouched] = useState(false);
+    useEffect(() => { if (!touched) setMessage(defaultMsg); }, [defaultMsg, touched]);
+
+    const contactable = (customers || []).filter(c => c.phone);
+
+    const copyMessage = async () => {
+        try {
+            await navigator.clipboard.writeText(message);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch { /* clipboard unavailable — the textarea itself is still selectable */ }
+    };
+
+    return (
+        <div className="p-6 rounded-[32px] border border-gray-100 bg-white">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <Smartphone size={12} /> WhatsApp — Reaches Past Customers
+            </p>
+            <textarea
+                className="w-full p-3 bg-gray-50 rounded-2xl text-xs font-medium leading-relaxed outline-none focus:ring-2 focus:ring-green-100 resize-none mt-2"
+                rows={3}
+                value={message}
+                onChange={e => { setMessage(e.target.value); setTouched(true); }}
+            />
+            <div className="flex items-center justify-between mt-2">
+                <button
+                    type="button"
+                    onClick={copyMessage}
+                    className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-800"
+                >
+                    {copied ? 'Copied!' : 'Copy Message'}
+                </button>
+                <span className="text-[10px] text-gray-400 font-bold">{contactable.length} customer{contactable.length === 1 ? '' : 's'} with a phone number</span>
+            </div>
+            {contactable.length > 0 && (
+                <div className="mt-3 max-h-40 overflow-y-auto flex flex-col gap-1 border-t border-gray-100 pt-3">
+                    {contactable.slice(0, 100).map(c => (
+                        <a
+                            key={c.id || c.phone}
+                            href={`https://wa.me/${String(c.phone).replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-green-50 text-xs font-bold text-gray-600 hover:text-green-700"
+                        >
+                            <span>{c.name || c.phone}</span>
+                            <span className="text-green-600">Send →</span>
+                        </a>
+                    ))}
+                    {contactable.length > 100 && (
+                        <p className="text-[10px] text-gray-400 px-3 pt-1">+{contactable.length - 100} more in Customers tab.</p>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ==========================================
 // --- MAIN ADMIN SETTINGS COMPONENT ---
 // ==========================================
 
-export default function AdminSettings({ siteContent, setSiteContent, onlyLogistics = false }) {
+export default function AdminSettings({ siteContent, setSiteContent, onlyLogistics = false, customers = [] }) {
     const [saving, setSaving] = useState({});
     const [saved, setSaved] = useState({});
+
+    // Live preview of what customers currently see for the sale banner —
+    // ticks off the same clock the storefront uses, so there's no guessing
+    // whether a saved schedule actually landed in the "upcoming" window.
+    const salePreview = useSaleWindow(siteContent);
+
+    // Email subscribers ("Notify me") who opted in on the homepage banner —
+    // fetched once on mount so the count doesn't require a live listener.
+    const [subscriberCount, setSubscriberCount] = useState(null);
+    useEffect(() => {
+        getDocs(query(collection(db, 'sale_subscribers'), fbLimit(500)))
+            .then(snap => setSubscriberCount(snap.size))
+            .catch(() => setSubscriberCount(null));
+    }, []);
 
     // Private settings (API keys) — loaded separately, never exposed to client bundle
     const [privateSettings, setPrivateSettings] = useState({});
@@ -316,11 +400,11 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
 
             {/* ⚡ FLASH SALES */}
             <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100 mt-8">
-                <SectionHeader 
-                    icon={Sliders} 
-                    title="Flash Sale Settings" 
-                    colorClass="text-amber-400" 
-                    subtitle="Customize your sale banner" 
+                <SectionHeader
+                    icon={Sliders}
+                    title="Flash Sale Settings"
+                    colorClass="text-amber-400"
+                    subtitle="Customize your sale banner"
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
@@ -369,22 +453,120 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                                     saveField('flashSaleEnabled', e.target.checked, siteContent);
                                 }}
                             />
-                            <span className="font-bold text-sm text-gray-700">Turn on Sales ad</span>
+                            <span className="font-bold text-sm text-gray-700">Master switch — off hides everything below, regardless of dates</span>
                         </div>
                     </div>
+                    <div />
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <label className="block font-black text-gray-700 uppercase tracking-widest text-[10px]">Sale End Date & Time</label>
-                            <SaveIndicator field="flashSaleEndDate" saving={saving} saved={saved} />
+                            <label className="block font-black text-gray-700 uppercase tracking-widest text-[10px]">Sale Start Date &amp; Time</label>
+                            <SaveIndicator field="flashSaleStartAt" saving={saving} saved={saved} />
                         </div>
                         <input
                             type="datetime-local"
                             className="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-gray-200 font-bold mt-2"
-                            value={siteContent?.flashSaleEndDate || ''}
-                            onChange={e => updateField('flashSaleEndDate', e.target.value)}
-                            onBlur={e => saveField('flashSaleEndDate', e.target.value, siteContent)}
+                            value={utcIsoToLocalInput(siteContent?.flashSaleStartAt)}
+                            onChange={e => updateField('flashSaleStartAt', localInputToUtcIso(e.target.value))}
+                            onBlur={e => saveField('flashSaleStartAt', localInputToUtcIso(e.target.value), siteContent)}
                         />
+                        <p className="text-[10px] text-gray-400 mt-2">Leave blank to make the sale live the moment you enable it. Times are your local time ({localZoneLabel()}) — every customer sees the same moment worldwide.</p>
                     </div>
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block font-black text-gray-700 uppercase tracking-widest text-[10px]">Sale End Date &amp; Time</label>
+                            <SaveIndicator field="flashSaleEndAt" saving={saving} saved={saved} />
+                        </div>
+                        <input
+                            type="datetime-local"
+                            className="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-gray-200 font-bold mt-2"
+                            value={utcIsoToLocalInput(siteContent?.flashSaleEndAt || siteContent?.flashSaleEndDate)}
+                            onChange={e => updateField('flashSaleEndAt', localInputToUtcIso(e.target.value))}
+                            onBlur={e => {
+                                const iso = localInputToUtcIso(e.target.value);
+                                // Write flashSaleEndAt only — flashSaleEndDate is the legacy
+                                // zone-less field kept solely as a fallback for old data, so
+                                // it must not be re-written with a new value here.
+                                saveField('flashSaleEndAt', iso, siteContent);
+                            }}
+                        />
+                        <p className="text-[10px] text-gray-400 mt-2">The sale switches off automatically at this moment — no need to come back and untick anything.</p>
+                    </div>
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block font-black text-gray-700 uppercase tracking-widest text-[10px]">Announce Sale (Days Before Start)</label>
+                            <SaveIndicator field="flashSaleTeaseDays" saving={saving} saved={saved} />
+                        </div>
+                        <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            className="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-gray-200 font-bold mt-2"
+                            value={siteContent?.flashSaleTeaseDays ?? 3}
+                            onChange={e => updateField('flashSaleTeaseDays', e.target.value === '' ? '' : Number(e.target.value))}
+                            onBlur={e => saveField('flashSaleTeaseDays', e.target.value === '' ? 3 : Number(e.target.value), siteContent)}
+                        />
+                        <p className="text-[10px] text-gray-400 mt-2">How early the "coming soon" banner appears before Start Date, counting down to the opening.</p>
+                    </div>
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block font-black text-gray-700 uppercase tracking-widest text-[10px]">Announcement Line</label>
+                            <SaveIndicator field="flashSaleTeaser" saving={saving} saved={saved} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="e.g. 20% off the Harmattan Collection"
+                            className="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-gray-200 font-bold mt-2"
+                            value={siteContent?.flashSaleTeaser || ''}
+                            onChange={e => updateField('flashSaleTeaser', e.target.value)}
+                            onBlur={e => saveField('flashSaleTeaser', e.target.value, siteContent)}
+                        />
+                        <p className="text-[10px] text-gray-400 mt-2">Short extra line shown only in the "coming soon" banner, next to the Sale Title.</p>
+                    </div>
+                </div>
+
+                {/* Live preview — ticks off the same clock the storefront reads, so what
+                    Vera sees here is exactly what a customer sees right now. */}
+                <div className="mt-8 p-6 rounded-[32px] border border-dashed border-gray-200 bg-gray-50">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Eye size={12} /> Customers see right now
+                    </p>
+                    {salePreview.phase === 'idle' && (
+                        <p className="text-sm font-bold text-gray-400">Nothing shown — sale is off, or more than {siteContent?.flashSaleTeaseDays ?? 3} day(s) from its start date.</p>
+                    )}
+                    {salePreview.phase === 'upcoming' && (
+                        <div className="rounded-2xl bg-[#34271f] px-5 py-4 text-[#f8f1e6] text-xs font-black uppercase tracking-[0.2em] flex flex-wrap items-center justify-between gap-2">
+                            <span><span className="text-[#d9b05d]">Coming soon — </span>{siteContent?.flashSaleTitle || "Mother's Day Sales"}{siteContent?.flashSaleTeaser ? ` — ${siteContent.flashSaleTeaser}` : ''}</span>
+                            <span className="text-[#d9b05d]">Opens in {formatTimeLeft(salePreview.timeLeft)}</span>
+                        </div>
+                    )}
+                    {salePreview.phase === 'live' && (
+                        <div className="rounded-2xl bg-[#211b17] px-5 py-4 text-[#f8f1e6] text-xs font-black uppercase tracking-[0.2em] flex flex-wrap items-center justify-between gap-2">
+                            <span>{siteContent?.flashSaleTitle || "Mother's Day Sales"} is live</span>
+                            {salePreview.timeLeft.total > 0 && <span className="text-[#d9b05d]">Ends in {formatTimeLeft(salePreview.timeLeft)}</span>}
+                        </div>
+                    )}
+                    {salePreview.phase === 'ended' && (
+                        <p className="text-sm font-bold text-gray-400">Sale window has passed — banner and discounted pricing are already off. Set a new Start/End Date to run another.</p>
+                    )}
+                </div>
+
+                {/* Awareness & reach — email is automatic; WhatsApp is a deliberate,
+                    admin-triggered action since it reaches past customers who never
+                    explicitly opted in to sale announcements. */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 rounded-[32px] border border-gray-100 bg-white">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                            <Mail size={12} /> Email — Sent Automatically
+                        </p>
+                        <p className="text-2xl font-black text-gray-900">
+                            {subscriberCount === null ? '—' : subscriberCount}
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-2">
+                                {subscriberCount === 1 ? 'subscriber' : 'subscribers'}
+                            </span>
+                        </p>
+                        <p className="text-[11px] text-gray-400 mt-2">People who tapped "Notify Me" on the coming-soon banner. They get one email automatically the moment Start Date arrives — no action needed here.</p>
+                    </div>
+                    <WhatsAppBroadcastPanel siteContent={siteContent} customers={customers} />
                 </div>
             </div>
 
@@ -486,6 +668,59 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                 </div>
             </div>
 
+            {/* 🧵 HOMEPAGE SECTION COPY — every string here previously lived hardcoded in
+                PremiumHome.jsx, requiring a developer for even a one-word wording change.
+                Ordered top-to-bottom exactly as they appear on the page. */}
+            <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
+                <SectionHeader icon={FileText} title="Homepage Copy" colorClass="text-amber-500" subtitle="In page order, top to bottom" />
+                <div className="space-y-6">
+                    {[
+                        { id: 'loaderEyebrow', label: 'Loading Screen — Eyebrow', placeholder: 'e.g. Ghanaian Heritage House' },
+                        { id: 'loaderTagline', label: 'Loading Screen — Tagline', placeholder: 'e.g. Weaving your story' },
+                        { id: 'heroEyebrow', label: 'Hero — Eyebrow', placeholder: 'e.g. KenteHaul / Ghanaian Heritage House' },
+                        { id: 'homeCollectionsEyebrow', label: 'Collections — Eyebrow', placeholder: 'e.g. Shop by collection' },
+                        { id: 'homeCollectionsHeadline', label: 'Collections — Headline', placeholder: 'e.g. Heritage categories, edited like a wardrobe.' },
+                        { id: 'homeCollectionsBody', label: 'Collections — Body', placeholder: 'Supporting sentence under the headline', textarea: true },
+                        { id: 'homeFeaturedEyebrow', label: 'Featured Products — Eyebrow', placeholder: 'e.g. The Kente edit' },
+                        { id: 'homeFeaturedHeadline', label: 'Featured Products — Headline', placeholder: 'e.g. Featured pieces with room to breathe.' },
+                        { id: 'homeSaleEyebrow', label: 'Sale Pieces — Eyebrow', placeholder: 'e.g. Limited offering' },
+                        { id: 'homeSaleHeadline', label: 'Sale Pieces — Headline', placeholder: 'e.g. Current sale pieces, still presented with restraint.' },
+                        { id: 'homeCraftEyebrow', label: 'Craft Story — Eyebrow', placeholder: 'e.g. Craftsmanship' },
+                        { id: 'homeCraftHeadline', label: 'Craft Story — Headline', placeholder: 'e.g. A quieter page, built around the weight of the cloth.' },
+                        { id: 'homeCraftCaption', label: 'Craft Story — Image Caption', placeholder: 'e.g. Pattern, thread, provenance' },
+                        { id: 'homeGalleryHeadline', label: 'Gallery — Headline', placeholder: 'e.g. Large moments for texture, drape, and ceremony.' },
+                        { id: 'homeTestimonialsHeadline', label: 'Testimonials — Headline', placeholder: 'e.g. Proof in the wearing.' },
+                        { id: 'trustLabel0', label: 'Trust Badge 1', placeholder: 'e.g. Authentic Ghanaian craft' },
+                        { id: 'trustLabel1', label: 'Trust Badge 2', placeholder: 'e.g. Nationwide delivery options' },
+                        { id: 'trustLabel2', label: 'Trust Badge 3', placeholder: 'e.g. Custom and partnership orders' }
+                    ].map(field => (
+                        <div key={field.id}>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{field.label}</label>
+                                <SaveIndicator field={field.id} saving={saving} saved={saved} />
+                            </div>
+                            {field.textarea ? (
+                                <textarea
+                                    className="w-full p-5 bg-gray-50 border-none rounded-[25px] h-28 font-medium text-sm leading-relaxed outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-gray-300 resize-none"
+                                    value={siteContent[field.id] || ''}
+                                    placeholder={field.placeholder}
+                                    onChange={e => updateField(field.id, e.target.value)}
+                                    onBlur={e => saveField(field.id, e.target.value, siteContent)}
+                                />
+                            ) : (
+                                <input
+                                    className="w-full p-5 bg-gray-50 border-none rounded-[25px] font-bold outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-gray-300"
+                                    value={siteContent[field.id] || ''}
+                                    placeholder={field.placeholder}
+                                    onChange={e => updateField(field.id, e.target.value)}
+                                    onBlur={e => saveField(field.id, e.target.value, siteContent)}
+                                />
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             {/* 📖 CONTENT & HISTORY */}
             <div className="bg-white p-8 md:p-12 rounded-[50px] shadow-xl border border-gray-100">
                 <SectionHeader icon={FileText} title="Knowledge & History Pages" colorClass="text-amber-500" />
@@ -578,25 +813,184 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                         </div>
                     </div>
 
+                    {/* Heritage Page Copy */}
+                    <div className="pt-10 border-t border-gray-100 space-y-6">
+                        <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest block">Heritage Page Copy</label>
+                        {[
+                            { id: 'heritageEyebrow', label: 'Hero Eyebrow', placeholder: 'e.g. Ghanaian Heritage House' },
+                            { id: 'heritageStoryEyebrow', label: 'Story Section Eyebrow', placeholder: 'e.g. Our Story' },
+                            { id: 'heritageColorsEyebrow', label: 'Color Meanings Eyebrow', placeholder: 'e.g. A Language in Color' },
+                            { id: 'heritageColorsHeadline', label: 'Color Meanings Headline', placeholder: 'e.g. Every Thread Carries Meaning' },
+                        ].map(f => (
+                            <div key={f.id}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{f.label}</label>
+                                    <SaveIndicator field={f.id} saving={saving} saved={saved} />
+                                </div>
+                                <input className="w-full p-5 bg-gray-50 border-none rounded-[25px] font-bold outline-none focus:ring-2 focus:ring-amber-100 placeholder:text-gray-300"
+                                    value={siteContent?.[f.id] || ''} placeholder={f.placeholder}
+                                    onChange={e => updateField(f.id, e.target.value)} onBlur={e => saveField(f.id, e.target.value, siteContent)} />
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Weaving Step Titles & Captions */}
+                    <div className="pt-10 border-t border-gray-100 space-y-8">
+                        <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest block">Weaving Process Steps — Titles & Captions</label>
+                        {[
+                            { i: 0, defaultTitle: 'The Thread Begins' },
+                            { i: 1, defaultTitle: 'Building the Loom' },
+                            { i: 2, defaultTitle: 'Hands at the Shuttle' },
+                            { i: 3, defaultTitle: 'The Pattern Emerges' },
+                            { i: 4, defaultTitle: 'The Finished Cloth' },
+                        ].map(({ i, defaultTitle }) => (
+                            <div key={i} className="space-y-3 p-4 bg-gray-50 rounded-2xl">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Step {i + 1} — {defaultTitle}</p>
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="text-[10px] text-gray-400 font-bold">Title</label>
+                                        <SaveIndicator field={`weavingTitle${i}`} saving={saving} saved={saved} />
+                                    </div>
+                                    <input className="w-full p-3 bg-white border-none rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-amber-100 placeholder:text-gray-300"
+                                        value={siteContent?.[`weavingTitle${i}`] || ''} placeholder={defaultTitle}
+                                        onChange={e => updateField(`weavingTitle${i}`, e.target.value)} onBlur={e => saveField(`weavingTitle${i}`, e.target.value, siteContent)} />
+                                </div>
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="text-[10px] text-gray-400 font-bold">Caption</label>
+                                        <SaveIndicator field={`weavingCaption${i}`} saving={saving} saved={saved} />
+                                    </div>
+                                    <textarea className="w-full p-3 bg-white border-none rounded-xl font-medium text-sm leading-relaxed outline-none focus:ring-2 focus:ring-amber-100 resize-none h-20 placeholder:text-gray-300"
+                                        value={siteContent?.[`weavingCaption${i}`] || ''} placeholder="Caption text…"
+                                        onChange={e => updateField(`weavingCaption${i}`, e.target.value)} onBlur={e => saveField(`weavingCaption${i}`, e.target.value, siteContent)} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Collection Cards Copy */}
+                    <div className="pt-10 border-t border-gray-100 space-y-8">
+                        <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest block">Homepage Collection Cards</label>
+                        {[
+                            { i: 0, name: 'Kente Cloth' },
+                            { i: 1, name: 'Smocks' },
+                            { i: 2, name: 'Sashes' },
+                            { i: 3, name: 'Corporate Wears' },
+                        ].map(({ i, name }) => (
+                            <div key={i} className="space-y-3 p-4 bg-gray-50 rounded-2xl">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{name}</p>
+                                {[
+                                    { key: `collectionTitle${i}`, label: 'Card Title', placeholder: name },
+                                    { key: `collectionLabel${i}`, label: 'Label Tag', placeholder: 'e.g. Royal woven cloth' },
+                                    { key: `collectionCopy${i}`, label: 'Description', placeholder: 'Card copy…' },
+                                ].map(f => (
+                                    <div key={f.key}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="text-[10px] text-gray-400 font-bold">{f.label}</label>
+                                            <SaveIndicator field={f.key} saving={saving} saved={saved} />
+                                        </div>
+                                        <input className="w-full p-3 bg-white border-none rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-amber-100 placeholder:text-gray-300"
+                                            value={siteContent?.[f.key] || ''} placeholder={f.placeholder}
+                                            onChange={e => updateField(f.key, e.target.value)} onBlur={e => saveField(f.key, e.target.value, siteContent)} />
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Craft Steps Copy */}
+                    <div className="pt-10 border-t border-gray-100 space-y-8">
+                        <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest block">Craftsmanship Section Cards</label>
+                        {[
+                            { i: 0, name: 'Color Carries Meaning' },
+                            { i: 1, name: 'The Cloth Stays Large' },
+                            { i: 2, name: 'Ownership Feels Direct' },
+                        ].map(({ i, name }) => (
+                            <div key={i} className="space-y-3 p-4 bg-gray-50 rounded-2xl">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Card {i + 1}</p>
+                                {[
+                                    { key: `craftStep${i}Title`, label: 'Title', placeholder: name },
+                                    { key: `craftStep${i}Body`, label: 'Body', placeholder: 'Card description…' },
+                                ].map(f => (
+                                    <div key={f.key}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="text-[10px] text-gray-400 font-bold">{f.label}</label>
+                                            <SaveIndicator field={f.key} saving={saving} saved={saved} />
+                                        </div>
+                                        <input className="w-full p-3 bg-white border-none rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-amber-100 placeholder:text-gray-300"
+                                            value={siteContent?.[f.key] || ''} placeholder={f.placeholder}
+                                            onChange={e => updateField(f.key, e.target.value)} onBlur={e => saveField(f.key, e.target.value, siteContent)} />
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Institute Page Copy */}
+                    <div className="pt-10 border-t border-gray-100 space-y-6">
+                        <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest block">Institute Page Copy</label>
+                        {[
+                            { id: 'instituteEyebrow', label: 'Hero Eyebrow', placeholder: 'e.g. Weaving Community & Culture' },
+                            { id: 'statValue0', label: 'Stat 1 — Value', placeholder: 'e.g. 200+' },
+                            { id: 'statLabel0', label: 'Stat 1 — Label', placeholder: 'e.g. Artisans Supported' },
+                            { id: 'statValue1', label: 'Stat 2 — Value', placeholder: 'e.g. 5+' },
+                            { id: 'statLabel1', label: 'Stat 2 — Label', placeholder: 'e.g. Regions of Ghana' },
+                            { id: 'statValue2', label: 'Stat 3 — Value', placeholder: 'e.g. 100%' },
+                            { id: 'statLabel2', label: 'Stat 3 — Label', placeholder: 'e.g. Handwoven & Authentic' },
+                            { id: 'partnerTag', label: 'Partner Section Tag', placeholder: 'e.g. Collaborate' },
+                        ].map(f => (
+                            <div key={f.id}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{f.label}</label>
+                                    <SaveIndicator field={f.id} saving={saving} saved={saved} />
+                                </div>
+                                <input className="w-full p-5 bg-gray-50 border-none rounded-[25px] font-bold outline-none focus:ring-2 focus:ring-blue-100 placeholder:text-gray-300"
+                                    value={siteContent?.[f.id] || ''} placeholder={f.placeholder}
+                                    onChange={e => updateField(f.id, e.target.value)} onBlur={e => saveField(f.id, e.target.value, siteContent)} />
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Contact Page Copy */}
+                    <div className="pt-10 border-t border-gray-100 space-y-6">
+                        <label className="text-[10px] font-black text-teal-600 uppercase tracking-widest block">Contact Page Copy</label>
+                        {[
+                            { id: 'contactEyebrow', label: 'Page Eyebrow', placeholder: 'e.g. Connect With Royalty' },
+                            { id: 'contactHeadline', label: 'Page Headline', placeholder: 'e.g. Get in Touch' },
+                            { id: 'contactSubheadline', label: 'Page Sub-headline', placeholder: 'e.g. Your journey into heritage begins…' },
+                            { id: 'tiktokLink', label: 'TikTok URL', placeholder: 'https://tiktok.com/@kentehaul' },
+                        ].map(f => (
+                            <div key={f.id}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{f.label}</label>
+                                    <SaveIndicator field={f.id} saving={saving} saved={saved} />
+                                </div>
+                                <input className="w-full p-5 bg-gray-50 border-none rounded-[25px] font-bold outline-none focus:ring-2 focus:ring-teal-100 placeholder:text-gray-300"
+                                    value={siteContent?.[f.id] || ''} placeholder={f.placeholder}
+                                    onChange={e => updateField(f.id, e.target.value)} onBlur={e => saveField(f.id, e.target.value, siteContent)} />
+                            </div>
+                        ))}
+                    </div>
+
                     {/* Partnership Section */}
                     <div className="pt-10 border-t border-gray-100 space-y-4">
                         <div className="flex items-center justify-between">
                             <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Global Partnership Section</label>
                             <SaveIndicator field="partnerHeadline" saving={saving} saved={saved} />
                         </div>
-                        <input 
-                            className="w-full p-4 bg-gray-50 rounded-2xl font-black text-sm outline-none focus:ring-2 focus:ring-blue-100" 
-                            placeholder="Partnership Headline" 
-                            value={siteContent?.partnerHeadline || ''} 
-                            onChange={e => updateField('partnerHeadline', e.target.value)} 
-                            onBlur={e => saveField('partnerHeadline', e.target.value, siteContent)} 
+                        <input
+                            className="w-full p-4 bg-gray-50 rounded-2xl font-black text-sm outline-none focus:ring-2 focus:ring-blue-100"
+                            placeholder="Partnership Headline"
+                            value={siteContent?.partnerHeadline || ''}
+                            onChange={e => updateField('partnerHeadline', e.target.value)}
+                            onBlur={e => saveField('partnerHeadline', e.target.value, siteContent)}
                         />
-                        <textarea 
-                            className="w-full p-6 bg-gray-50 rounded-[30px] h-48 font-medium text-sm leading-relaxed outline-none focus:ring-2 focus:ring-blue-100 resize-none" 
-                            placeholder="Partnership details..." 
-                            value={siteContent?.partnerBody || ''} 
-                            onChange={e => updateField('partnerBody', e.target.value)} 
-                            onBlur={e => saveField('partnerBody', e.target.value, siteContent)} 
+                        <textarea
+                            className="w-full p-6 bg-gray-50 rounded-[30px] h-48 font-medium text-sm leading-relaxed outline-none focus:ring-2 focus:ring-blue-100 resize-none"
+                            placeholder="Partnership details..."
+                            value={siteContent?.partnerBody || ''}
+                            onChange={e => updateField('partnerBody', e.target.value)}
+                            onBlur={e => saveField('partnerBody', e.target.value, siteContent)}
                         />
                     </div>
                 </div>

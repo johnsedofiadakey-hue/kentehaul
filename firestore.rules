@@ -15,8 +15,12 @@ service cloud.firestore {
     }
 
     // --- PUBLIC CONTENT (READ FOR ALL, WRITE FOR ADMIN) ---
+    // Firestore ORs every matching rule, so this wildcard also matched
+    // /settings/private and its `read: if true` overrode the admin-only block
+    // below — publishing kwikApiKey and arkeselApiKey to anyone who asked.
+    // The wildcard must exclude `private` explicitly.
     match /settings/{doc} {
-      allow read: if true;
+      allow read: if doc != 'private';
       allow write: if isAdmin();
     }
 
@@ -33,8 +37,14 @@ service cloud.firestore {
     match /products/{productId} {
       allow read: if true;
       allow write: if isAdmin();
-      // Allow customers to decrement stock during atomic checkout (optional hardening)
-      allow update: if isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stockQuantity']);
+      // Customers decrement stock during atomic checkout. Without the direction and
+      // floor checks below, any visitor could set any product's stock to any value.
+      allow update: if isAdmin() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stockQuantity'])
+        && request.resource.data.stockQuantity is number
+        && request.resource.data.stockQuantity >= 0
+        && request.resource.data.stockQuantity < resource.data.stockQuantity
+      );
     }
     
     match /gallery/{imageId} {
@@ -65,10 +75,19 @@ service cloud.firestore {
     }
     
     match /customers/{phone} {
-      // CRM is strictly Admin only.
-      // During checkout, public can create/update their own profile stub.
-      allow read: if isAdmin();
-      allow create, update: if true; 
+      // `read` covers both get and list. Locking both to admin broke client login,
+      // which getDoc()s customers/{phone} directly (App.jsx handleClientLogin).
+      // Split them: single-doc gets are public, list queries stay admin-only so the
+      // CRM can't be scraped.
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if true;
+      // Checkout writes profile stubs, and signup later claims a stub by setting
+      // passwordHash on it. So allow writing passwordHash only when the doc has
+      // none yet — otherwise anyone could overwrite an existing account's hash.
+      allow update: if isAdmin()
+        || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['passwordHash'])
+        || !('passwordHash' in resource.data);
       allow delete: if isAdmin();
     }
 
@@ -88,6 +107,34 @@ service cloud.firestore {
         allow read: if isAdmin();
         allow create: if true;
         allow update, delete: if isAdmin();
+    }
+
+    // --- SALE ANNOUNCEMENT SUBSCRIBERS ---
+    // Public "notify me" opt-in ahead of a scheduled sale. Contact details are
+    // personal data, so this mirrors the customers/mail pattern: anyone can add
+    // themselves, nobody but admin (and the sending Cloud Function, which runs
+    // with admin privileges) can read the list back.
+    match /sale_subscribers/{id} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // --- INVENTORY (goods staged before they reach the shop) ---
+    // Purely an internal admin workflow — nothing here is ever read by a customer.
+    match /inventory/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // --- STOCK LEDGER (append-only audit trail) ---
+    // Written both by customer checkout (alongside the stockQuantity decrement —
+    // see App.jsx) and by admin stock edits, so create must stay public the same
+    // way the products stockQuantity update already is. Never updated or deleted:
+    // an audit log that can be edited after the fact isn't an audit log.
+    match /stock_ledger/{id} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if false;
     }
 
     // --- DEFAULT DENY ---

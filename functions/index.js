@@ -711,3 +711,81 @@ exports.paystackWebhook = functions.https.onRequest(async (req, res) => {
         return res.status(500).send(`Internal Error: ${err.message}`);
     }
 });
+
+// ============================================================
+// SALE ANNOUNCEMENT DISPATCH
+// ============================================================
+// Fires once, automatically, at the moment a scheduled flash sale opens —
+// so a sale doesn't depend on someone remembering to email or WhatsApp
+// customers the instant it goes live. Runs every 15 minutes; idempotency is
+// keyed off `flashSaleAnnouncedFor` on siteContent itself (set to the sale's
+// own start timestamp), so editing the schedule to a *new* start date
+// naturally re-arms the broadcast for the new sale.
+exports.dispatchSaleAnnouncement = functions.pubsub.schedule("every 15 minutes").onRun(async () => {
+    const contentRef = db.collection("settings").doc("siteContent");
+    const contentSnap = await contentRef.get();
+    const siteContent = contentSnap.exists ? contentSnap.data() : null;
+    if (!siteContent || !siteContent.flashSaleEnabled) return null;
+
+    const startAtRaw = siteContent.flashSaleStartAt;
+    if (!startAtRaw) return null; // no scheduled start — nothing to announce automatically
+
+    const startAt = new Date(startAtRaw);
+    if (Number.isNaN(startAt.getTime()) || Date.now() < startAt.getTime()) return null; // not open yet
+
+    const endAtRaw = siteContent.flashSaleEndAt || siteContent.flashSaleEndDate;
+    if (endAtRaw) {
+        const endAt = new Date(endAtRaw);
+        // Function was likely down across the window (redeploy, quota, outage) — a
+        // sale that has already closed shouldn't get a "just opened" blast.
+        if (!Number.isNaN(endAt.getTime()) && Date.now() > endAt.getTime()) return null;
+    }
+
+    if (siteContent.flashSaleAnnouncedFor === startAtRaw) return null; // already sent for this exact schedule
+
+    const subsSnap = await db.collection("sale_subscribers").get();
+    if (subsSnap.empty) {
+        await contentRef.update({ flashSaleAnnouncedFor: startAtRaw });
+        return null;
+    }
+
+    const title = siteContent.flashSaleTitle || "Mother's Day Sales";
+    const teaser = siteContent.flashSaleTeaser || "";
+    const siteUrl = SITE_URL;
+
+    const emailDocs = [];
+    subsSnap.forEach((docSnap) => {
+        const sub = docSnap.data();
+        if (!sub.email) return;
+        emailDocs.push({
+            to: sub.email,
+            message: {
+                subject: `${title} is now live — KenteHaul`,
+                html: `
+                    <div style="font-family: Georgia, serif; max-width: 480px; margin: 0 auto; color: #211b17;">
+                        <p style="letter-spacing: 2px; text-transform: uppercase; font-size: 11px; color: #a24f32; font-weight: bold;">Ghanaian Heritage House</p>
+                        <h1 style="font-size: 28px; margin: 8px 0 16px;">${title} is live</h1>
+                        ${teaser ? `<p style="font-size: 15px; line-height: 1.6;">${teaser}</p>` : ""}
+                        <p style="margin: 24px 0;">
+                            <a href="${siteUrl}/shop?category=sales" style="background: #211b17; color: #fff8ed; padding: 14px 28px; text-decoration: none; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; font-weight: bold;">Shop the Sale</a>
+                        </p>
+                        <p style="font-size: 12px; color: #888;">You're receiving this because you asked to be notified when this sale opened.</p>
+                    </div>
+                `
+            }
+        });
+    });
+
+    // Batched in groups of 400 — Firestore batch writes cap at 500 operations.
+    for (let i = 0; i < emailDocs.length; i += 400) {
+        const batch = db.batch();
+        emailDocs.slice(i, i + 400).forEach((doc) => {
+            batch.set(db.collection("mail").doc(), doc);
+        });
+        await batch.commit();
+    }
+
+    await contentRef.update({ flashSaleAnnouncedFor: startAtRaw });
+    console.log(`[SALE ANNOUNCEMENT] Queued ${emailDocs.length} email(s) for "${title}".`);
+    return null;
+});

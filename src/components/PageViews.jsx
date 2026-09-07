@@ -257,53 +257,40 @@ const PartnerInvitation = ({ siteContent }) => {
 };
 
 // --- HERITAGE PAGE COMPONENT ---
-const KENTE_COLORS = [
-  { color: '#d9b05d', name: 'Gold', meaning: 'Royalty, wealth, and high status. Worn by kings and elders to mark authority.' },
+const DEFAULT_kenteColors = [
+  { color: '#d9b05d', name: 'Gold',  meaning: 'Royalty, wealth, and high status. Worn by kings and elders to mark authority.' },
   { color: '#243f2c', name: 'Green', meaning: 'Growth, renewal, and the vitality of the land. A symbol of harvest and new beginnings.' },
-  { color: '#a24f32', name: 'Red', meaning: 'Sacrifice, strength, and the blood of ancestors. A call to courage and remembrance.' },
+  { color: '#a24f32', name: 'Red',   meaning: 'Sacrifice, strength, and the blood of ancestors. A call to courage and remembrance.' },
   { color: '#211b17', name: 'Black', meaning: 'Spiritual maturity, aging, and the wisdom carried through generations.' },
 ];
 
-const WEAVING_STEPS = [
-  {
-    step: '01',
-    title: 'The Thread Begins',
-    caption: 'Raw cotton and silk threads are hand-dyed in village pots, each colour mixed to exact cultural codes passed down through family lines.',
-    defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step1.jpg',
-  },
-  {
-    step: '02',
-    title: 'Building the Loom',
-    caption: 'The horizontal strip loom — unchanged for centuries — is strung with warp threads. A master weaver sets the tension by hand, reading the cloth before it exists.',
-    defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step2.jpg',
-  },
-  {
-    step: '03',
-    title: 'Hands at the Shuttle',
-    caption: 'The weaver pulls the shuttle across in rhythmic beats. Every row is a decision — pattern, color, intention. No machine can replicate this pace.',
-    defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step3.jpg',
-  },
-  {
-    step: '04',
-    title: 'The Pattern Emerges',
-    caption: 'Strip by strip — each four inches wide — the pattern locks into place. The cloth tells its story only once all strips are joined.',
-    defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step4.jpg',
-  },
-  {
-    step: '05',
-    title: 'The Finished Cloth',
-    caption: 'Sewn together into a full length, the kente cloth is ready. What you hold is not fabric — it is biography, ceremony, and identity woven as one.',
-    defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step5.jpg',
-  },
+const DEFAULT_weavingSteps = [
+  { step: '01', title: 'The Thread Begins',   caption: 'Raw cotton and silk threads are hand-dyed in village pots, each colour mixed to exact cultural codes passed down through family lines.',                                       defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step1.jpg' },
+  { step: '02', title: 'Building the Loom',   caption: 'The horizontal strip loom — unchanged for centuries — is strung with warp threads. A master weaver sets the tension by hand, reading the cloth before it exists.',         defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step2.jpg' },
+  { step: '03', title: 'Hands at the Shuttle',caption: 'The weaver pulls the shuttle across in rhythmic beats. Every row is a decision — pattern, color, intention. No machine can replicate this pace.',                          defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step3.jpg' },
+  { step: '04', title: 'The Pattern Emerges', caption: 'Strip by strip — each four inches wide — the pattern locks into place. The cloth tells its story only once all strips are joined.',                                        defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step4.jpg' },
+  { step: '05', title: 'The Finished Cloth',  caption: 'Sewn together into a full length, the kente cloth is ready. What you hold is not fabric — it is biography, ceremony, and identity woven as one.',                        defaultImage: 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/weaving_step5.jpg' },
 ];
 
 export const Heritage = ({ siteContent }) => {
   const [activeSlide, setActiveSlide] = useState(0);
 
+  // Admin-overridable versions of color meanings and weaving steps
+  const kenteColors = DEFAULT_kenteColors.map((c, i) => ({
+    ...c,
+    name:    siteContent?.[`colorName${i}`]    || c.name,
+    meaning: siteContent?.[`colorMeaning${i}`] || c.meaning,
+  }));
+  const weavingSteps = DEFAULT_weavingSteps.map((s, i) => ({
+    ...s,
+    title:   siteContent?.[`weavingTitle${i}`]   || s.title,
+    caption: siteContent?.[`weavingCaption${i}`] || s.caption,
+  }));
+
   // Auto-advance slideshow
   useEffect(() => {
     const timer = setInterval(() => {
-      setActiveSlide(prev => (prev + 1) % WEAVING_STEPS.length);
+      setActiveSlide(prev => (prev + 1) % weavingSteps.length);
     }, 4500);
     return () => clearInterval(timer);
   }, []);
@@ -344,7 +331,7 @@ export const Heritage = ({ siteContent }) => {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="text-[#d9b05d] font-black text-[10px] uppercase tracking-[0.5em] mb-6"
           >
-            Ghanaian Heritage House
+            {siteContent?.heritageEyebrow || 'Ghanaian Heritage House'}
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 32 }}
@@ -372,7 +359,7 @@ export const Heritage = ({ siteContent }) => {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#b88a2b] mb-8">Our Story</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#b88a2b] mb-8">{siteContent?.heritageStoryEyebrow || 'Our Story'}</p>
             <div className="font-serif text-lg md:text-xl text-[#211b17] leading-[1.85]
               [&>div>p:first-child]:first-letter:text-6xl
               [&>div>p:first-child]:first-letter:font-bold
@@ -399,13 +386,13 @@ export const Heritage = ({ siteContent }) => {
             viewport={{ once: true }}
             className="text-center mb-14"
           >
-            <p className="text-[#d9b05d] font-black text-[10px] uppercase tracking-[0.4em] mb-4">A Language in Color</p>
+            <p className="text-[#d9b05d] font-black text-[10px] uppercase tracking-[0.4em] mb-4">{siteContent?.heritageColorsEyebrow || 'A Language in Color'}</p>
             <h2 className="font-serif text-4xl md:text-5xl font-bold text-[#fff8ed] leading-tight">
-              Every Thread Carries Meaning
+              {siteContent?.heritageColorsHeadline || 'Every Thread Carries Meaning'}
             </h2>
           </motion.div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {KENTE_COLORS.map((c, i) => (
+            {kenteColors.map((c, i) => (
               <motion.div
                 key={c.name}
                 initial={{ opacity: 0, y: 32 }}
@@ -447,8 +434,8 @@ export const Heritage = ({ siteContent }) => {
               <AnimatePresence mode="wait">
                 <motion.img
                   key={activeSlide}
-                  src={siteContent?.[`weavingSlide${activeSlide + 1}`] || WEAVING_STEPS[activeSlide].defaultImage}
-                  alt={WEAVING_STEPS[activeSlide].title}
+                  src={siteContent?.[`weavingSlide${activeSlide + 1}`] || weavingSteps[activeSlide].defaultImage}
+                  alt={weavingSteps[activeSlide].title}
                   className="absolute inset-0 w-full h-full object-cover"
                   initial={{ opacity: 0, scale: 1.04 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -467,17 +454,17 @@ export const Heritage = ({ siteContent }) => {
                     transition={{ duration: 0.5 }}
                   >
                     <span className="font-black text-[#d9b05d] text-[10px] uppercase tracking-[0.4em]">
-                      Step {WEAVING_STEPS[activeSlide].step}
+                      Step {weavingSteps[activeSlide].step}
                     </span>
                     <h3 className="font-serif text-2xl font-bold text-[#fff8ed] mt-1">
-                      {WEAVING_STEPS[activeSlide].title}
+                      {weavingSteps[activeSlide].title}
                     </h3>
                   </motion.div>
                 </AnimatePresence>
               </div>
               {/* Slide dots */}
               <div className="absolute top-5 right-5 flex gap-2">
-                {WEAVING_STEPS.map((_, i) => (
+                {weavingSteps.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setActiveSlide(i)}
@@ -489,7 +476,7 @@ export const Heritage = ({ siteContent }) => {
 
             {/* Step list */}
             <div className="space-y-3">
-              {WEAVING_STEPS.map((step, i) => (
+              {weavingSteps.map((step, i) => (
                 <button
                   key={i}
                   onClick={() => setActiveSlide(i)}
@@ -526,19 +513,19 @@ export const Heritage = ({ siteContent }) => {
           {/* Prev/Next controls */}
           <div className="flex items-center gap-4 mt-8">
             <button
-              onClick={() => setActiveSlide(prev => (prev - 1 + WEAVING_STEPS.length) % WEAVING_STEPS.length)}
+              onClick={() => setActiveSlide(prev => (prev - 1 + weavingSteps.length) % weavingSteps.length)}
               className="w-12 h-12 rounded-full border border-[#211b17]/20 flex items-center justify-center hover:bg-[#211b17] hover:text-white hover:border-[#211b17] transition-all duration-300"
             >
               <ChevronLeft size={20} />
             </button>
             <button
-              onClick={() => setActiveSlide(prev => (prev + 1) % WEAVING_STEPS.length)}
+              onClick={() => setActiveSlide(prev => (prev + 1) % weavingSteps.length)}
               className="w-12 h-12 rounded-full border border-[#211b17]/20 flex items-center justify-center hover:bg-[#211b17] hover:text-white hover:border-[#211b17] transition-all duration-300"
             >
               <ChevronRight size={20} />
             </button>
             <span className="text-[11px] font-black text-[#5f554d] uppercase tracking-widest ml-2">
-              {activeSlide + 1} / {WEAVING_STEPS.length}
+              {activeSlide + 1} / {weavingSteps.length}
             </span>
           </div>
         </div>
@@ -587,9 +574,9 @@ export const Heritage = ({ siteContent }) => {
 };
 
 // --- INSTITUTE PAGE COMPONENT ---
-const INSTITUTE_STATS = [
+const DEFAULT_INSTITUTE_STATS = [
   { value: '200+', label: 'Artisans Supported' },
-  { value: '5+', label: 'Regions of Ghana' },
+  { value: '5+',   label: 'Regions of Ghana' },
   { value: '100%', label: 'Handwoven & Authentic' },
 ];
 
@@ -610,7 +597,12 @@ const KenteStripeDivider = ({ primaryColor, secondaryColor }) => (
   </div>
 );
 
-export const Institute = ({ siteContent, products }) => (
+export const Institute = ({ siteContent, products }) => {
+  const instituteStats = DEFAULT_INSTITUTE_STATS.map((s, i) => ({
+    value: siteContent?.[`statValue${i}`] || s.value,
+    label: siteContent?.[`statLabel${i}`] || s.label,
+  }));
+  return (
   <div className="bg-[#f8f1e6] min-h-screen">
     <SEO
       title="KenteHaul Institute | Empowerment through Craft"
@@ -630,7 +622,7 @@ export const Institute = ({ siteContent, products }) => (
         transition={{ delay: 0.3, duration: 0.7 }}
         className="text-[#d9b05d] font-black text-[10px] uppercase tracking-[0.5em] mb-6 relative z-10"
       >
-        Weaving Community & Culture
+        {siteContent?.instituteEyebrow || 'Weaving Community & Culture'}
       </motion.p>
       <motion.h1
         initial={{ opacity: 0, y: 32 }}
@@ -648,7 +640,7 @@ export const Institute = ({ siteContent, products }) => (
     {/* Impact stats */}
     <div className="bg-[#211b17] py-10 px-6">
       <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4">
-        {INSTITUTE_STATS.map((stat, i) => (
+        {instituteStats.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
@@ -725,7 +717,8 @@ export const Institute = ({ siteContent, products }) => (
       </div>
     </div>
   </div>
-);// --- CONTACT PAGE COMPONENT ---
+  );
+};// --- CONTACT PAGE COMPONENT ---
 const CONTACT_ITEMS = [
   { icon: Phone, label: 'Call Our Weavers', key: 'contactPhone', color: 'text-amber-300' },
   { icon: Mail, label: 'Electronic Mail', key: 'contactEmail', color: 'text-pink-300' },
@@ -753,7 +746,7 @@ const SOCIAL_LINKS = (siteContent) => [
   },
   {
     label: 'TikTok',
-    href: 'https://tiktok.com/@kentehaul',
+    href: siteContent?.tiktokLink || 'https://tiktok.com/@kentehaul',
     icon: (
       <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
         <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z" />
@@ -784,16 +777,16 @@ export const Contact = ({ siteContent }) => (
           className="inline-block py-2 px-6 rounded-full bg-white shadow-sm border border-[#efe2cf] text-[10px] font-black uppercase tracking-[4px] mb-6"
           style={{ color: siteContent?.secondaryColor || '#f97316' }}
         >
-          Connect With Royalty
+          {siteContent?.contactEyebrow || 'Connect With Royalty'}
         </motion.span>
         <h1
           className="text-5xl md:text-8xl font-black mb-6 uppercase tracking-tighter"
           style={{ color: siteContent?.primaryColor || '#5b0143' }}
         >
-          Get in Touch
+          {siteContent?.contactHeadline || 'Get in Touch'}
         </h1>
         <p className="text-[#5f554d] font-bold max-w-xl mx-auto uppercase tracking-widest text-[10px] sm:text-xs">
-          Your journey into heritage begins with a single conversation. We'd love to hear your vision.
+          {siteContent?.contactSubheadline || "Your journey into heritage begins with a single conversation. We'd love to hear your vision."}
         </p>
       </motion.div>
     </div>

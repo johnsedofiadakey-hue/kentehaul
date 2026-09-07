@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import SEO from './SEO';
+import { isSaleLive } from '../hooks/useSaleWindow';
 
 export default function ProductDetailModal({
     product,
@@ -81,7 +82,7 @@ export default function ProductDetailModal({
     // number shown here never disagrees with what the customer is charged.
     // This component stays mounted with product=null whenever nothing is selected,
     // so every read here must be null-safe.
-    const displayPrice = product && (siteContent?.flashSaleEnabled ? product.price : (product.originalPrice || product.price));
+    const displayPrice = product && (isSaleLive(siteContent) ? product.price : (product.originalPrice || product.price));
 
     const handleAddToCart = () => {
         const availableStock = product.stockQuantity ?? product.stock ?? 0;
@@ -282,7 +283,7 @@ export default function ProductDetailModal({
                                     <span className="text-2xl md:text-3xl font-black" style={{ color: siteContent?.secondaryColor || '#f97316' }}>
                                         ₵{displayPrice?.toLocaleString()}
                                     </span>
-                                    {siteContent?.flashSaleEnabled && (product.originalPrice > product.price) && (
+                                    {isSaleLive(siteContent) && (product.originalPrice > product.price) && (
                                         <span className="text-base md:text-lg font-bold text-gray-300 line-through">
                                             ₵{product.originalPrice?.toLocaleString()}
                                         </span>

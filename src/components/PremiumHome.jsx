@@ -17,55 +17,27 @@ import {
 import { LazyImage } from './UIComponents';
 import SEO from './SEO';
 import { FEATURED_PRODUCTS_LIMIT } from '../data/constants';
+import useSaleWindow, { formatTimeLeft, isSaleLive } from '../hooks/useSaleWindow';
 
 const DEFAULT_HERO_COPY = 'Authentic Ghanaian Kente and smocks, shaped by heritage and finished for modern ceremonies, gifts, and everyday pride.';
 
-const COLLECTIONS = [
-  {
-    id: 'kente',
-    title: 'Kente Cloth',
-    label: 'Royal woven cloth',
-    copy: 'Bold ceremonial strips, color symbolism, and heirloom weight for weddings, durbars, and milestone moments.'
-  },
-  {
-    id: 'smock',
-    title: 'Smocks',
-    label: 'Northern craft',
-    copy: 'Fugu silhouettes with texture, structure, and everyday presence for men, women, and young wearers.'
-  },
-  {
-    id: 'sash',
-    title: 'Sashes',
-    label: 'Finishing pieces',
-    copy: 'Presentation-ready accents for graduations, gifting, naming ceremonies, and formal recognition.'
-  },
-  {
-    id: 'corporate',
-    title: 'Corporate Wears',
-    label: 'Work and occasion',
-    copy: 'Measured heritage details for teams, leaders, cultural programs, and polished public appearances.'
-  }
+const DEFAULT_COLLECTIONS = [
+  { id: 'kente',     title: 'Kente Cloth',     label: 'Royal woven cloth',   copy: 'Bold ceremonial strips, color symbolism, and heirloom weight for weddings, durbars, and milestone moments.' },
+  { id: 'smock',     title: 'Smocks',           label: 'Northern craft',       copy: 'Fugu silhouettes with texture, structure, and everyday presence for men, women, and young wearers.' },
+  { id: 'sash',      title: 'Sashes',           label: 'Finishing pieces',     copy: 'Presentation-ready accents for graduations, gifting, naming ceremonies, and formal recognition.' },
+  { id: 'corporate', title: 'Corporate Wears',  label: 'Work and occasion',    copy: 'Measured heritage details for teams, leaders, cultural programs, and polished public appearances.' },
 ];
 
-const CRAFT_STEPS = [
-  {
-    title: 'Color Carries Meaning',
-    body: 'Gold, green, black, and red are treated as cultural language, not decoration. The palette now lets the cloth lead.'
-  },
-  {
-    title: 'The Cloth Stays Large',
-    body: 'Imagery has more room to breathe, so customers can inspect texture, scale, drape, and pattern before they buy.'
-  },
-  {
-    title: 'Ownership Feels Direct',
-    body: 'Discovery, price, availability, and next steps stay close together so the customer can move from attraction to action without losing the story.'
-  }
+const DEFAULT_CRAFT_STEPS = [
+  { title: 'Color Carries Meaning',   body: 'Gold, green, black, and red are treated as cultural language, not decoration. The palette now lets the cloth lead.' },
+  { title: 'The Cloth Stays Large',   body: 'Imagery has more room to breathe, so customers can inspect texture, scale, drape, and pattern before they buy.' },
+  { title: 'Ownership Feels Direct',  body: 'Discovery, price, availability, and next steps stay close together so the customer can move from attraction to action without losing the story.' },
 ];
 
-const TRUST_POINTS = [
+const DEFAULT_TRUST = [
   { icon: ShieldCheck, label: 'Authentic Ghanaian craft' },
-  { icon: Truck, label: 'Nationwide delivery options' },
-  { icon: Handshake, label: 'Custom and partnership orders' }
+  { icon: Truck,       label: 'Nationwide delivery options' },
+  { icon: Handshake,   label: 'Custom and partnership orders' },
 ];
 
 const formatPrice = (value) => `₵${Number(value || 0).toLocaleString()}`;
@@ -74,16 +46,62 @@ const productStock = (product) => product?.stockQuantity ?? product?.stock ?? 0;
 
 const displayPrice = (product, siteContent) => {
   if (!product) return 0;
-  return siteContent?.flashSaleEnabled ? product.price : (product.originalPrice || product.price);
+  return isSaleLive(siteContent) ? product.price : (product.originalPrice || product.price);
 };
 
 const imageFromProducts = (products, categoryId) => (
   products.find((product) => product.category === categoryId && product.image)?.image
 );
 
-export default function PremiumHome({ siteContent, gallery = [], feedbacks = [], products = [], addToCart }) {
+/** Inline email capture for the "coming soon" banner. The actual send is server-side
+ *  (functions/index.js:dispatchSaleAnnouncement) — this only writes the subscriber doc. */
+const NotifyMeForm = ({ onSubscribe }) => {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState('idle'); // idle | sending | done | error
+  const [error, setError] = useState('');
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!onSubscribe || status === 'sending' || status === 'done') return;
+    setStatus('sending');
+    const result = await onSubscribe(email);
+    if (result?.success) {
+      setStatus('done');
+    } else {
+      setStatus('error');
+      setError(result?.error || 'Something went wrong.');
+    }
+  };
+
+  if (status === 'done') {
+    return <span className="text-[#d9b05d] normal-case tracking-normal font-bold text-xs">You're on the list — we'll email you the moment it opens.</span>;
+  }
+
+  return (
+    <form onSubmit={submit} className="flex items-center gap-2 normal-case tracking-normal">
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => { setEmail(e.target.value); if (status === 'error') setStatus('idle'); }}
+        placeholder="Notify me by email"
+        className="bg-white/10 border border-white/20 px-3 py-2 text-xs text-[#f8f1e6] placeholder:text-[#f8f1e6]/50 outline-none focus:border-[#d9b05d] w-40 sm:w-48"
+      />
+      <button
+        type="submit"
+        disabled={status === 'sending'}
+        className="bg-[#d9b05d] text-[#211b17] px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] disabled:opacity-60 whitespace-nowrap"
+      >
+        {status === 'sending' ? 'Sending…' : 'Notify Me'}
+      </button>
+      {status === 'error' && <span className="text-red-300 text-[10px] font-bold">{error}</span>}
+    </form>
+  );
+};
+
+export default function PremiumHome({ siteContent, gallery = [], feedbacks = [], products = [], addToCart, onSaleSubscribe }) {
   const [selectedImage, setSelectedImage] = useState(null);
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const { phase: salePhase, timeLeft } = useSaleWindow(siteContent);
   const heroRef = useRef(null);
   const reduceMotion = useReducedMotion();
 
@@ -97,26 +115,6 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
   const titleY = useTransform(scrollYProgress, [0, 1], reduceMotion ? [0, 0] : [0, -58]);
   const titleOpacity = useTransform(scrollYProgress, [0, 0.72], [1, 0.2]);
   const wovenScale = useTransform(scrollYProgress, [0.3, 1], reduceMotion ? [1, 1] : [0.84, 1.24]);
-
-  useEffect(() => {
-    if (!siteContent?.flashSaleEndDate) return undefined;
-
-    const calculateTimeLeft = () => {
-      const difference = +new Date(siteContent.flashSaleEndDate) - +new Date();
-      if (difference <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-
-      return {
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / 1000 / 60) % 60),
-        seconds: Math.floor((difference / 1000) % 60)
-      };
-    };
-
-    setTimeLeft(calculateTimeLeft());
-    const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
-    return () => clearInterval(timer);
-  }, [siteContent?.flashSaleEndDate]);
 
   const stockedProducts = useMemo(
     () => products.filter((product) => productStock(product) > 0),
@@ -138,6 +136,23 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
 
   const heroImage = siteContent?.heroImage || gallery[0]?.image || stockedProducts[0]?.image || '';
   const storyImage = siteContent?.craftImage || 'https://storage.googleapis.com/kentehaul-b1cb5.firebasestorage.app/site-images/craft_home.jpg' || gallery[0]?.image || heroImage || featuredProducts[0]?.image || '';
+
+  // Admin-overridable arrays — fall back to defaults when not set
+  const collections = DEFAULT_COLLECTIONS.map((c, i) => ({
+    ...c,
+    title: siteContent?.[`collectionTitle${i}`] || c.title,
+    label: siteContent?.[`collectionLabel${i}`] || c.label,
+    copy:  siteContent?.[`collectionCopy${i}`]  || c.copy,
+  }));
+  const craftSteps = DEFAULT_CRAFT_STEPS.map((s, i) => ({
+    title: siteContent?.[`craftStep${i}Title`] || s.title,
+    body:  siteContent?.[`craftStep${i}Body`]  || s.body,
+  }));
+  const trustPoints = DEFAULT_TRUST.map((t, i) => ({
+    ...t,
+    label: siteContent?.[`trustLabel${i}`] || t.label,
+  }));
+
   const galleryItems = gallery.length > 0
     ? gallery
     : featuredProducts.filter((product) => product.image).map((product) => ({
@@ -147,11 +162,11 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
     }));
 
   const collectionCards = useMemo(() => (
-    COLLECTIONS.map((collection) => ({
+    collections.map((collection) => ({
       ...collection,
       image: imageFromProducts(products, collection.id) || heroImage || gallery[0]?.image || ''
     }))
-  ), [products, heroImage, gallery]);
+  ), [products, heroImage, gallery, siteContent]);
 
   const reveal = (delay = 0, distance = 28) => ({
     initial: reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: distance },
@@ -201,7 +216,7 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
               transition={{ duration: reduceMotion ? 0.01 : 0.7 }}
               className="mb-5 text-[11px] font-semibold uppercase tracking-[0.34em] text-[#d9b05d]"
             >
-              KenteHaul / Ghanaian Heritage House
+              {siteContent?.heroEyebrow || 'KenteHaul / Ghanaian Heritage House'}
             </motion.p>
             <motion.h1
               initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
@@ -248,7 +263,7 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
             transition={{ duration: reduceMotion ? 0.01 : 0.9, delay: 0.55 }}
             className="mt-14 grid gap-3 border-t border-[#f8f1e6]/20 pt-5 sm:grid-cols-3 lg:max-w-3xl"
           >
-            {TRUST_POINTS.map(({ icon: Icon, label }) => (
+            {trustPoints.map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-3 text-[#f8f1e6]/72">
                 <Icon size={18} className="text-[#d9b05d]" />
                 <span className="text-[11px] font-bold uppercase tracking-[0.18em]">{label}</span>
@@ -258,14 +273,37 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
         </div>
       </section>
 
-      {siteContent?.flashSaleEnabled && (
-        <section className="kh-thread border-y border-[#b88a2b]/25 bg-[#211b17] px-5 py-4 text-[#f8f1e6]">
-          <div className="mx-auto flex max-w-7xl flex-col gap-2 text-center text-[11px] font-black uppercase tracking-[0.28em] sm:flex-row sm:items-center sm:justify-between sm:text-left">
-            <span>{siteContent?.flashSaleTitle || 'Limited Heritage Offering'} is live</span>
-            {siteContent?.flashSaleEndDate && (
-              <span className="text-[#d9b05d]">
-                Ends in {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
-              </span>
+      {/* Announcement bar. 'upcoming' builds awareness before the sale opens and
+          counts down to the start; 'live' counts down to the close. Both vanish on
+          their own at 'ended' — no manual untick required. */}
+      {(salePhase === 'upcoming' || salePhase === 'live') && (
+        <section
+          className={`kh-thread border-y px-5 py-4 ${salePhase === 'upcoming'
+            ? 'border-[#d9b05d]/40 bg-[#34271f] text-[#f8f1e6]'
+            : 'border-[#b88a2b]/25 bg-[#211b17] text-[#f8f1e6]'}`}
+        >
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-3 text-center text-[11px] font-black uppercase tracking-[0.28em] sm:justify-between sm:text-left">
+            {salePhase === 'upcoming' ? (
+              <>
+                <span>
+                  <span className="text-[#d9b05d]">Coming soon — </span>
+                  {siteContent?.flashSaleTitle || 'Limited Heritage Offering'}
+                  {siteContent?.flashSaleTeaser ? ` — ${siteContent.flashSaleTeaser}` : ''}
+                </span>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {timeLeft.total > 0 && (
+                    <span className="text-[#d9b05d]">Opens in {formatTimeLeft(timeLeft)}</span>
+                  )}
+                  <NotifyMeForm onSubscribe={onSaleSubscribe} />
+                </div>
+              </>
+            ) : (
+              <>
+                <span>{siteContent?.flashSaleTitle || 'Limited Heritage Offering'} is live</span>
+                {timeLeft.total > 0 && (
+                  <span className="text-[#d9b05d]">Ends in {formatTimeLeft(timeLeft)}</span>
+                )}
+              </>
             )}
           </div>
         </section>
@@ -275,13 +313,13 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
         <div className="mx-auto max-w-7xl">
           <motion.div {...reveal()} className="grid gap-8 md:grid-cols-[0.85fr_1.15fr] md:items-end">
             <div>
-              <p className="mb-4 text-[11px] font-black uppercase tracking-[0.32em] text-[#a24f32]">Shop by collection</p>
+              <p className="mb-4 text-[11px] font-black uppercase tracking-[0.32em] text-[#a24f32]">{siteContent?.homeCollectionsEyebrow || 'Shop by collection'}</p>
               <h2 className="kh-display text-5xl font-semibold leading-[0.95] text-[#211b17] md:text-7xl">
-                Heritage categories, edited like a wardrobe.
+                {siteContent?.homeCollectionsHeadline || 'Heritage categories, edited like a wardrobe.'}
               </h2>
             </div>
             <p className="max-w-2xl text-base leading-8 text-[#5f554d] md:justify-self-end md:text-lg">
-              Browse by purpose, from full ceremonial cloth to sashes and corporate pieces. The cards are intentionally image-led so the existing product photography remains the storefront anchor.
+              {siteContent?.homeCollectionsBody || 'Browse by purpose, from full ceremonial cloth to sashes and corporate pieces. The cards are intentionally image-led so the existing product photography remains the storefront anchor.'}
             </p>
           </motion.div>
 
@@ -325,9 +363,9 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
           <div className="mx-auto max-w-7xl">
             <motion.div {...reveal()} className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="mb-4 text-[11px] font-black uppercase tracking-[0.32em] text-[#243f2c]">The Kente edit</p>
+                <p className="mb-4 text-[11px] font-black uppercase tracking-[0.32em] text-[#243f2c]">{siteContent?.homeFeaturedEyebrow || 'The Kente edit'}</p>
                 <h2 className="kh-display text-5xl font-semibold leading-[0.95] text-[#211b17] md:text-7xl">
-                  Featured pieces with room to breathe.
+                  {siteContent?.homeFeaturedHeadline || 'Featured pieces with room to breathe.'}
                 </h2>
               </div>
               <Link
@@ -433,15 +471,15 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
         </section>
       )}
 
-      {siteContent?.flashSaleEnabled && saleProducts.length > 0 && (
+      {salePhase === 'live' && saleProducts.length > 0 && (
         <section className="bg-[#211b17] px-5 py-16 text-[#f8f1e6] sm:px-8 lg:px-10">
           <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-[0.8fr_1.2fr] md:items-center">
             <motion.div {...reveal()}>
               <p className="mb-4 text-[11px] font-black uppercase tracking-[0.32em] text-[#d9b05d]">
-                Limited offering
+                {siteContent?.homeSaleEyebrow || 'Limited offering'}
               </p>
               <h2 className="kh-display text-5xl font-semibold leading-[0.95] md:text-6xl">
-                Current sale pieces, still presented with restraint.
+                {siteContent?.homeSaleHeadline || 'Current sale pieces, still presented with restraint.'}
               </h2>
             </motion.div>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -487,19 +525,19 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
             </div>
             <div className="mt-5 flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.24em] text-[#5f554d]">
               <Layers size={16} className="text-[#b88a2b]" />
-              Pattern, thread, provenance
+              {siteContent?.homeCraftCaption || 'Pattern, thread, provenance'}
             </div>
           </motion.div>
 
           <div>
             <motion.div {...reveal()} className="mb-12">
-              <p className="mb-4 text-[11px] font-black uppercase tracking-[0.32em] text-[#a24f32]">Craftsmanship</p>
+              <p className="mb-4 text-[11px] font-black uppercase tracking-[0.32em] text-[#a24f32]">{siteContent?.homeCraftEyebrow || 'Craftsmanship'}</p>
               <h2 className="kh-display text-5xl font-semibold leading-[0.95] text-[#211b17] md:text-7xl">
-                A quieter page, built around the weight of the cloth.
+                {siteContent?.homeCraftHeadline || 'A quieter page, built around the weight of the cloth.'}
               </h2>
             </motion.div>
             <div className="space-y-5">
-              {CRAFT_STEPS.map((step, index) => (
+              {craftSteps.map((step, index) => (
                 <motion.div
                   key={step.title}
                   {...reveal(index * 0.08, 36)}
@@ -535,7 +573,7 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
                 {siteContent?.galleryTitle || 'Lifestyle Gallery'}
               </p>
               <h2 className="kh-display text-5xl font-semibold leading-[0.95] text-[#211b17] md:text-7xl">
-                Large moments for texture, drape, and ceremony.
+                {siteContent?.homeGalleryHeadline || 'Large moments for texture, drape, and ceremony.'}
               </h2>
             </motion.div>
 
@@ -573,7 +611,7 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
               {siteContent?.testimonialsTitle || 'Love from our Clients'}
             </p>
             <h2 className="kh-display text-5xl font-semibold leading-[0.95] md:text-7xl">
-              Proof in the wearing.
+              {siteContent?.homeTestimonialsHeadline || 'Proof in the wearing.'}
             </h2>
           </motion.div>
 

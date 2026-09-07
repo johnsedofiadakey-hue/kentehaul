@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PaystackButton } from './UIComponents';
 import PhoneInput from './PhoneInput';
 import { generateOrderId } from '../data/constants';
+import { isSaleLive } from '../hooks/useSaleWindow';
 
 const LS_KEY = 'kh_customer';
 
@@ -263,9 +264,9 @@ export default function CartDrawer({
                                                         </div>
                                                         <div className="flex items-baseline gap-2">
                                                             <p className="font-black text-sm mt-0.5" style={{ color: secondary }}>
-                                                                ₵{((siteContent?.flashSaleEnabled ? item.price : (item.originalPrice || item.price)) * item.quantity).toLocaleString()}
+                                                                ₵{((isSaleLive(siteContent) ? item.price : (item.originalPrice || item.price)) * item.quantity).toLocaleString()}
                                                             </p>
-                                                            {siteContent?.flashSaleEnabled && item.originalPrice > item.price && (
+                                                            {isSaleLive(siteContent) && item.originalPrice > item.price && (
                                                                 <p className="text-xs text-gray-400 line-through">₵{(item.originalPrice * item.quantity).toLocaleString()}</p>
                                                             )}
                                                         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, CheckCircle, Loader2, Tag, AlertCircle, Clock, Star, ChevronDown, Settings2 } from 'lucide-react';
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { db } from '../../firebase';
 import { ImageUpload, useToast, Toast } from '../UIComponents';
 import { SHOP_CATEGORIES, FEATURED_PRODUCTS_LIMIT } from '../../data/constants';
@@ -8,7 +8,10 @@ import CategoryManagerModal from './CategoryManagerModal';
 
 const INITIAL_PRODUCT_FORM = {
     name: '', price: '', originalPrice: '', stockQuantity: 1, sku: '', category: '', subcategory: '',
-    description: '', image: '', isPreorder: false, preorderDays: 14, isFlashSale: false, isFeatured: false
+    description: '', image: '', isPreorder: false, preorderDays: 14, isFlashSale: false, isFeatured: false,
+    // 'active' = visible in Shop. 'draft' = staged, only visible here and in
+    // Inventory → Ready to Publish. 'archived' = pulled from sale, kept for records.
+    status: 'active'
 };
 
 export default function AdminProducts({
@@ -103,9 +106,35 @@ export default function AdminProducts({
 
             if (editingProduct) {
                 await updateDoc(doc(db, "products", editingProduct.id), sanitizedProduct);
+                // Log the adjustment only when stock actually moved — editing price,
+                // description, etc. shouldn't clutter the ledger with zero-delta noise.
+                const priorStock = editingProduct.stockQuantity ?? editingProduct.stock ?? 0;
+                const delta = sanitizedProduct.stockQuantity - priorStock;
+                if (delta !== 0) {
+                    await addDoc(collection(db, "stock_ledger"), {
+                        productId: editingProduct.id,
+                        productName: trimmedName,
+                        type: 'adjustment',
+                        delta,
+                        balanceAfter: sanitizedProduct.stockQuantity,
+                        actor: 'admin',
+                        createdAt: serverTimestamp()
+                    });
+                }
                 setEditingProduct(null);
             } else {
-                await addDoc(collection(db, "products"), sanitizedProduct);
+                const newProductRef = await addDoc(collection(db, "products"), sanitizedProduct);
+                if (sanitizedProduct.stockQuantity > 0) {
+                    await addDoc(collection(db, "stock_ledger"), {
+                        productId: newProductRef.id,
+                        productName: trimmedName,
+                        type: 'intake',
+                        delta: sanitizedProduct.stockQuantity,
+                        balanceAfter: sanitizedProduct.stockQuantity,
+                        actor: 'admin',
+                        createdAt: serverTimestamp()
+                    });
+                }
             }
 
             setProductForm(INITIAL_PRODUCT_FORM);
@@ -126,6 +155,16 @@ export default function AdminProducts({
         } catch (e) { showToast("Could not delete product.", "error"); }
     };
 
+    // One-tap publish for a product staged as 'draft' — the common case coming out
+    // of Inventory → Ready to Publish, where opening the full edit form just to
+    // flip one field would be friction for no reason.
+    const publishProduct = async (p) => {
+        try {
+            await updateDoc(doc(db, "products", p.id), { status: 'active' });
+            showToast(`${p.name} is now live on the shop.`);
+        } catch (e) { showToast("Could not publish product.", "error"); }
+    };
+
     const startEditProduct = (p) => {
         setEditingProduct(p);
         setProductForm({
@@ -137,7 +176,10 @@ export default function AdminProducts({
             isPreorder: p.isPreorder ?? false,
             preorderDays: p.preorderDays ?? 14,
             isFlashSale: p.isFlashSale ?? false,
-            isFeatured: p.isFeatured ?? false
+            isFeatured: p.isFeatured ?? false,
+            // Older documents predate this field — they're live on the storefront
+            // today, so editing one must not silently unpublish it.
+            status: p.status ?? 'active'
         });
         // Auto-expand "More options" if this product already uses any of them,
         // so editing doesn't hide settings the admin already configured.
@@ -216,6 +258,27 @@ export default function AdminProducts({
                             <option value="">Select Category</option>
                             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Visibility</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {[
+                                { id: 'draft', label: 'Draft', hint: 'Staged — hidden from customers' },
+                                { id: 'active', label: 'Active', hint: 'Live on the shop' },
+                                { id: 'archived', label: 'Archived', hint: 'Pulled from sale' }
+                            ].map(opt => (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => setProductForm({ ...productForm, status: opt.id })}
+                                    className={`p-3 rounded-2xl border text-left transition-all ${productForm.status === opt.id ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-300'}`}
+                                >
+                                    <p className="text-xs font-black uppercase tracking-wide">{opt.label}</p>
+                                    <p className={`text-[10px] font-bold mt-0.5 ${productForm.status === opt.id ? 'text-gray-300' : 'text-gray-400'}`}>{opt.hint}</p>
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Everything below is secondary — flash sale, featured, pre-order, SKU, subcategory,
@@ -361,7 +424,11 @@ export default function AdminProducts({
                                         <div className="w-14 h-14 rounded-2xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-300 text-xs font-black">No img</div>
                                     )}
                                     <div>
-                                        <p className="font-black text-gray-800">{p.name}</p>
+                                        <p className="font-black text-gray-800 flex items-center gap-2">
+                                            {p.name}
+                                            {p.status === 'draft' && <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 text-amber-700">Draft</span>}
+                                            {p.status === 'archived' && <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-gray-200 text-gray-500">Archived</span>}
+                                        </p>
                                         <p className="text-xs font-black text-gray-500">{categories.find(c => c.id === p.category)?.name || p.category || '—'}{p.subcategory ? ` · ${p.subcategory}` : ''}</p>
                                     </div>
                                 </div>
@@ -375,6 +442,9 @@ export default function AdminProducts({
                                     {p.sku && <span className="text-[10px] font-bold text-gray-400">SKU: {p.sku}</span>}
                                 </div>
                                 <div className="flex gap-2">
+                                    {p.status === 'draft' && (
+                                        <button onClick={() => publishProduct(p)} className="p-3 bg-green-50 text-green-600 rounded-2xl hover:bg-green-100 shadow-sm"><CheckCircle size={16} /></button>
+                                    )}
                                     <button onClick={() => startEditProduct(p)} className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 shadow-sm"><Edit size={16} /></button>
                                     <button onClick={() => deleteProduct(p.id)} className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 shadow-sm"><Trash2 size={16} /></button>
                                 </div>
@@ -399,7 +469,11 @@ export default function AdminProducts({
                                             ) : (
                                                 <div className="w-12 h-12 rounded-xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-300 text-[10px] font-black">No img</div>
                                             )}
-                                            <span className="font-black text-gray-800">{p.name}</span>
+                                            <span className="font-black text-gray-800 flex items-center gap-2">
+                                                {p.name}
+                                                {p.status === 'draft' && <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 text-amber-700">Draft</span>}
+                                                {p.status === 'archived' && <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-gray-200 text-gray-500">Archived</span>}
+                                            </span>
                                         </div>
                                     </td>
                                     <td className="p-5">
@@ -418,6 +492,9 @@ export default function AdminProducts({
                                     </td>
                                     <td className="p-5 font-black text-gray-600">₵{p.price}</td>
                                     <td className="p-5 text-right flex justify-end gap-3">
+                                        {p.status === 'draft' && (
+                                            <button onClick={() => publishProduct(p)} className="p-3 bg-green-50 text-green-600 rounded-2xl hover:bg-green-100 shadow-sm"><CheckCircle size={18} /></button>
+                                        )}
                                         <button onClick={() => startEditProduct(p)} className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 shadow-sm"><Edit size={18} /></button>
                                         <button onClick={() => deleteProduct(p.id)} className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 shadow-sm"><Trash2 size={18} /></button>
                                     </td>

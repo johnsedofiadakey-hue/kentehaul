@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Search, ShoppingBag, Smartphone, Eye, ChevronDown, X, ArrowRight, Grid3X3, Filter, LayoutGrid, Heart, Share2 } from 'lucide-react';
 import { SHOP_CATEGORIES } from '../data/constants';
 import { LazyImage } from './UIComponents';
+import { isSaleLive } from '../hooks/useSaleWindow';
 import { motion, AnimatePresence } from 'framer-motion';
 import SEO from './SEO';
 
@@ -57,6 +58,10 @@ export default function Shop({
       return prev;
     });
   };
+
+  // Sale UI follows the scheduled window, so badges and struck-through prices
+  // disappear on their own when the sale closes.
+  const saleLive = isSaleLive(siteContent);
 
   const selectedCatData = useMemo(() => categories.find(c => c.id === activeCategory), [categories, activeCategory]);
 
@@ -279,7 +284,7 @@ export default function Shop({
               >
                 All Archives
               </button>
-              {siteContent?.flashSaleEnabled && (
+              {saleLive && (
                 <button
                   onClick={() => updateCategory('sales')}
                   className={`flex-shrink-0 border px-6 py-3 text-[10px] font-black uppercase tracking-[0.22em] transition-all ${activeCategory === 'sales' ? 'border-[#a24f32] bg-[#a24f32] text-white' : 'border-[#211b17]/10 bg-[#fffaf1] text-[#5f554d]'}`}
@@ -325,7 +330,7 @@ export default function Shop({
                   >
                     All Archives
                   </button>
-                {siteContent?.flashSaleEnabled && (
+                {saleLive && (
                   <button
                     onClick={() => updateCategory('sales')}
                     className={`px-4 py-3 text-left text-sm font-black transition-all ${activeCategory === 'sales' ? 'translate-x-1 bg-[#a24f32] text-white shadow-xl' : 'text-[#5f554d] hover:bg-[#fffaf1]'}`}
@@ -411,7 +416,7 @@ export default function Shop({
                             >
                               All Archives
                             </button>
-                            {siteContent?.flashSaleEnabled && (
+                            {saleLive && (
                               <button
                                 onClick={() => { setActiveCategory('sales'); setActiveSubcategory(null); setIsMobileFiltersOpen(false); }}
                                 className={`px-5 py-4 text-left text-sm font-bold transition-all ${activeCategory === 'sales' ? 'bg-[#a24f32] text-white' : 'bg-[#fffaf1] text-[#5f554d]'}`}
@@ -496,7 +501,7 @@ export default function Shop({
                 {filteredProducts.map((p, idx) => {
                   const isSaved = p.id && (wishlist || []).some(item => item.id === p.id);
                   const categoryName = categories.find(c => c.id === p.category)?.name;
-                  const price = siteContent?.flashSaleEnabled ? p.price : (p.originalPrice || p.price);
+                  const price = saleLive ? p.price : (p.originalPrice || p.price);
 
                   return (
                     <motion.div
@@ -556,7 +561,7 @@ export default function Shop({
                           ) : p.stockQuantity <= 3 && (
                             <span className="border border-white/30 bg-[#b88a2b]/90 px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-[#211b17] backdrop-blur-md md:text-[10px]">Low Stock</span>
                           )}
-                          {siteContent?.flashSaleEnabled && (p.isFlashSale || (p.originalPrice > p.price)) && (
+                          {saleLive && (p.isFlashSale || (p.originalPrice > p.price)) && (
                             <span className="border border-white/30 bg-[#a24f32]/90 px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md md:text-[10px]">
                               {siteContent?.flashSaleTitle || "Sale"}
                             </span>
@@ -608,7 +613,7 @@ export default function Shop({
                             <p className="text-lg font-semibold text-[#211b17] md:text-2xl">
                               ₵{Number(price || 0).toLocaleString()}
                             </p>
-                            {siteContent?.flashSaleEnabled && (p.originalPrice > p.price) && (
+                            {saleLive && (p.originalPrice > p.price) && (
                               <p className="text-sm font-light text-[#8f8276] line-through md:text-base">
                                 ₵{p.originalPrice.toLocaleString()}
                               </p>
