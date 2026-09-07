@@ -6,6 +6,7 @@ import OrderSuccessModal from './components/OrderSuccessModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import {
   collection,
+  addDoc,
   onSnapshot,
   doc,
   setDoc,
@@ -23,6 +24,7 @@ import debounce from 'lodash.debounce';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { getToken, onMessage } from "firebase/messaging";
 import { db, auth, messaging, analytics, logEvent } from './firebase';
+import { useSalePhase } from './hooks/useSaleWindow';
 
 // --- IMPORTING DEFAULT DATA (Fallback) ---
 import {
@@ -142,11 +144,23 @@ export default function App() {
       return INITIAL_CONTENT;
     }
   });
+  // Sale pricing follows the scheduled window, not the raw toggle — otherwise an
+  // expired sale kept discounting until someone manually unticked the checkbox.
+  const isSaleLive = useSalePhase(siteContent) === 'live';
   const [isInitialLoaderVisible, setIsInitialLoaderVisible] = useState(true);
   const [isLoaderVideoPlaying, setIsLoaderVideoPlaying] = useState(false);
   const shouldShowLoader = !siteContent || isInitialLoaderVisible;
   const loaderVideoRef = useRef(null);
   const [products, setProducts] = useState([]);
+  // Goods staged in Admin → Inventory (status: 'draft') or pulled from sale
+  // (status: 'archived') stay out of every customer-facing surface. Missing
+  // `status` on older documents is treated as active, so this doesn't require a
+  // backfill write across the whole live product collection to avoid emptying
+  // the storefront on deploy.
+  const publicProducts = useMemo(
+    () => products.filter(p => p.status !== 'draft' && p.status !== 'archived'),
+    [products]
+  );
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -346,6 +360,29 @@ export default function App() {
     navigate('/');
   };
 
+  // Sale awareness capture ("Notify me" on the upcoming-sale banner). Writes a
+  // subscriber doc; the actual send happens server-side in
+  // functions/index.js:dispatchSaleAnnouncement, which fires once automatically
+  // the moment the scheduled sale opens.
+  const handleSaleSubscribe = async (email) => {
+    const trimmed = (email || '').trim();
+    if (!/^\S+@\S+\.\S+$/.test(trimmed)) {
+      return { success: false, error: 'Enter a valid email address.' };
+    }
+    try {
+      await addDoc(collection(db, 'sale_subscribers'), {
+        email: trimmed,
+        consent: true,
+        source: 'homepage_banner',
+        createdAt: serverTimestamp()
+      });
+      return { success: true };
+    } catch (err) {
+      console.error('Sale subscribe failed:', err);
+      return { success: false, error: 'Something went wrong. Please try again.' };
+    }
+  };
+
   // Recovery: Auto-login client from cache
   useEffect(() => {
     const isAuth = localStorage.getItem('kente_client_authenticated');
@@ -389,8 +426,10 @@ export default function App() {
     const productId = searchParams.get('product');
     if (!productId) return;
 
-    if (products.length > 0 && !deepLinkProcessed.current) {
-      const product = products.find(p => p.id === productId);
+    if (publicProducts.length > 0 && !deepLinkProcessed.current) {
+      // publicProducts, not products — a shared/guessed ?product= link must not
+      // be able to open something still staged in Inventory or pulled from sale.
+      const product = publicProducts.find(p => p.id === productId);
       if (product) {
         deepLinkProcessed.current = true;
         setSelectedProduct(product);
@@ -400,7 +439,7 @@ export default function App() {
         setSearchParams(newParams, { replace: true });
       }
     }
-  }, [products, searchParams, setSearchParams]);
+  }, [publicProducts, searchParams, setSearchParams]);
 
   // --- DEBOUNCED WISHLIST SYNC ---
   const debouncedSync = useRef(
@@ -662,6 +701,10 @@ export default function App() {
   // ==========================================
 
   const addToCart = (product) => {
+    // Belt-and-braces: the UI only ever offers active products, but this guards
+    // against a stale reference (e.g. a product demoted to draft/archived while
+    // already open in a customer's tab).
+    if (product?.status === 'draft' || product?.status === 'archived') return;
     const existingItem = cart.find(item => item.id === product.id);
     if (existingItem) {
       if (existingItem.quantity < (product.stockQuantity ?? product.stock ?? 0)) {
@@ -677,7 +720,7 @@ export default function App() {
         
         // Google Analytics: Add to Cart
         if (analytics) {
-          const activePrice = siteContent?.flashSaleEnabled ? product.price : (product.originalPrice || product.price);
+          const activePrice = isSaleLive ? product.price : (product.originalPrice || product.price);
           logEvent(analytics, 'add_to_cart', {
             items: [{ item_id: product.id, item_name: product.name, price: activePrice, quantity: 1 }],
             value: activePrice,
@@ -715,9 +758,9 @@ export default function App() {
   };
 
   const cartTotal = useMemo(() => cart.reduce((total, item) => {
-    const price = siteContent?.flashSaleEnabled ? item.price : (item.originalPrice || item.price);
+    const price = isSaleLive ? item.price : (item.originalPrice || item.price);
     return total + (price * item.quantity);
-  }, 0), [cart, siteContent?.flashSaleEnabled]);
+  }, 0), [cart, isSaleLive]);
 
   // --- ATOMIC CHECKOUT LOGIC (Robust Firestore Writes) ---
 
@@ -747,7 +790,7 @@ export default function App() {
           const snap = productSnapshots[idx];
           if (snap.exists()) {
               const liveProd = snap.data();
-              const price = siteContent?.flashSaleEnabled ? Number(liveProd.price || 0) : Number(liveProd.originalPrice || liveProd.price || 0);
+              const price = isSaleLive ? Number(liveProd.price || 0) : Number(liveProd.originalPrice || liveProd.price || 0);
               const qty = Number(item.quantity || 1);
               const itemTotal = price * qty;
               
@@ -850,8 +893,21 @@ export default function App() {
 
             for (const item of cartItems) {
                 if (!item.id || item.isPreorder) continue;
-                backgroundBatch.update(doc(db, "products", item.id), { 
-                    stockQuantity: increment(-Number(item.quantity || 1)) 
+                const qty = Number(item.quantity || 1);
+                backgroundBatch.update(doc(db, "products", item.id), {
+                    stockQuantity: increment(-qty)
+                });
+                // Audit trail for Admin → Inventory → Ledger. balanceAfter isn't known
+                // client-side (increment() resolves server-side), so it's left for the
+                // ledger view to derive from adjacent entries rather than guessed here.
+                backgroundBatch.set(doc(collection(db, "stock_ledger")), {
+                    productId: item.id,
+                    productName: item.name || '',
+                    type: 'sale',
+                    delta: -qty,
+                    orderId,
+                    actor: 'customer_checkout',
+                    createdAt: serverTimestamp()
                 });
             }
             await backgroundBatch.commit();
@@ -916,7 +972,7 @@ export default function App() {
           const snap = productSnapshots[idx];
           if (snap.exists()) {
               const liveProd = snap.data();
-              const price = siteContent?.flashSaleEnabled ? Number(liveProd.price || 0) : Number(liveProd.originalPrice || liveProd.price || 0);
+              const price = isSaleLive ? Number(liveProd.price || 0) : Number(liveProd.originalPrice || liveProd.price || 0);
               const qty = Number(item.quantity || 1);
               totalAmount += (price * qty);
 
@@ -1009,11 +1065,21 @@ export default function App() {
 
           for (const item of cartItems) {
             if (!item.id) continue;
-            backgroundBatch.update(doc(db, "products", item.id), { 
-              stockQuantity: increment(-Number(item.quantity || 1)) 
+            const qty = Number(item.quantity || 1);
+            backgroundBatch.update(doc(db, "products", item.id), {
+              stockQuantity: increment(-qty)
+            });
+            backgroundBatch.set(doc(collection(db, "stock_ledger")), {
+              productId: item.id,
+              productName: item.name || '',
+              type: 'sale',
+              delta: -qty,
+              orderId,
+              actor: 'customer_checkout',
+              createdAt: serverTimestamp()
             });
           }
-          
+
           await backgroundBatch.commit();
 
           // Order confirmation email is sent server-side by the onOrderCreated
@@ -1054,7 +1120,10 @@ export default function App() {
     return (
       <div className="kh-loader-screen" aria-label="KenteHaul is loading">
         <div className="kh-loader-content">
-          <p className="kh-loader-eyebrow">Ghanaian Heritage House</p>
+          {/* siteContent can still be null here on a cold load, so both strings fall
+              back to INITIAL_CONTENT rather than being hardcoded — the client edits
+              them in Admin → Settings → Homepage Copy. */}
+          <p className="kh-loader-eyebrow">{siteContent?.loaderEyebrow || INITIAL_CONTENT.loaderEyebrow}</p>
           <div className="kh-loader-wordmark" aria-label="KenteHaul">
             {'KENTE'.split('').map((letter, i) => (
               <span key={`k${i}`} className="kh-loader-letter kh-loader-letter--cream" style={{ animationDelay: `${0.06 * i}s` }}>{letter}</span>
@@ -1066,7 +1135,7 @@ export default function App() {
           <div className="kh-loader-bar-track">
             <span className="kh-loader-bar-fill" />
           </div>
-          <p className="kh-loader-tagline">Weaving your experience</p>
+          <p className="kh-loader-tagline">{siteContent?.loaderTagline || INITIAL_CONTENT.loaderTagline}</p>
         </div>
       </div>
     );
@@ -1074,7 +1143,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-neutral-50 font-sans text-gray-800 flex flex-col">
+      <div className="min-h-screen bg-[#f8f1e6] font-sans text-[#211b17] flex flex-col">
         <SEO 
           siteContent={siteContent}
           title="KenteHaul | Authentic Royal Ghanaian Kente Cloth & Smocks"
@@ -1214,10 +1283,10 @@ export default function App() {
               transition={{ duration: 0.25, ease: 'easeInOut' }}
             >
             <Routes>
-              <Route path="/" element={<Home siteContent={siteContent} gallery={gallery} feedbacks={feedbacks} products={products} addToCart={addToCart} />} />
+              <Route path="/" element={<Home siteContent={siteContent} gallery={gallery} feedbacks={feedbacks} products={publicProducts} addToCart={addToCart} onSaleSubscribe={handleSaleSubscribe} />} />
               <Route path="/heritage" element={<Heritage siteContent={siteContent} />} />
-              <Route path="/shop" element={<Shop products={products} categories={categories} currentCategory={currentCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} handleSingleBuy={handleSingleBuy} setSelectedProduct={setSelectedProduct} siteContent={siteContent} wishlist={wishlist} toggleWishlist={toggleWishlist} />} />
-              <Route path="/institute" element={<Institute siteContent={siteContent} products={products} />} />
+              <Route path="/shop" element={<Shop products={publicProducts} categories={categories} currentCategory={currentCategory} searchQuery={searchQuery} setSearchQuery={setSearchQuery} addToCart={addToCart} handleSingleBuy={handleSingleBuy} setSelectedProduct={setSelectedProduct} siteContent={siteContent} wishlist={wishlist} toggleWishlist={toggleWishlist} />} />
+              <Route path="/institute" element={<Institute siteContent={siteContent} products={publicProducts} />} />
               <Route path="/contact" element={<Contact siteContent={siteContent} />} />
               <Route path="/track/:orderId" element={<TrackingPage siteContent={siteContent} />} />
               <Route path="/privacy-policy" element={<LegalView title="Privacy Policy" content={siteContent?.privacyPolicy} siteContent={siteContent} type="privacy" />} />

@@ -36,9 +36,43 @@ const FormattedText = ({ text, centered = false }) => {
 
 const ContactForm = ({ primaryColor, secondaryColor }) => {
   const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', phone: '', message: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.firstName || !formData.email || !formData.message) return;
+    setIsSubmitting(true);
+    try {
+      const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('../firebase');
+      await addDoc(collection(db, 'contact_messages'), {
+        ...formData,
+        status: 'new',
+        createdAt: serverTimestamp(),
+      });
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      alert('Something went wrong. Please try again.');
+    }
+    setIsSubmitting(false);
+  };
+
+  if (submitted) {
+    return (
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center p-12 bg-[#f0ebe2] rounded-[40px] border border-[#d9c9b0]">
+        <div className="w-16 h-16 bg-[#243f2c] text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+          <CheckCircle size={32} />
+        </div>
+        <h3 className="text-2xl font-black text-[#211b17] mb-2 uppercase tracking-tight">Message Received</h3>
+        <p className="text-[#5f554d] font-bold">Thank you for reaching out. We'll get back to you shortly.</p>
+      </motion.div>
+    );
+  }
 
   return (
-    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+    <form className="space-y-6" onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1">
           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">First Name</label>
@@ -94,12 +128,14 @@ const ContactForm = ({ primaryColor, secondaryColor }) => {
       </div>
       
       <motion.button
+        type="submit"
+        disabled={isSubmitting}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="w-full text-white py-6 rounded-3xl font-black text-xs uppercase tracking-[4px] transition shadow-2xl flex items-center justify-center gap-3"
+        className="w-full text-white py-6 rounded-3xl font-black text-xs uppercase tracking-[4px] transition shadow-2xl flex items-center justify-center gap-3 disabled:opacity-60"
         style={{ backgroundColor: secondaryColor }}
       >
-        <ArrowRight size={18} /> Send Message
+        <ArrowRight size={18} /> {isSubmitting ? 'Sending…' : 'Send Message'}
       </motion.button>
     </form>
   );
@@ -213,549 +249,6 @@ const PartnerInvitation = ({ siteContent }) => {
               </button>
             </div>
             <PartnerForm siteContent={siteContent} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// --- HOME PAGE COMPONENT ---
-export const Home = ({ siteContent, gallery, feedbacks, products = [], addToCart }) => {
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
-  useEffect(() => {
-    if (!siteContent?.flashSaleEndDate) return;
-
-    const calculateTimeLeft = () => {
-      const difference = +new Date(siteContent.flashSaleEndDate) - +new Date();
-      let timeLeft = {};
-
-      if (difference > 0) {
-        timeLeft = {
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60)
-        };
-      } else {
-        timeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
-      }
-      return timeLeft;
-    };
-
-    setTimeLeft(calculateTimeLeft());
-    const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [siteContent?.flashSaleEndDate]);
-
-  return (
-    <div className="animate-fade-in">
-      <SEO 
-        title={siteContent?.heroTitle || "Home"}
-        description={siteContent?.heroSubtitle || "Discover the finest hand-woven Kente cloth from the heart of Ghana."}
-        ogTitle={`${siteContent?.heroTitle || "KenteHaul"} | Royal Kente Cloth`}
-        ogDescription="Shop authentic, high-quality Ghanaian Kente cloth. We deliver heritage to your doorstep."
-        canonicalPath="/"
-      />
-      {siteContent?.flashSaleEnabled && (
-        <div className="relative bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 py-4 text-center text-white z-20 shadow-lg">
-          <p className="text-sm font-black uppercase tracking-[2px] flex items-center justify-center gap-2 flex-wrap">
-            <span className="animate-pulse text-lg">✨</span> 
-            {siteContent?.flashSaleTitle || "Mother's Day Sales"} is Live! 
-            <span className="animate-pulse text-lg">✨</span>
-            {siteContent?.flashSaleEndDate && (
-              <span className="ml-2 bg-white/20 px-3 py-1 rounded-full text-xs font-bold tracking-normal backdrop-blur-sm">
-                Ends in {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m
-              </span>
-            )}
-          </p>
-        </div>
-      )}
-
-      {/* HERO SECTION */}
-      {/* overflow-hidden clips the decorative glow blobs below — without it, their fixed
-          pixel widths (500-800px) push the page wider than the viewport, worst on mobile
-          where the container itself is far narrower than the blobs. */}
-      <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
-        {siteContent?.heroImage ? (
-          <div className="absolute inset-0 z-0">
-            {/* Opacity raised from 60 to 92 and cropped higher (object-position) so the actual
-                photo — a full smiling face and the kente pattern — reads clearly instead of
-                being flattened into a uniform maroon wash with only nose-to-chin visible. */}
-            <LazyImage src={siteContent?.heroImage} className="w-full h-full object-cover opacity-90 object-[center_20%]" alt="Hero" priority />
-            <div className="absolute inset-0 bg-gradient-to-t via-transparent to-transparent" style={{ '--tw-gradient-from': `${siteContent?.primaryColor || '#5b0143'}B3`, '--tw-gradient-to': 'transparent' }}></div>
-          </div>
-        ) : (
-          <div className="absolute inset-0 z-0 opacity-40 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-        )}
-
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white rounded-full mix-blend-overlay filter blur-[120px] opacity-20 animate-blob pointer-events-none"></div>
-        <div className="absolute bottom-[-100px] left-[-100px] w-[600px] h-[600px] rounded-full mix-blend-overlay filter blur-[150px] opacity-20 animate-blob animation-delay-2000 pointer-events-none" style={{ backgroundColor: siteContent?.secondaryColor || '#f97316' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-white/5 rounded-full filter blur-[200px] animate-blob animation-delay-4000 pointer-events-none"></div>
-
-        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="mb-12 sm:mb-20 lg:mb-24 -mt-24 sm:-mt-32 lg:mt-0"
-          >
-            <span
-              className="inline-block py-2 px-6 rounded-full text-white font-black text-[10px] sm:text-xs tracking-[5px] uppercase border border-white/20 backdrop-blur-xl shadow-2xl"
-              style={{ backgroundColor: `${siteContent?.secondaryColor || '#f97316'}30` }}
-            >
-              The Royal Standard
-            </span>
-          </motion.div>
-          <motion.h1
-            initial={{ y: 40, opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-            className="text-6xl md:text-9xl font-black text-white mb-8 leading-[0.9] tracking-tighter drop-shadow-2xl uppercase"
-          >
-            {siteContent?.heroTitle}
-          </motion.h1>
-          <motion.p
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.4, duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="text-lg md:text-3xl text-white/80 mb-14 leading-tight font-black uppercase tracking-tight max-w-3xl mx-auto"
-          >
-            {siteContent?.heroSubtitle}
-          </motion.p>
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.6, duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-col sm:flex-row gap-5 justify-center mt-10"
-          >
-            <Link
-              to="/shop"
-              className="group text-white px-6 py-4 sm:px-10 sm:py-5 rounded-2xl font-black text-xs uppercase tracking-[3px] sm:tracking-[4px] hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all transform hover:-translate-y-2 inline-flex items-center justify-center relative overflow-hidden active:scale-95"
-              style={{ backgroundColor: siteContent?.secondaryColor || '#f97316' }}
-            >
-              <span className="relative z-10 flex items-center gap-2">Shop Now <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" /></span>
-            </Link>
-
-            <Link to="/heritage" className="hidden sm:inline-flex bg-white/5 backdrop-blur-2xl text-white border border-white/20 px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-[4px] hover:bg-white/10 transition-all transform hover:-translate-y-2 items-center justify-center active:scale-95 shadow-xl">
-              Our Legacy
-            </Link>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* KENTE PATTERN DIVIDER */}
-      <div className="w-full overflow-hidden leading-none" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
-        <svg viewBox="0 0 1200 32" preserveAspectRatio="none" className="w-full h-8" fill="currentColor" aria-hidden="true">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <g key={i} transform={`translate(${i * 60}, 0)`}>
-              <rect x="0" y="0" width="20" height="16" opacity="0.15" />
-              <rect x="20" y="0" width="20" height="16" opacity="0.08" />
-              <rect x="10" y="16" width="20" height="16" opacity="0.12" />
-              <rect x="30" y="16" width="20" height="16" opacity="0.06" />
-              <rect x="5" y="8" width="10" height="10" opacity="0.25" />
-              <rect x="35" y="8" width="10" height="10" opacity="0.2" />
-            </g>
-          ))}
-        </svg>
-      </div>
-
-      {/* SOCIAL PROOF TICKER */}
-      <div className="bg-gray-950 py-4 overflow-hidden">
-        <div className="flex gap-0 animate-marquee whitespace-nowrap" style={{ animationDuration: '30s' }}>
-          {[
-            '⭐⭐⭐⭐⭐  "The quality is absolutely stunning" — Abena K.',
-            '🇬🇭  "Fast delivery, beautiful packaging" — Kwame A.',
-            '✨  "Wore it to my sister\'s wedding, got so many compliments!" — Ama F.',
-            '🎁  "Perfect gift, arrived before Christmas" — Nana O.',
-            '🧵  "Authentic weaving — you can feel the craftsmanship" — Kofi M.',
-            '⭐⭐⭐⭐⭐  "Will definitely order again" — Akosua D.',
-            '🚀  "Order came the same day in Accra!" — Yaw B.',
-            '💛  "Love the kente patterns, exactly as shown" — Efua T.',
-          ].concat([
-            '⭐⭐⭐⭐⭐  "The quality is absolutely stunning" — Abena K.',
-            '🇬🇭  "Fast delivery, beautiful packaging" — Kwame A.',
-            '✨  "Wore it to my sister\'s wedding, got so many compliments!" — Ama F.',
-            '🎁  "Perfect gift, arrived before Christmas" — Nana O.',
-          ]).map((review, i) => (
-            <span key={i} className="inline-flex items-center gap-4 text-white/60 text-xs font-bold uppercase tracking-[2px] px-8">
-              {review}
-              <span className="text-white/20 mx-2">|</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* ⚡ FLASH SALES SECTION */}
-      {siteContent?.flashSaleEnabled && (
-      <div className="py-20 text-white relative" style={{ backgroundColor: siteContent?.flashSaleColor || '#5b0143' }}>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-[100px] opacity-10"></div>
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-16">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="flex flex-col items-center"
-            >
-              <div className="w-12 h-1 bg-white mb-6 rounded-full"></div>
-              <h2 className="text-5xl md:text-7xl font-black mb-4 uppercase tracking-tighter">
-                {siteContent?.flashSaleTitle || "Mother's Day Sales"}
-              </h2>
-              <p className="text-white/80 font-bold max-w-xl mx-auto uppercase tracking-widest text-xs">Exclusive deals on authentic heritage pieces.</p>
-              
-              {siteContent?.flashSaleEndDate && (
-                <div className="flex gap-3 sm:gap-4 justify-center mt-8 font-mono text-center">
-                  <div className="bg-white/10 backdrop-blur-md p-3 sm:p-4 rounded-xl w-16 sm:w-20">
-                    <span className="text-xl sm:text-2xl font-black">{timeLeft.days}</span>
-                    <p className="text-[8px] sm:text-[10px] uppercase tracking-widest mt-1">Days</p>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md p-3 sm:p-4 rounded-xl w-16 sm:w-20">
-                    <span className="text-xl sm:text-2xl font-black">{timeLeft.hours}</span>
-                    <p className="text-[8px] sm:text-[10px] uppercase tracking-widest mt-1">Hrs</p>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md p-3 sm:p-4 rounded-xl w-16 sm:w-20">
-                    <span className="text-xl sm:text-2xl font-black">{timeLeft.minutes}</span>
-                    <p className="text-[8px] sm:text-[10px] uppercase tracking-widest mt-1">Min</p>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-md p-3 sm:p-4 rounded-xl w-16 sm:w-20">
-                    <span className="text-xl sm:text-2xl font-black">{timeLeft.seconds}</span>
-                    <p className="text-[8px] sm:text-[10px] uppercase tracking-widest mt-1">Sec</p>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-
-          {products && products.filter(p => p.isFlashSale === true).length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-              {/* Spotlight Card (Left) */}
-              {products.filter(p => p.isFlashSale === true).slice(0, 1).map((p) => (
-                <div key={p.id} className="md:col-span-7 bg-white/10 backdrop-blur-md rounded-[40px] overflow-hidden border border-white/20 hover:bg-white/15 transition-all duration-500 group flex flex-col md:flex-row h-full">
-                  <div className="md:w-1/2 h-[300px] md:h-full overflow-hidden relative">
-                    <LazyImage src={p.image} alt={p.name} className="w-full h-full object-cover transition duration-700 group-hover:scale-110" />
-                    <div className="absolute top-4 left-4 bg-rose-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Featured</div>
-                  </div>
-                  <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-between">
-                    <div>
-                      <span className="text-amber-300 font-black text-xs uppercase tracking-[3px] mb-2 block">{p.category}</span>
-                      <h3 className="font-black text-2xl md:text-4xl uppercase tracking-tighter text-white mb-4 leading-tight">{p.name}</h3>
-                      <p className="text-white/60 text-sm mb-6 line-clamp-3">Experience authentic heritage with our specially curated pieces. Limited availability.</p>
-                      
-                      <div className="flex items-baseline gap-3 mb-6">
-                        <p className="text-white font-black text-2xl md:text-3xl">₵{p.price?.toLocaleString()}</p>
-                        {p.originalPrice && (
-                          <p className="text-white/40 font-bold text-sm md:text-lg line-through">₵{p.originalPrice?.toLocaleString()}</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <button
-                      onClick={() => addToCart && addToCart(p)}
-                      className="w-full py-4 bg-white text-gray-900 rounded-2xl font-black text-xs uppercase tracking-[2px] shadow-2xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 group/btn"
-                    >
-                      <ShoppingBag size={14} className="group-hover/btn:scale-110 transition-transform" /> Add to Bag
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {/* Side Grid (Right) */}
-              <div className="md:col-span-5 grid grid-cols-2 gap-4">
-                {products.filter(p => p.isFlashSale === true).slice(1, 3).map((p) => (
-                  <div key={p.id} className="bg-white/10 backdrop-blur-md rounded-3xl overflow-hidden border border-white/20 hover:bg-white/15 transition-all duration-500 group flex flex-col justify-between">
-                    <div className="aspect-[4/5] overflow-hidden relative">
-                      <LazyImage src={p.image} alt={p.name} className="w-full h-full object-cover transition duration-700 group-hover:scale-110" />
-                      <div className="absolute top-3 right-3 bg-white text-gray-900 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest">Sale</div>
-                      
-                      {/* Quick Add Hover Button */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20">
-                        <button
-                          onClick={() => addToCart && addToCart(p)}
-                          className="bg-white text-gray-900 p-3 rounded-full shadow-2xl hover:scale-110 transition-transform active:scale-95"
-                          title="Add to Bag"
-                        >
-                          <ShoppingBag size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-black text-xs uppercase tracking-tight text-white mb-1 truncate">{p.name}</h3>
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <p className="text-white font-black text-xs">₵{p.price?.toLocaleString()}</p>
-                          {p.originalPrice && (
-                            <p className="text-white/40 font-bold text-[10px] line-through">₵{p.originalPrice?.toLocaleString()}</p>
-                          )}
-                        </div>
-                        <span className="text-[10px] font-bold text-white/50">{p.category}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="text-center p-12 bg-white/5 rounded-3xl border-2 border-dashed border-white/20 text-white/70">
-              <p className="font-medium">No sales items available right now. Check back soon!</p>
-            </div>
-          )}
-        </div>
-      </div>
-      )}
-
-      {/* FEATURED PRODUCTS SECTION — independent of the flash-sale toggle, so a visitor
-          sees real pieces and prices without having to leave the homepage. Shows whatever
-          the admin has marked "Feature on Homepage" (up to FEATURED_PRODUCTS_LIMIT), or
-          falls back to the newest products if nothing has been curated yet. Can be turned
-          off entirely from Settings. */}
-      {siteContent?.featuredEnabled !== false && products && products.length > 0 && (
-        <div className="py-20 bg-gray-50/50">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-              >
-                <div className="w-12 h-1 bg-amber-500 mb-6 rounded-full"></div>
-                <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
-                  Featured Pieces
-                </h2>
-                <p className="text-gray-400 font-bold mt-3 max-w-md">A closer look at the pieces we love most right now.</p>
-              </motion.div>
-              <Link
-                to="/shop"
-                className="hidden md:flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-900 hover:text-amber-600 transition-colors flex-shrink-0"
-              >
-                Shop all <ArrowRight size={14} />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {(() => {
-                const curated = products.filter(p => p.isFeatured);
-                const pool = curated.length > 0 ? curated : products;
-                return [...pool].sort((a, b) => (b.date || 0) - (a.date || 0)).slice(0, FEATURED_PRODUCTS_LIMIT);
-              })().map(p => (
-                  <Link
-                    key={p.id}
-                    to={`/shop?product=${p.id}`}
-                    className="group block bg-white rounded-2xl md:rounded-3xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300"
-                  >
-                    <div className="aspect-square overflow-hidden bg-gray-50">
-                      <LazyImage src={p.image} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    </div>
-                    <div className="p-3 md:p-4">
-                      <p className="text-[9px] md:text-[10px] font-bold text-amber-600 uppercase tracking-widest mb-1 truncate">{p.category}</p>
-                      <p className="font-bold text-xs md:text-sm text-gray-900 truncate mb-1">{p.name}</p>
-                      <p className="font-black text-sm md:text-base" style={{ color: siteContent?.secondaryColor || '#f97316' }}>₵{p.price?.toLocaleString()}</p>
-                    </div>
-                  </Link>
-                ))}
-            </div>
-
-            <Link
-              to="/shop"
-              className="md:hidden mt-10 flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest text-white"
-              style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}
-            >
-              Shop all <ArrowRight size={14} />
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* GALLERY SECTION */}
-      <div className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-24">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="flex flex-col items-center"
-            >
-              <div className="w-12 h-1 bg-amber-500 mb-6 rounded-full"></div>
-              <h2 className="text-5xl md:text-7xl font-black mb-6 uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
-                {siteContent?.galleryTitle || "Lifestyle Gallery"}
-              </h2>
-              <p className="text-gray-400 font-bold max-w-xl mx-auto uppercase tracking-widest text-xs">Curated moments of cultural excellence and royal style.</p>
-            </motion.div>
-          </div>
-
-          {gallery.length > 0 ? (
-            siteContent?.galleryLayout === 'parallax' ? (
-              /* Parallax Storyboard Layout */
-              <div className="space-y-12 md:space-y-24 max-w-5xl mx-auto">
-                {gallery.map((item, index) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 50 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-100px" }}
-                    transition={{ duration: 0.8, delay: (index % 3) * 0.1 }}
-                    className={`relative group flex flex-col ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} items-center gap-8 md:gap-16`}
-                  >
-                    <div className="w-full md:w-3/5 aspect-[4/5] rounded-[32px] overflow-hidden shadow-2xl relative">
-                      <LazyImage src={item.image} alt="Gallery" className="w-full h-full object-cover transition duration-700 group-hover:scale-105" />
-                      <div
-                        className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition duration-300 flex flex-col items-center justify-center cursor-zoom-in p-6"
-                        onClick={() => setSelectedImage(item.image)}
-                      >
-                        <ZoomIn className="text-white mb-2" size={32} />
-                        <span className="text-white font-black text-[10px] uppercase tracking-[3px]">View Details</span>
-                      </div>
-                    </div>
-                    
-                    <div className="w-full md:w-2/5 space-y-4 text-center md:text-left">
-                      <span className="text-amber-500 font-black text-xs uppercase tracking-[3px]">Archive 0{index + 1}</span>
-                      <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter" style={{ color: siteContent?.primaryColor || '#5b0143' }}>Heritage Captured</h3>
-                      <p className="text-gray-500 font-medium text-sm leading-relaxed">{item.description || "This exclusive piece tells a story of royalty and tradition. Handcrafted by master weavers in the heart of Ghana."}</p>
-                      <div className="pt-2">
-                        <span className="inline-block w-8 h-0.5 bg-amber-500"></span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              /* Classic Bento Box Layout (Default) */
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 auto-rows-[200px]">
-                {gallery.map((item, index) => (
-                  <div key={item.id} className={`rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition duration-300 relative group ${index % 3 === 0 ? 'md:col-span-2 md:row-span-2' : ''}`}>
-                    <LazyImage src={item.image} alt="Gallery" className="w-full h-full object-cover transition duration-700 group-hover:scale-110" />
-                    <div
-                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-300 flex flex-col items-center justify-center cursor-zoom-in p-6"
-                      onClick={() => setSelectedImage(item.image)}
-                    >
-                      <ZoomIn className="text-white mb-2" size={32} />
-                      <span className="text-white font-black text-[10px] uppercase tracking-[3px]">View Details</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
-          ) : (
-            <div className="text-center p-12 bg-gray-50 rounded-3xl border-2 border-dashed" style={{ borderColor: `${siteContent?.primaryColor || '#5b0143'}40`, color: `${siteContent?.primaryColor || '#5b0143'}80` }}>
-              <p className="font-medium">Gallery images coming soon! Add them in Admin.</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* HERITAGE SUMMARY SECTION */}
-      <div className="py-24 bg-gray-50 overflow-hidden relative">
-        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="relative"
-          >
-            <div className="aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl relative z-10">
-              <LazyImage
-                src={siteContent?.heroImage || "https://images.unsplash.com/photo-1523464862212-d6631d073194?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"}
-                className="w-full h-full object-cover"
-                alt="Heritage"
-              />
-            </div>
-            <div className="absolute -bottom-10 -right-10 w-64 h-64 rounded-full blur-3xl opacity-20" style={{ backgroundColor: siteContent?.secondaryColor || '#f97316' }}></div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <span className="text-amber-500 font-black text-xs uppercase tracking-[5px] mb-4 block">Our Legacy</span>
-            <h2 className="text-4xl md:text-6xl font-black mb-8 leading-tight tracking-tighter uppercase" style={{ color: siteContent?.primaryColor || '#5b0143' }}>
-              {siteContent?.heritageHomeTitle || "A Story in Every Thread"}
-            </h2>
-            <p className="text-gray-600 text-lg leading-relaxed mb-10 font-medium">
-              {siteContent?.heritageSummary || "Connecting the world to the royal heritage of Ghana. Authentic, handwoven, and timeless. Each piece in our collection is a testament to the skill of master weavers and the endurance of our traditions."}
-            </p>
-            <Link
-              to="/heritage"
-              className="inline-flex items-center gap-3 font-black text-xs uppercase tracking-[3px] hover:gap-5 transition-all"
-              style={{ color: siteContent?.primaryColor || '#5b0143' }}
-            >
-              Read full heritage <ArrowRight size={16} />
-            </Link>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* FEEDBACK SECTION */}
-      <div className="py-20 text-white relative overflow-hidden" style={{ backgroundColor: siteContent?.primaryColor || '#5b0143' }}>
-        <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full blur-[100px] opacity-10"></div>
-        <div className="max-w-5xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4 flex items-center justify-center gap-2">
-              <MessageCircle style={{ color: siteContent?.secondaryColor || '#f97316' }} /> {siteContent?.testimonialsTitle || "Love from our Clients"}
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            {feedbacks.map(fb => (
-              <div key={fb.id} className="bg-white/10 backdrop-blur-md p-8 rounded-3xl border border-white/20 hover:bg-white/20 transition">
-                <div className="flex gap-4 items-start">
-                  {fb.image ? (
-                    <img src={fb.image} alt={fb.name} className="w-16 h-16 rounded-full object-cover border-2" style={{ borderColor: siteContent?.secondaryColor || '#f97316' }} />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white" style={{ backgroundColor: siteContent?.secondaryColor || '#f97316' }}>
-                      {fb.name[0]}
-                    </div>
-                  )}
-                  <div>
-                    <div className="flex mb-2" style={{ color: siteContent?.secondaryColor || '#f97316' }}>
-                      {[...Array(5)].map((_, i) => <Star key={i} size={16} fill={i < fb.rating ? "currentColor" : "none"} className={i < fb.rating ? "" : "text-gray-500"} />)}
-                    </div>
-                    <p className="text-white/90 italic mb-4">"{fb.text}"</p>
-                    <h4 className="font-bold text-white">— {fb.name}</h4>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {feedbacks.length === 0 && <p className="text-center text-white/50 w-full col-span-2">No feedback yet.</p>}
-          </div>
-        </div>
-      </div>
-      {/* LIGHTBOX MODAL */}
-      <AnimatePresence>
-        {selectedImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-10 cursor-zoom-out"
-            onClick={() => setSelectedImage(null)}
-          >
-            <button
-              className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors p-2"
-              onClick={() => setSelectedImage(null)}
-            >
-              <X size={32} />
-            </button>
-
-            <motion.img
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              src={selectedImage}
-              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
-              alt="Zoomed"
-            />
-
-            <div className="absolute bottom-10 left-0 right-0 text-center">
-              <p className="text-white/40 text-[10px] font-black uppercase tracking-[4px]">KenteHaul Royal Archives</p>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
