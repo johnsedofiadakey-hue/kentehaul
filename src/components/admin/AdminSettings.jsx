@@ -662,6 +662,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                                 placeholder={field.placeholder}
                                 onChange={e => updateField(field.id, e.target.value)}
                                 onBlur={e => saveField(field.id, e.target.value, siteContent)}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.target.blur(); } }}
                             />
                         </div>
                     ))}
@@ -678,6 +679,8 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                         { id: 'loaderEyebrow', label: 'Loading Screen — Eyebrow', placeholder: 'e.g. Ghanaian Heritage House' },
                         { id: 'loaderTagline', label: 'Loading Screen — Tagline', placeholder: 'e.g. Weaving your story' },
                         { id: 'heroEyebrow', label: 'Hero — Eyebrow', placeholder: 'e.g. KenteHaul / Ghanaian Heritage House' },
+                        { id: 'heroCta1Text', label: 'Hero — Primary CTA Button', placeholder: 'e.g. Shop the collection' },
+                        { id: 'heroCta2Text', label: 'Hero — Secondary CTA Button', placeholder: 'e.g. Read the heritage' },
                         { id: 'homeCollectionsEyebrow', label: 'Collections — Eyebrow', placeholder: 'e.g. Shop by collection' },
                         { id: 'homeCollectionsHeadline', label: 'Collections — Headline', placeholder: 'e.g. Heritage categories, edited like a wardrobe.' },
                         { id: 'homeCollectionsBody', label: 'Collections — Body', placeholder: 'Supporting sentence under the headline', textarea: true },
@@ -714,6 +717,7 @@ export default function AdminSettings({ siteContent, setSiteContent, onlyLogisti
                                     placeholder={field.placeholder}
                                     onChange={e => updateField(field.id, e.target.value)}
                                     onBlur={e => saveField(field.id, e.target.value, siteContent)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.target.blur(); } }}
                                 />
                             )}
                         </div>

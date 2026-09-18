@@ -1,46 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-    Package, Plus, ArrowRight, ScrollText, AlertTriangle, CheckCircle2,
-    Boxes, Loader2, TrendingDown, TrendingUp
+    AlertTriangle, Boxes, CheckCircle2, Clock, Eye, EyeOff,
+    Loader2, Package, ScrollText, TrendingDown, TrendingUp
 } from 'lucide-react';
 import {
     collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, limit, serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useToast, Toast } from '../UIComponents';
-import { SHOP_CATEGORIES } from '../../data/constants';
 
-/**
- * Goods flow: INTAKE (logged here, off the shop) → READY TO PUBLISH (staged as a
- * draft product) → PUBLISHED (admin flips status to active in Products) → the
- * stock ledger records every unit sold or adjusted from there on.
- *
- * This tab owns the first two stages plus the read-only ledger. "Published" itself
- * happens in Products, where the full product-editing form already lives — this
- * tab only needs enough of that form to get a piece off the intake shelf and into
- * a draft product without admin having to re-type anything.
- */
+const STATUS_OPTIONS = [
+    { id: 'active', label: 'Live', hint: 'Visible on shop' },
+    { id: 'draft', label: 'Hidden', hint: 'Not visible' },
+    { id: 'archived', label: 'Archived', hint: 'Kept for records' }
+];
 
-const INITIAL_INTAKE_FORM = { weaverName: '', quantity: 1, unitCost: '', description: '', notes: '' };
+const statusLabel = (status) => {
+    if (status === 'draft') return 'Hidden';
+    if (status === 'archived') return 'Archived';
+    return 'Live';
+};
+
+const statusClasses = (status) => {
+    if (status === 'draft') return 'bg-amber-100 text-amber-700 border-amber-200';
+    if (status === 'archived') return 'bg-gray-200 text-gray-600 border-gray-200';
+    return 'bg-green-100 text-green-700 border-green-200';
+};
 
 export default function AdminInventory({ products = [] }) {
-    const [subTab, setSubTab] = useState('intake'); // intake | publish | ledger
     const [toast, showToast, dismissToast] = useToast();
-
-    const [intakeBatches, setIntakeBatches] = useState([]);
     const [ledger, setLedger] = useState([]);
     const [loadingLedger, setLoadingLedger] = useState(true);
-
-    useEffect(() => {
-        const unsub = onSnapshot(collection(db, 'inventory'), (snap) => {
-            setIntakeBatches(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-        });
-        return () => unsub();
-    }, []);
+    const [saving, setSaving] = useState(false);
+    const [selectedId, setSelectedId] = useState('');
+    const [form, setForm] = useState({ stockQuantity: '', status: 'active' });
 
     useEffect(() => {
         const unsub = onSnapshot(
-            query(collection(db, 'stock_ledger'), orderBy('createdAt', 'desc'), limit(100)),
+            query(collection(db, 'stock_ledger'), orderBy('createdAt', 'desc'), limit(80)),
             (snap) => {
                 setLedger(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                 setLoadingLedger(false);
@@ -50,13 +47,78 @@ export default function AdminInventory({ products = [] }) {
         return () => unsub();
     }, []);
 
-    const pendingBatches = intakeBatches
-        .filter(b => b.status !== 'linked')
-        .sort((a, b) => (b.receivedAt?.seconds || 0) - (a.receivedAt?.seconds || 0));
+    const sortedProducts = useMemo(() => {
+        const order = { active: 0, draft: 1, archived: 2 };
+        return [...products].sort((a, b) => {
+            const statusSort = (order[a.status ?? 'active'] ?? 0) - (order[b.status ?? 'active'] ?? 0);
+            if (statusSort !== 0) return statusSort;
+            return String(a.name || '').localeCompare(String(b.name || ''));
+        });
+    }, [products]);
 
+    const selectedProduct = sortedProducts.find(p => p.id === selectedId) || sortedProducts[0] || null;
+
+    useEffect(() => {
+        if (!selectedProduct) {
+            setSelectedId('');
+            setForm({ stockQuantity: '', status: 'active' });
+            return;
+        }
+        if (selectedProduct.id !== selectedId) setSelectedId(selectedProduct.id);
+        setForm({
+            stockQuantity: String(selectedProduct.stockQuantity ?? selectedProduct.stock ?? 0),
+            status: selectedProduct.status ?? 'active'
+        });
+    }, [selectedProduct?.id, selectedProduct?.stockQuantity, selectedProduct?.stock, selectedProduct?.status]);
+
+    const liveCount = products.filter(p => (p.status ?? 'active') === 'active').length;
+    const hiddenCount = products.filter(p => p.status === 'draft').length;
     const lowStock = products.filter(p => (p.status ?? 'active') === 'active' && !p.isPreorder && (p.stockQuantity ?? 0) > 0 && (p.stockQuantity ?? 0) < 5);
     const outOfStock = products.filter(p => (p.status ?? 'active') === 'active' && !p.isPreorder && (p.stockQuantity ?? 0) <= 0);
-    const draftCount = products.filter(p => p.status === 'draft').length;
+
+    const saveStock = async (e) => {
+        e.preventDefault();
+        if (!selectedProduct) {
+            showToast('Add a product first in Products.', 'error');
+            return;
+        }
+
+        const nextStock = Number(form.stockQuantity);
+        if (!Number.isFinite(nextStock) || nextStock < 0) {
+            showToast('Stock must be 0 or higher.', 'error');
+            return;
+        }
+
+        const roundedStock = Math.floor(nextStock);
+        const priorStock = selectedProduct.stockQuantity ?? selectedProduct.stock ?? 0;
+        const delta = roundedStock - priorStock;
+
+        setSaving(true);
+        try {
+            await updateDoc(doc(db, 'products', selectedProduct.id), {
+                stockQuantity: roundedStock,
+                status: form.status
+            });
+
+            if (delta !== 0) {
+                await addDoc(collection(db, 'stock_ledger'), {
+                    productId: selectedProduct.id,
+                    productName: selectedProduct.name,
+                    type: 'adjustment',
+                    delta,
+                    balanceAfter: roundedStock,
+                    actor: 'admin',
+                    createdAt: serverTimestamp()
+                });
+            }
+
+            showToast(`${selectedProduct.name} updated.`);
+        } catch (err) {
+            console.error('Inventory update failed:', err);
+            showToast('Could not update inventory.', 'error');
+        }
+        setSaving(false);
+    };
 
     return (
         <div className="space-y-8 animate-fade-in-up">
@@ -64,252 +126,165 @@ export default function AdminInventory({ products = [] }) {
 
             <div>
                 <h2 className="text-3xl font-black text-gray-900">Inventory</h2>
-                <p className="text-gray-400 font-bold text-sm mt-1">Goods received from weavers, staged before they reach the shop, and tracked once they're selling.</p>
+                <p className="text-gray-400 font-bold text-sm mt-1">Fast stock and visibility control. Product photos, names, prices, and descriptions stay in Products.</p>
             </div>
 
-            {/* At-a-glance status strip */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Awaiting Publish</p>
-                    <p className="text-3xl font-black text-gray-900 mt-1">{pendingBatches.length}</p>
-                </div>
-                <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Drafts (Not Live)</p>
-                    <p className="text-3xl font-black text-gray-900 mt-1">{draftCount}</p>
-                </div>
-                <div className="bg-white p-5 rounded-3xl border border-amber-100 bg-amber-50/50 shadow-sm">
-                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest flex items-center gap-1"><AlertTriangle size={11} /> Low Stock</p>
-                    <p className="text-3xl font-black text-amber-700 mt-1">{lowStock.length}</p>
-                </div>
-                <div className="bg-white p-5 rounded-3xl border border-red-100 bg-red-50/50 shadow-sm">
-                    <p className="text-[10px] font-black text-red-600 uppercase tracking-widest">Out of Stock</p>
-                    <p className="text-3xl font-black text-red-700 mt-1">{outOfStock.length}</p>
-                </div>
+                <StatCard label="Live Products" value={liveCount} icon={Eye} tone="green" />
+                <StatCard label="Hidden Drafts" value={hiddenCount} icon={EyeOff} tone="amber" />
+                <StatCard label="Low Stock" value={lowStock.length} icon={AlertTriangle} tone="red" />
+                <StatCard label="All Products" value={products.length} icon={Boxes} tone="gray" />
             </div>
 
-            {/* Sub-nav */}
-            <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl w-fit">
-                {[
-                    { id: 'intake', label: 'Intake', icon: Package },
-                    { id: 'publish', label: 'Ready to Publish', icon: Boxes },
-                    { id: 'ledger', label: 'Ledger', icon: ScrollText }
-                ].map(t => (
-                    <button
-                        key={t.id}
-                        onClick={() => setSubTab(t.id)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${subTab === t.id ? 'bg-white text-gray-900 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
-                    >
-                        <t.icon size={14} /> {t.label}
-                    </button>
-                ))}
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.3fr)] gap-6">
+                <form onSubmit={saveStock} className="bg-white p-6 md:p-8 rounded-[36px] shadow-xl border border-gray-100 space-y-5">
+                    <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Quick Update</p>
+                        <h3 className="font-black text-xl text-gray-900 mt-1">Change stock or visibility</h3>
+                    </div>
+
+                    {sortedProducts.length === 0 ? (
+                        <div className="border border-dashed border-gray-200 rounded-3xl p-8 text-center">
+                            <Package size={28} className="mx-auto text-gray-300 mb-3" />
+                            <p className="text-sm font-bold text-gray-400">No products yet. Add the product in Products first.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Product</label>
+                                <select
+                                    value={selectedId}
+                                    onChange={e => setSelectedId(e.target.value)}
+                                    className="w-full p-4 bg-gray-50 border rounded-2xl font-bold appearance-none"
+                                >
+                                    {sortedProducts.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Stock Qty</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        className="w-full p-4 bg-gray-50 border rounded-2xl font-black"
+                                        value={form.stockQuantity}
+                                        onChange={e => setForm({ ...form, stockQuantity: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Visibility</label>
+                                    <select
+                                        value={form.status}
+                                        onChange={e => setForm({ ...form, status: e.target.value })}
+                                        className="w-full p-4 bg-gray-50 border rounded-2xl font-bold appearance-none"
+                                    >
+                                        {STATUS_OPTIONS.map(opt => (
+                                            <option key={opt.id} value={opt.id}>{opt.label} - {opt.hint}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {selectedProduct && (
+                                <div className="flex items-center gap-4 p-4 rounded-3xl bg-gray-50 border border-gray-100">
+                                    {selectedProduct.image ? (
+                                        <img src={selectedProduct.image} alt={selectedProduct.name} className="w-16 h-16 rounded-2xl object-cover border border-gray-100" />
+                                    ) : (
+                                        <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-[10px] font-black text-gray-300 border border-gray-100">No img</div>
+                                    )}
+                                    <div className="min-w-0">
+                                        <p className="font-black text-gray-900 truncate">{selectedProduct.name}</p>
+                                        <p className="text-xs font-bold text-gray-400">Current: {selectedProduct.stockQuantity ?? selectedProduct.stock ?? 0} in stock - {statusLabel(selectedProduct.status)}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <button type="submit" disabled={saving} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 disabled:opacity-60">
+                                {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Save Inventory
+                            </button>
+                        </>
+                    )}
+                </form>
+
+                <StockList products={sortedProducts} />
             </div>
 
-            {subTab === 'intake' && <IntakeForm onLogged={() => showToast('Batch logged. Find it in Ready to Publish when you have photos and pricing.')} />}
-            {subTab === 'publish' && (
-                <PublishQueue
-                    batches={pendingBatches}
-                    onPublished={(name) => showToast(`${name} created as a draft. Add photos in Products, then flip it to Active.`)}
-                    onError={(msg) => showToast(msg, 'error')}
-                />
-            )}
-            {subTab === 'ledger' && <LedgerView entries={ledger} loading={loadingLedger} lowStock={lowStock} outOfStock={outOfStock} />}
+            <LedgerView entries={ledger} loading={loadingLedger} lowStock={lowStock} outOfStock={outOfStock} />
         </div>
     );
 }
 
-function IntakeForm({ onLogged }) {
-    const [form, setForm] = useState(INITIAL_INTAKE_FORM);
-    const [saving, setSaving] = useState(false);
-
-    const submit = async (e) => {
-        e.preventDefault();
-        if (!form.weaverName.trim() || !form.quantity) return;
-        setSaving(true);
-        try {
-            await addDoc(collection(db, 'inventory'), {
-                weaverName: form.weaverName.trim(),
-                quantity: Number(form.quantity),
-                unitCost: form.unitCost === '' ? null : Number(form.unitCost),
-                description: form.description.trim(),
-                notes: form.notes.trim(),
-                status: 'received', // received | linked
-                linkedProductId: null,
-                receivedAt: serverTimestamp()
-            });
-            setForm(INITIAL_INTAKE_FORM);
-            onLogged?.();
-        } catch (err) {
-            console.error('Intake log failed:', err);
-        }
-        setSaving(false);
+function StatCard({ label, value, icon: Icon, tone }) {
+    const tones = {
+        green: 'border-green-100 bg-green-50/50 text-green-700',
+        amber: 'border-amber-100 bg-amber-50/50 text-amber-700',
+        red: 'border-red-100 bg-red-50/50 text-red-700',
+        gray: 'border-gray-100 bg-white text-gray-900'
     };
 
     return (
-        <form onSubmit={submit} className="bg-white p-8 md:p-10 rounded-[40px] shadow-xl border border-gray-100 space-y-6 max-w-2xl">
-            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Log goods as they arrive — before any photo, price, or listing exists.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Weaver / Source <span className="text-red-400">*</span></label>
-                    <input required placeholder="e.g. Kofi Mensah, Bonwire" className="w-full p-4 bg-gray-50 border rounded-2xl font-bold" value={form.weaverName} onChange={e => setForm({ ...form, weaverName: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Quantity <span className="text-red-400">*</span></label>
-                    <input required type="number" min="1" step="1" className="w-full p-4 bg-gray-50 border rounded-2xl font-black" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} />
-                </div>
-            </div>
-            <div className="space-y-2">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Unit Cost (₵) — what you paid, not the sale price</label>
-                <input type="number" min="0" step="0.01" placeholder="Optional — for your own margin tracking" className="w-full p-4 bg-gray-50 border rounded-2xl font-black" value={form.unitCost} onChange={e => setForm({ ...form, unitCost: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Description</label>
-                <textarea placeholder="Pattern, colors, cloth type — whatever helps you recognize it later" className="w-full p-5 bg-gray-50 border rounded-[30px] h-24 font-medium" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Notes</label>
-                <input placeholder="Optional" className="w-full p-4 bg-gray-50 border rounded-2xl font-bold" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-            </div>
-            <button type="submit" disabled={saving} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 disabled:opacity-60">
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Log Batch
-            </button>
-        </form>
+        <div className={`p-5 rounded-3xl border shadow-sm ${tones[tone]}`}>
+            <p className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 opacity-80"><Icon size={12} /> {label}</p>
+            <p className="text-3xl font-black mt-1">{value}</p>
+        </div>
     );
 }
 
-function PublishQueue({ batches, onPublished, onError }) {
-    const [openId, setOpenId] = useState(null);
-
-    if (batches.length === 0) {
+function StockList({ products }) {
+    if (products.length === 0) {
         return (
-            <div className="bg-white p-12 rounded-[40px] border border-dashed border-gray-200 text-center">
-                <Boxes size={32} className="mx-auto text-gray-300 mb-3" />
-                <p className="text-gray-400 font-bold text-sm">Nothing waiting. Logged batches show up here until they become a product.</p>
+            <div className="bg-white p-10 rounded-[36px] shadow-xl border border-gray-100 text-center">
+                <Boxes size={30} className="mx-auto text-gray-300 mb-3" />
+                <p className="text-sm font-bold text-gray-400">Products you add will appear here.</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-4">
-            {batches.map(b => (
-                <div key={b.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                    <button onClick={() => setOpenId(openId === b.id ? null : b.id)} className="w-full flex items-center justify-between gap-4 p-6 text-left">
-                        <div>
-                            <p className="font-black text-gray-900">{b.description || 'Untitled batch'}</p>
-                            <p className="text-xs font-bold text-gray-400 mt-1">{b.weaverName} · Qty {b.quantity}{b.unitCost != null ? ` · ₵${b.unitCost}/unit cost` : ''}</p>
+        <div className="bg-white p-6 md:p-8 rounded-[36px] shadow-xl border border-gray-100">
+            <div className="flex items-center justify-between mb-5 gap-4">
+                <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Stock List</p>
+                    <h3 className="font-black text-xl text-gray-900 mt-1">Current products</h3>
+                </div>
+                <p className="text-xs font-black text-gray-300 uppercase tracking-[3px]">{products.length} items</p>
+            </div>
+
+            <div className="space-y-3 max-h-[520px] overflow-auto pr-1">
+                {products.map(p => {
+                    const stock = p.stockQuantity ?? p.stock ?? 0;
+                    const status = p.status ?? 'active';
+                    return (
+                        <div key={p.id} className="flex items-center gap-4 p-4 rounded-3xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                            {p.image ? (
+                                <img src={p.image} alt={p.name} className="w-14 h-14 rounded-2xl object-cover flex-shrink-0 border border-gray-100" />
+                            ) : (
+                                <div className="w-14 h-14 rounded-2xl bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-300 text-[10px] font-black">No img</div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <p className="font-black text-gray-900 truncate">{p.name}</p>
+                                <p className="text-[10px] font-bold text-gray-400 mt-0.5">₵{p.price || 0} - {stock} in stock</p>
+                            </div>
+                            <span className={`px-2.5 py-1 rounded-full border text-[9px] font-black uppercase flex-shrink-0 ${statusClasses(status)}`}>
+                                {statusLabel(status)}
+                            </span>
                         </div>
-                        <ArrowRight size={18} className={`text-gray-300 transition-transform flex-shrink-0 ${openId === b.id ? 'rotate-90' : ''}`} />
-                    </button>
-                    {openId === b.id && (
-                        <CreateProductFromBatch
-                            batch={b}
-                            onDone={(name) => { setOpenId(null); onPublished?.(name); }}
-                            onError={onError}
-                        />
-                    )}
-                </div>
-            ))}
+                    );
+                })}
+            </div>
         </div>
-    );
-}
-
-function CreateProductFromBatch({ batch, onDone, onError }) {
-    const [form, setForm] = useState({
-        name: batch.description || '',
-        price: '',
-        category: '',
-        publishNow: false
-    });
-    const [saving, setSaving] = useState(false);
-
-    const submit = async (e) => {
-        e.preventDefault();
-        const price = Number(form.price);
-        if (!form.name.trim() || !Number.isFinite(price) || price <= 0 || !form.category) {
-            onError?.('Name, category, and a sale price above 0 are required.');
-            return;
-        }
-        setSaving(true);
-        try {
-            const productRef = await addDoc(collection(db, 'products'), {
-                name: form.name.trim(),
-                price,
-                originalPrice: null,
-                stockQuantity: Number(batch.quantity) || 0,
-                sku: '',
-                category: form.category,
-                subcategory: '',
-                description: batch.description || '',
-                image: '',
-                isPreorder: false,
-                isFlashSale: false,
-                isFeatured: false,
-                // Staged by default — the client's whole point in asking for this
-                // system was that goods shouldn't reach customers automatically.
-                // publishNow is an explicit, deliberate opt-out of that staging.
-                status: form.publishNow ? 'active' : 'draft',
-                date: Date.now()
-            });
-
-            if (Number(batch.quantity) > 0) {
-                await addDoc(collection(db, 'stock_ledger'), {
-                    productId: productRef.id,
-                    productName: form.name.trim(),
-                    type: 'intake',
-                    delta: Number(batch.quantity),
-                    balanceAfter: Number(batch.quantity),
-                    actor: 'admin',
-                    createdAt: serverTimestamp()
-                });
-            }
-
-            await updateDoc(doc(db, 'inventory', batch.id), {
-                status: 'linked',
-                linkedProductId: productRef.id
-            });
-
-            onDone?.(form.name.trim());
-        } catch (err) {
-            console.error('Publish from batch failed:', err);
-            onError?.('Something went wrong creating the product.');
-        }
-        setSaving(false);
-    };
-
-    return (
-        <form onSubmit={submit} className="border-t border-gray-100 p-6 space-y-4 bg-gray-50/50">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Product Name <span className="text-red-400">*</span></label>
-                    <input required className="w-full p-4 bg-white border rounded-2xl font-bold" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sale Price (₵) <span className="text-red-400">*</span></label>
-                    <input required type="number" min="0.01" step="0.01" className="w-full p-4 bg-white border rounded-2xl font-black" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
-                </div>
-            </div>
-            <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Category <span className="text-red-400">*</span></label>
-                <select required className="w-full p-4 bg-white border rounded-2xl font-bold appearance-none" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                    <option value="">Select Category</option>
-                    {SHOP_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-            </div>
-            <label className="flex items-center gap-3 p-4 bg-white border rounded-2xl cursor-pointer">
-                <input type="checkbox" className="h-5 w-5" checked={form.publishNow} onChange={e => setForm({ ...form, publishNow: e.target.checked })} />
-                <span className="text-xs font-bold text-gray-600">Publish immediately (skip draft — goes live on the shop right away)</span>
-            </label>
-            <p className="text-[10px] text-gray-400">Stock starts at {batch.quantity} from this batch. Add a photo afterward in Products — this piece stays a draft until you upload one and switch it to Active, unless you check the box above.</p>
-            <button type="submit" disabled={saving} className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2 disabled:opacity-60">
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                {form.publishNow ? 'Create & Publish' : 'Create as Draft'}
-            </button>
-        </form>
     );
 }
 
 function LedgerView({ entries, loading, lowStock, outOfStock }) {
     const fmtTime = (ts) => {
-        if (!ts?.seconds) return '—';
+        if (!ts?.seconds) return '-';
         return new Date(ts.seconds * 1000).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     };
 
@@ -320,21 +295,27 @@ function LedgerView({ entries, loading, lowStock, outOfStock }) {
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Needs Attention</p>
                     <div className="flex flex-wrap gap-2">
                         {outOfStock.map(p => (
-                            <span key={p.id} className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase bg-black text-white">{p.name} — out of stock</span>
+                            <span key={p.id} className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase bg-black text-white">{p.name} - out of stock</span>
                         ))}
                         {lowStock.map(p => (
-                            <span key={p.id} className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase bg-red-50 text-red-600 border border-red-100">{p.name} — {p.stockQuantity} left</span>
+                            <span key={p.id} className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase bg-red-50 text-red-600 border border-red-100">{p.name} - {p.stockQuantity} left</span>
                         ))}
                     </div>
                 </div>
             )}
 
-            <div className="bg-white p-6 md:p-8 rounded-[40px] shadow-xl border border-gray-100 overflow-hidden">
-                <h3 className="font-black text-xl mb-6 text-gray-900">Stock Movement</h3>
+            <div className="bg-white p-6 md:p-8 rounded-[36px] shadow-xl border border-gray-100 overflow-hidden">
+                <div className="flex items-center justify-between mb-6 gap-4">
+                    <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ledger</p>
+                        <h3 className="font-black text-xl text-gray-900 mt-1">Recent stock movement</h3>
+                    </div>
+                    <ScrollText size={22} className="text-gray-300" />
+                </div>
                 {loading ? (
                     <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-gray-300" size={24} /></div>
                 ) : entries.length === 0 ? (
-                    <p className="text-sm text-gray-400 font-bold py-8 text-center">No stock movement recorded yet — this fills in as sales, restocks, and adjustments happen.</p>
+                    <p className="text-sm text-gray-400 font-bold py-8 text-center">No stock movement recorded yet.</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
@@ -346,7 +327,7 @@ function LedgerView({ entries, loading, lowStock, outOfStock }) {
                                     <tr key={e.id} className="hover:bg-gray-50">
                                         <td className="p-4 font-black text-gray-800">{e.productName || e.productId}</td>
                                         <td className="p-4">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{e.type || '—'}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{e.type || '-'}</span>
                                         </td>
                                         <td className="p-4">
                                             <span className={`flex items-center gap-1 font-black ${e.delta < 0 ? 'text-red-500' : 'text-green-600'}`}>
@@ -354,9 +335,9 @@ function LedgerView({ entries, loading, lowStock, outOfStock }) {
                                                 {e.delta > 0 ? `+${e.delta}` : e.delta}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-gray-500 font-bold">{e.balanceAfter ?? '—'}</td>
-                                        <td className="p-4 text-gray-400 font-mono text-xs">{e.orderId || '—'}</td>
-                                        <td className="p-4 text-gray-400 text-xs">{fmtTime(e.createdAt)}</td>
+                                        <td className="p-4 text-gray-500 font-bold">{e.balanceAfter ?? '-'}</td>
+                                        <td className="p-4 text-gray-400 font-mono text-xs">{e.orderId || '-'}</td>
+                                        <td className="p-4 text-gray-400 text-xs whitespace-nowrap"><Clock size={11} className="inline mr-1" />{fmtTime(e.createdAt)}</td>
                                     </tr>
                                 ))}
                             </tbody>

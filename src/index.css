@@ -202,6 +202,26 @@
   overflow: hidden;
 }
 
+.kh-loader-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.82;
+  transform: scale(1.02);
+  filter: saturate(0.95) contrast(1.04);
+}
+
+.kh-loader-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(33, 27, 23, 0.34), rgba(33, 27, 23, 0.72)),
+    radial-gradient(ellipse 70% 50% at 50% 50%, rgba(184,138,43,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
 /* Subtle radial glow behind the wordmark */
 .kh-loader-screen::before {
   content: "";
@@ -209,9 +229,12 @@
   inset: 0;
   background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(184,138,43,0.12) 0%, transparent 70%);
   pointer-events: none;
+  z-index: 1;
 }
 
 .kh-loader-content {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -276,7 +299,7 @@
   border-radius: 99px;
   background: linear-gradient(90deg, #b88a2b, #d9b05d, #a24f32, #2f5d50, #d9b05d);
   background-size: 200% 100%;
-  animation: khBarFill 6s cubic-bezier(0.4, 0, 0.2, 1) 1s forwards,
+  animation: khBarFill 1.4s cubic-bezier(0.4, 0, 0.2, 1) 0.25s forwards,
              khBarShimmer 1.8s linear 1s infinite;
 }
 

@@ -90,7 +90,10 @@ export default function Shop({
     else if (sortBy === 'newest') result = [...result].sort((a, b) => (b.date || 0) - (a.date || 0));
     else if (sortBy === 'stock') result = [...result].sort((a, b) => (b.stockQuantity || 0) - (a.stockQuantity || 0));
 
-    return result;
+    // Always push sold-out items to the bottom regardless of sort order
+    const inStock = result.filter(p => (p.stockQuantity ?? 0) > 0 || p.isPreorder);
+    const soldOut = result.filter(p => (p.stockQuantity ?? 0) <= 0 && !p.isPreorder);
+    return [...inStock, ...soldOut];
   }, [products, categories, activeCategory, activeSubcategory, searchQuery, sortBy]);
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
@@ -559,7 +562,7 @@ export default function Shop({
                           {p.stockQuantity <= 0 ? (
                             <span className="border border-white/30 bg-red-700/80 px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md md:text-[10px]">Sold Out</span>
                           ) : p.stockQuantity <= 3 && (
-                            <span className="border border-white/30 bg-[#b88a2b]/90 px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-[#211b17] backdrop-blur-md md:text-[10px]">Low Stock</span>
+                            <span className="border border-white/30 bg-[#b88a2b]/90 px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-[#211b17] backdrop-blur-md md:text-[10px]">{p.stockQuantity} left</span>
                           )}
                           {saleLive && (p.isFlashSale || (p.originalPrice > p.price)) && (
                             <span className="border border-white/30 bg-[#a24f32]/90 px-3 py-1.5 text-[8px] font-black uppercase tracking-[0.2em] text-white backdrop-blur-md md:text-[10px]">

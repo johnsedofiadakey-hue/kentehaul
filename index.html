@@ -8,22 +8,24 @@
     
     <script>
       (function() {
-        var V = '2026.08.27.LOADER.V4';
-        if (localStorage.getItem('kh_deploy_v') !== V) {
-          localStorage.clear();
-          localStorage.setItem('kh_deploy_v', V);
-          
-          // Kill any active Service Workers that might be caching stale HTML
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-              for(let registration of registrations) {
-                registration.unregister();
-              }
-            });
+        var V = '2026.09.18.SIMPLE.ADMIN.LOADER.V1';
+        try {
+          if (localStorage.getItem('kh_deploy_v') !== V) {
+            localStorage.setItem('kh_deploy_v', V);
+            
+            // Retire stale app shells without forcing a visible double-load.
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (var i = 0; i < registrations.length; i++) {
+                  registrations[i].unregister();
+                }
+              });
+            }
+            
+            console.log("KenteHaul cache marker updated: " + V);
           }
-          
-          console.log("Nuclear Refresh Triggered: Version " + V);
-          window.location.reload(true);
+        } catch (e) {
+          console.warn("KenteHaul cache marker skipped:", e);
         }
       })();
     </script>
@@ -57,7 +59,7 @@
   <body>
     <div id="root">
       <div class="kh-shell-loader" aria-label="KenteHaul is loading">
-        <video src="/kentehaul-loading-video.mp4?v=20260827-visible-start" poster="/kentehaul-loading-poster.jpg" autoplay muted loop playsinline preload="auto"></video>
+        <video src="/kentehaul-loading-video.mp4?v=20260918-fast-loader" poster="/kentehaul-loading-poster.jpg" autoplay muted loop playsinline preload="auto"></video>
       </div>
     </div>
     <script type="module" src="/src/main.jsx"></script>

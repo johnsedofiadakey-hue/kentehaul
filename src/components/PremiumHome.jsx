@@ -245,14 +245,14 @@ export default function PremiumHome({ siteContent, gallery = [], feedbacks = [],
                 to="/shop"
                 className="group inline-flex items-center justify-center gap-3 bg-[#b88a2b] px-7 py-4 text-[11px] font-black uppercase tracking-[0.26em] text-[#211b17] transition hover:bg-[#d0a445] active:scale-95"
               >
-                Shop the collection
+                {siteContent?.heroCta1Text || 'Shop the collection'}
                 <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
                 to="/heritage"
                 className="inline-flex items-center justify-center border border-[#f8f1e6]/30 px-7 py-4 text-[11px] font-black uppercase tracking-[0.26em] text-[#fff8ed] transition hover:border-[#f8f1e6] hover:bg-[#f8f1e6]/10 active:scale-95"
               >
-                Read the heritage
+                {siteContent?.heroCta2Text || 'Read the heritage'}
               </Link>
             </motion.div>
           </motion.div>

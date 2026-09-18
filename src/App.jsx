@@ -58,9 +58,9 @@ import LegalView from './components/LegalView';
 import SEO from './components/SEO';
 import ClientLoginModal from './components/ClientLoginModal';
 
-const DEPLOY_VERSION = '2026.08.27.LOADER.V4';
-const LOADER_MIN_DURATION_MS = 7200;
-const LOADER_VIDEO_SRC = '/kentehaul-loading-video.mp4?v=20260827-visible-start';
+const DEPLOY_VERSION = '2026.09.18.SIMPLE.ADMIN.LOADER.V1';
+const LOADER_MIN_DURATION_MS = 1800;
+const LOADER_VIDEO_SRC = '/kentehaul-loading-video.mp4?v=20260918-fast-loader';
 
 // --- UTILITIES ---
 // Order-confirmation emails are sent server-side (see functions/index.js,
@@ -1118,7 +1118,20 @@ export default function App() {
 
   if (shouldShowLoader) {
     return (
-      <div className="kh-loader-screen" aria-label="KenteHaul is loading">
+      <div className={`kh-loader-screen ${isLoaderVideoPlaying ? 'kh-loader-screen--video-ready' : ''}`} aria-label="KenteHaul is loading">
+        <video
+          ref={loaderVideoRef}
+          className="kh-loader-video"
+          src={LOADER_VIDEO_SRC}
+          poster="/kentehaul-loading-poster.jpg"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          aria-hidden="true"
+        />
+        <div className="kh-loader-scrim" />
         <div className="kh-loader-content">
           {/* siteContent can still be null here on a cold load, so both strings fall
               back to INITIAL_CONTENT rather than being hardcoded — the client edits

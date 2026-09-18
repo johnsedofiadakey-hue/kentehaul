@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Package, Users, Edit, Settings, LogOut, Menu, X, ChevronRight, MessageSquare, MessageCircle, Truck, Camera } from 'lucide-react';
+import { Package, Users, Edit, Settings, LogOut, Menu, X, ChevronRight, MessageSquare, MessageCircle, Truck, Camera, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from "firebase/auth";
 import { auth, db, messaging } from '../firebase';
@@ -21,6 +21,7 @@ import AdminWishlists from './admin/AdminWishlists';
 import AdminAnalytics from './admin/AdminAnalytics';
 import AdminProduction from './admin/AdminProduction';
 import AdminInventory from './admin/AdminInventory';
+import AdminHelp from './admin/AdminHelp';
 import { Heart, BarChart3, Wrench, Boxes } from 'lucide-react';
 
 // Shared Global Components
@@ -40,7 +41,8 @@ const sideMenu = [
   { id: 'settings', icon: Settings, label: 'Settings' },
   { id: 'production', icon: Wrench, label: 'Production Schedule' },
   { id: 'analytics', icon: BarChart3, label: 'Market Insights' },
-  { id: 'wishlists', icon: Heart, label: 'Customer Interests' }
+  { id: 'wishlists', icon: Heart, label: 'Customer Interests' },
+  { id: 'help', icon: HelpCircle, label: 'Admin Guide' }
 ];
 
 export default function AdminDashboard({
@@ -279,6 +281,10 @@ export default function AdminDashboard({
 
           {adminTab === 'analytics' && (
             <AdminAnalytics key="admin-analytics" products={products} orders={orders} />
+          )}
+
+          {adminTab === 'help' && (
+            <AdminHelp key="admin-help" />
           )}
 
         </div>

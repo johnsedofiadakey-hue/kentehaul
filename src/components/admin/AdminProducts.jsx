@@ -9,8 +9,8 @@ import CategoryManagerModal from './CategoryManagerModal';
 const INITIAL_PRODUCT_FORM = {
     name: '', price: '', originalPrice: '', stockQuantity: 1, sku: '', category: '', subcategory: '',
     description: '', image: '', isPreorder: false, preorderDays: 14, isFlashSale: false, isFeatured: false,
-    // 'active' = visible in Shop. 'draft' = staged, only visible here and in
-    // Inventory → Ready to Publish. 'archived' = pulled from sale, kept for records.
+    // 'active' = visible in Shop. 'draft' = staged/hidden from customers.
+    // 'archived' = pulled from sale, kept for records.
     status: 'active'
 };
 
@@ -155,9 +155,8 @@ export default function AdminProducts({
         } catch (e) { showToast("Could not delete product.", "error"); }
     };
 
-    // One-tap publish for a product staged as 'draft' — the common case coming out
-    // of Inventory → Ready to Publish, where opening the full edit form just to
-    // flip one field would be friction for no reason.
+    // One-tap publish for a product staged as 'draft'. Opening the full edit
+    // form just to flip one field would be friction for no reason.
     const publishProduct = async (p) => {
         try {
             await updateDoc(doc(db, "products", p.id), { status: 'active' });
@@ -212,9 +211,12 @@ export default function AdminProducts({
             {/* Product Form */}
             <div className="bg-white p-6 sm:p-10 md:p-12 rounded-[50px] shadow-2xl border border-gray-50">
                 <div className="flex items-center justify-between mb-10 flex-wrap gap-4">
-                    <h3 className="font-black text-2xl sm:text-3xl text-gray-900 tracking-tight">
-                        {editingProduct ? 'Update Inventory Item' : 'Register New Asset'}
-                    </h3>
+                    <div>
+                        <h3 className="font-black text-2xl sm:text-3xl text-gray-900 tracking-tight">
+                            {editingProduct ? 'Edit Product' : 'Add Product'}
+                        </h3>
+                        <p className="text-sm font-bold text-gray-400 mt-1">Photo, name, price, stock, category, then save. Extra settings stay tucked away.</p>
+                    </div>
                     <button
                         type="button"
                         onClick={() => openCategoryModal(null)}

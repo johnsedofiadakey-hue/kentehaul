@@ -5,9 +5,12 @@ service firebase.storage {
       // Products and site images are public
       allow read: if true;
       
-      // Only Admin can upload/delete
-      // Note: In firestore.rules we check for auth != null. 
-      // We should be consistent.
+      // Only Admin can upload/delete. `auth != null` alone would work today only
+      // because AdminLoginModal is the sole signInWithEmailAndPassword() call in
+      // the app — but it's a latent hole: the moment any customer-facing Firebase
+      // Auth flow is added (Google sign-in, etc.), every signed-in shopper could
+      // write or delete anything in Storage. The email check costs nothing and
+      // closes that off now rather than relying on "nothing else uses auth yet".
       allow write: if request.auth != null && request.auth.token.email == 'admin@kentehaul.com';
     }
   }
